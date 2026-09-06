@@ -1,5 +1,6 @@
 /* Generated from the checked-in wire schema. Do not edit. */
 
+export type ExtractionProvider = ("ollama" | "openrouter") | null;
 export type Subject = string;
 export type TenantId = string;
 export type Id = string;
@@ -9,6 +10,7 @@ export type Capabilities = string[];
 export type Domains = AccessibleDomain[];
 
 export interface IdentityView {
+  extraction_provider?: ExtractionProvider;
   subject: Subject;
   tenant_id: TenantId;
   domains: Domains;

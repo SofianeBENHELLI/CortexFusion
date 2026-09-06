@@ -1,7 +1,8 @@
 from pathlib import Path
+from typing import Literal
 from urllib.parse import urlparse
 
-from pydantic import Field, model_validator
+from pydantic import AliasChoices, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,6 +13,17 @@ class Settings(BaseSettings):
     jwt_audience: str = "cortex-core"
     jwt_public_key_file: Path | None = None
     jwks_url: str | None = None
+    model_provider: Literal["openrouter", "ollama"] = "openrouter"
+    openrouter_model: str | None = None
+    openrouter_api_key: SecretStr | None = Field(
+        default=None,
+        exclude=True,
+        validation_alias=AliasChoices(
+            "CORTEX_OPENROUTER_API_KEY", "OPENROUTER_API_KEY", "openrouter_api_key"
+        ),
+    )
+    local_model: str | None = None
+    ollama_url: str = "http://127.0.0.1:11434"
     max_request_bytes: int = Field(default=1000000, ge=1000)
 
     @model_validator(mode="after")

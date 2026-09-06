@@ -7,7 +7,8 @@ from .service import digest, encoded, one, run
 
 
 class WorkspaceService:
-    def __init__(self, knowledge):
+    def __init__(self, knowledge, extraction_provider=None):
+        self.extraction_provider = extraction_provider
         self.k = knowledge
         self.db = knowledge.db
 
@@ -44,8 +45,17 @@ class WorkspaceService:
                         "manage_members",
                         "manage_members",
                     ]
+                if d["role"] == "owner" and self.extraction_provider:
+                    capabilities.append("extract")
+                    if self.extraction_provider == "ollama":
+                        capabilities.append("extract_local")
                 result.append({**dict(d), "capabilities": capabilities})
-            return {"subject": p.subject, "tenant_id": p.tenant_id, "domains": result}
+            return {
+                "subject": p.subject,
+                "tenant_id": p.tenant_id,
+                "domains": result,
+                "extraction_provider": self.extraction_provider,
+            }
 
     def _proposal(self, conn, p, domain, ident):
         row = one(

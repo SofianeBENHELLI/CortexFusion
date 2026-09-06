@@ -310,6 +310,7 @@ class AccessibleDomain(Contract):
 
 
 class IdentityView(Contract):
+    extraction_provider: Literal["ollama", "openrouter"] | None = None
     subject: str
     tenant_id: UUID
     domains: list[AccessibleDomain]
@@ -441,3 +442,58 @@ class CommitPage(Contract):
 
 
 CONTRACTS += [MembershipInput, MemberPage, MembershipReceipt, CommitPage]
+
+
+class LocalExtractionInput(Contract):
+    allow_local_processing: Literal[True]
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+
+class LocalExtractionView(Contract):
+    provider: Literal["ollama", "openrouter"] = "ollama"
+    request_id: str | None = None
+    cost_usd: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+    id: UUID
+    proposal: ProposalView
+    model: str
+    model_digest: str | None
+    prompt_version: str
+    input_tokens: int | None
+    output_tokens: int | None
+    processing: Literal["local_model_passage_selection", "openrouter_passage_selection"] = (
+        "local_model_passage_selection"
+    )
+
+
+CONTRACTS += [LocalExtractionInput, LocalExtractionView]
+
+
+class MembershipEventPage(Contract):
+    items: list[MembershipReceipt]
+    next_after: UUID | None
+
+
+class ConceptDifference(Contract):
+    concept_id: UUID
+    before: Concept | None
+    after: Concept | None
+
+
+class ProposalDifference(Contract):
+    proposal_id: UUID
+    base_version: int
+    published_version: int
+    comparison: Literal["accepted_before_state", "current_published_state"]
+    stale_base: bool
+    items: list[ConceptDifference]
+
+
+CONTRACTS += [MembershipEventPage, ProposalDifference]
+
+
+class ExtractionInput(Contract):
+    processing_destination: Literal["ollama", "openrouter"]
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+
+CONTRACTS += [ExtractionInput]

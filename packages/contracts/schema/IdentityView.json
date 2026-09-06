@@ -44,6 +44,22 @@
   },
   "additionalProperties": false,
   "properties": {
+    "extraction_provider": {
+      "anyOf": [
+        {
+          "enum": [
+            "ollama",
+            "openrouter"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Extraction Provider"
+    },
     "subject": {
       "title": "Subject",
       "type": "string"

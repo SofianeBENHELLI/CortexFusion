@@ -4,7 +4,7 @@ This increment extends the corpus API with the browser-facing operations below. 
 
 ## Discover the current identity
 
-`GET /v1/me` returns the authenticated subject, selected tenant and only that subject's domain memberships, names, roles and capabilities. Capabilities are derived from database membership, not JWT role claims. This does not implement an OIDC login/session, create an organization or discover all organizations for a user. Initial tenant/domain and identity configuration still use the documented bootstrap procedure.
+`GET /v1/me` returns the authenticated subject, selected tenant and only that subject's domain memberships, names, roles and capabilities. Capabilities are derived from database membership, not JWT role claims. This does not implement an OIDC login/session, create an organization or discover all organizations for a user. Initial tenant/domain and identity configuration still use the documented bootstrap procedure. Optional local passage selection and migration 0007 are described in [local extraction](local-extraction.md).
 
 ## Review knowledge
 

@@ -2,7 +2,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from .contracts import CommitPage, MemberPage, MembershipInput, MembershipReceipt
+from .contracts import (
+    CommitPage,
+    MemberPage,
+    MembershipEventPage,
+    MembershipInput,
+    MembershipReceipt,
+    ProposalDifference,
+)
 
 
 def governance_router(service, principal):
@@ -21,7 +28,7 @@ def governance_router(service, principal):
     def membership(domain: UUID, data: MembershipInput, p=Depends(principal)):
         return service.membership(p, str(domain), data)
 
-    @router.get("/membership-events")
+    @router.get("/membership-events", response_model=MembershipEventPage)
     def events(
         domain: UUID,
         limit: int = Query(20, ge=1, le=100),
@@ -39,7 +46,7 @@ def governance_router(service, principal):
     ):
         return service.commits(p, str(domain), limit, after)
 
-    @router.get("/proposals/{ident}/diff")
+    @router.get("/proposals/{ident}/diff", response_model=ProposalDifference)
     def diff(domain: UUID, ident: UUID, p=Depends(principal)):
         return service.diff(p, str(domain), str(ident))
 

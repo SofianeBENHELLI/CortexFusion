@@ -10,7 +10,10 @@ from .auth import Authenticator, CoreError
 from .contracts import (
     AccessInput,
     ApprovalInput,
+    ExtractionInput,
     FeedbackInput,
+    LocalExtractionInput,
+    LocalExtractionView,
     ProposalInput,
     QueryInput,
     QueryResult,
@@ -22,10 +25,13 @@ from .conversations_api import conversations_router
 from .corpus import CorpusService
 from .corpus_api import corpus_router
 from .db import Database
+from .extraction import ExtractionService
 from .files import FileService
 from .files_api import files_router
 from .governance import GovernanceService
 from .governance_api import governance_router
+from .local_model import LocalPassageModel
+from .openrouter_model import OpenRouterPassageModel
 from .service import KnowledgeService
 from .settings import Settings
 from .workspace import WorkspaceService
@@ -79,6 +85,18 @@ def create_app(settings: Settings | None = None):
     db = Database(settings.database_url)
     auth = Authenticator(settings)
     service = KnowledgeService(db)
+    model_adapter = None
+    if (
+        settings.model_provider == "openrouter"
+        and settings.openrouter_model
+        and settings.openrouter_api_key
+    ):
+        model_adapter = OpenRouterPassageModel(
+            settings.openrouter_model, settings.openrouter_api_key
+        )
+    elif settings.model_provider == "ollama" and settings.local_model:
+        model_adapter = LocalPassageModel(settings.local_model, settings.ollama_url)
+    extraction = ExtractionService(service, model_adapter)
     from .mcp_adapter import create_mcp
 
     mcp = create_mcp(service, auth)
@@ -95,7 +113,7 @@ def create_app(settings: Settings | None = None):
         title="Cortex Fusion Knowledge Core",
         version="0.1.0",
         lifespan=lifespan,
-        description="Local extractive prototype. No model calls. Owner approval is required before publication.",
+        description="Extractive answering with optional local passage selection. Owner approval is required before publication.",
     )
     app.state.service = service
     app.state.db = db
@@ -150,7 +168,38 @@ def create_app(settings: Settings | None = None):
     corpus = CorpusService(service)
     app.include_router(corpus_router(corpus, principal))
     app.include_router(files_router(FileService(corpus), principal))
-    app.include_router(workspace_router(WorkspaceService(service), principal))
+    app.include_router(
+        workspace_router(
+            WorkspaceService(
+                service, extraction_provider=model_adapter.provider if model_adapter else None
+            ),
+            principal,
+        )
+    )
+
+    @app.post(
+        "/v1/domains/{domain}/sources/{source_id}/extract-local",
+        response_model=LocalExtractionView,
+        status_code=201,
+    )
+    def extract_local(
+        domain: UUID, source_id: UUID, data: LocalExtractionInput, p=Depends(principal)
+    ):
+        return extraction.extract(p, str(domain), str(source_id), data)
+
+    @app.post(
+        "/v1/domains/{domain}/sources/{source_id}/extract",
+        response_model=LocalExtractionView,
+        status_code=201,
+    )
+    def extract_source(domain: UUID, source_id: UUID, data: ExtractionInput, p=Depends(principal)):
+        return extraction.extract(
+            p, str(domain), str(source_id), data, expected_provider=data.processing_destination
+        )
+
+    @app.get("/v1/domains/{domain}/extractions/{ident}", response_model=LocalExtractionView)
+    def extraction_receipt(domain: UUID, ident: UUID, p=Depends(principal)):
+        return extraction.receipt(p, str(domain), str(ident))
 
     @app.get("/health")
     def health():

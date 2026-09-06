@@ -15,7 +15,7 @@ Cortex Fusion is building a shared, governed memory for people and AI agents. Th
 - MCP query/inspection/proposal/feedback tools without approval authority.
 - Generated JSON Schema/TypeScript contracts and a tested Cordis service adapter.
 
-**This is a development core.** It currently makes no model calls. Model extraction, semantic retrieval, durable workers, real enterprise evaluation, and the product chat/review interface are still planned. Original confidential specifications and enterprise corpora remain local.
+**This is a development core.** Answering is extractive. Private file parsing, a recoverable parser worker, review, conversations and membership APIs are implemented. An opt-in OpenRouter or local model can select an exact source passage for owner review. Semantic retrieval/synthesis, production orchestration, enterprise evaluation and the product interface remain unfinished. Original confidential specifications and enterprise corpora remain local.
 
 ## Run and verify
 
@@ -62,3 +62,5 @@ The repository license has not been selected. The dependency policy does not gra
 The [corpus API](docs/corpus-api.md) now provides private collections, source listing and resumable text import receipts, with a dedicated corpus-manager role.
 
 The [workspace backend](docs/backend-workspace.md) adds review decisions, private file parsing, recoverable workers, personal conversations and scoped membership administration.
+
+See [OpenRouter configuration](docs/openrouter.md) for the preferred provider. See [optional local extraction](docs/local-extraction.md) for configuration, source boundaries and the synthetic live-model demonstration.
