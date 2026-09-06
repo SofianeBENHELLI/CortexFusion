@@ -6,7 +6,7 @@ Cortex Fusion is a planned enterprise knowledge platform that turns documents an
 
 ## Project status
 
-**Specification and repository setup.** The v0.5 design is imported; application code, dependency installation, deployment, and performance validation have not started. “Enterprise Brain” is the former working name used in the preserved source documents.
+**Specification and repository setup.** The v0.5 design has been organized locally; public import of the original documents awaits approval because they are labeled confidential. Application code, dependency installation, deployment, and performance validation have not started. “Enterprise Brain” is the former working name used in the preserved source documents.
 
 ## The brain analogy
 
