@@ -261,7 +261,17 @@ class KnowledgeService:
     def _proposal_view(self, row):
         return {
             k: row[k]
-            for k in ("id", "base_version", "digest", "reason", "status", "validation", "payload")
+            for k in (
+                "id",
+                "base_version",
+                "digest",
+                "reason",
+                "status",
+                "validation",
+                "payload",
+                "review_revision",
+                "replaces_id",
+            )
         }
 
     def _propose(self, conn, p, domain, data: ProposalInput):
@@ -401,7 +411,11 @@ class KnowledgeService:
             if not proposal:
                 raise CoreError("NOT_FOUND", "Proposal not found", 404)
             self._check_proposal_access(conn, p, domain, proposal)
-            if proposal["digest"] != data.digest or proposal["status"] != "ready":
+            if (
+                proposal["digest"] != data.digest
+                or proposal["status"] != "ready"
+                or proposal["review_revision"] != data.expected_review_revision
+            ):
                 raise CoreError("STALE_BASE", "Proposal changed or was already decided")
             if d["accepted_version"] != d["published_version"]:
                 raise CoreError(
@@ -676,8 +690,14 @@ class KnowledgeService:
                 ),
             )
 
-    def query(self, p, domain, data):
+    def query(self, p, domain, data, conversation_id=None):
         with self.db.transaction(p, domain) as conn:
+            if conversation_id:
+                self._conversation(conn, p, domain, conversation_id, active=True)
+                previous = self._conversation_retry(conn, p, domain, conversation_id, data)
+                if previous:
+                    return previous
+
             d = self._domain(conn, p, domain)
             state = self._state(conn, p, domain)
             visible = {ident: c for ident, c in state.items() if self._visible(conn, p, domain, c)}
@@ -750,6 +770,18 @@ class KnowledgeService:
                 "SELECT id FROM cf_domains WHERE tenant_id=:tenant AND id=:domain FOR KEY SHARE",
                 **self.keys(p, domain),
             )
+            if not one(
+                conn,
+                "SELECT subject FROM cf_memberships WHERE tenant_id=:tenant AND domain_id=:domain AND subject=:subject",
+                **self.keys(p, domain),
+                subject=p.subject,
+            ):
+                raise CoreError("NOT_FOUND", "Domain not found", 404)
+            if conversation_id:
+                self._conversation(conn, p, domain, conversation_id, lock=True, active=True)
+                previous = self._conversation_retry(conn, p, domain, conversation_id, data)
+                if previous:
+                    return previous
             # Access changes take the conflicting domain lock, establishing the answer's
             # authorization boundary before the episode is recorded and returned.
             for source_id in source_ids:
@@ -766,6 +798,19 @@ class KnowledgeService:
                 sources=encoded(source_ids),
                 version=d["published_version"],
             )
+            if conversation_id:
+                run(
+                    conn,
+                    """INSERT INTO cf_conversation_episodes
+                    (tenant_id,domain_id,conversation_id,episode_id,sequence,idempotency_key,request_hash)
+                    SELECT :tenant,:domain,:conversation,:episode,COALESCE(max(sequence),0)+1,:key,:hash
+                    FROM cf_conversation_episodes WHERE tenant_id=:tenant AND domain_id=:domain AND conversation_id=:conversation""",
+                    **self.keys(p, domain),
+                    conversation=conversation_id,
+                    episode=episode,
+                    key=data.idempotency_key,
+                    hash=digest(data.model_dump(mode="json")),
+                )
             if not snippets:
                 self._issue(conn, p, domain, episode, "knowledge_gap", data.question)
         return result
@@ -868,3 +913,34 @@ class KnowledgeService:
                 "processing": "local_no_model",
                 "model_calls": 0,
             }
+
+    def _conversation(self, conn, p, domain, ident, lock=False, active=False):
+        row = one(
+            conn,
+            "SELECT * FROM cf_conversations WHERE tenant_id=:tenant AND domain_id=:domain AND id=:id AND author=:author"
+            + (" FOR UPDATE" if lock else ""),
+            **self.keys(p, domain),
+            id=ident,
+            author=p.subject,
+        )
+        if not row:
+            raise CoreError("NOT_FOUND", "Conversation not found", 404)
+        if active and row["archived"]:
+            raise CoreError(
+                "CONVERSATION_ARCHIVED", "Restore the conversation before asking a question"
+            )
+        return row
+
+    def _conversation_retry(self, conn, p, domain, ident, data):
+        row = one(
+            conn,
+            "SELECT * FROM cf_conversation_episodes WHERE tenant_id=:tenant AND domain_id=:domain AND conversation_id=:id AND idempotency_key=:key",
+            **self.keys(p, domain),
+            id=ident,
+            key=data.idempotency_key,
+        )
+        if row:
+            if row["request_hash"] != digest(data.model_dump(mode="json")):
+                raise CoreError("IDEMPOTENCY_CONFLICT", "Question key reused")
+            return self._episode(conn, p, domain, row["episode_id"])["result"]
+        return None

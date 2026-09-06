@@ -17,11 +17,19 @@ from .contracts import (
     RollbackInput,
     SourceInput,
 )
+from .conversations import ConversationService
+from .conversations_api import conversations_router
 from .corpus import CorpusService
 from .corpus_api import corpus_router
 from .db import Database
+from .files import FileService
+from .files_api import files_router
+from .governance import GovernanceService
+from .governance_api import governance_router
 from .service import KnowledgeService
 from .settings import Settings
+from .workspace import WorkspaceService
+from .workspace_api import workspace_router
 
 
 class BoundaryMiddleware:
@@ -137,7 +145,12 @@ def create_app(settings: Settings | None = None):
     ):
         return auth.authenticate(authorization, x_tenant_id)
 
-    app.include_router(corpus_router(CorpusService(service), principal))
+    app.include_router(conversations_router(ConversationService(service), principal))
+    app.include_router(governance_router(GovernanceService(service), principal))
+    corpus = CorpusService(service)
+    app.include_router(corpus_router(corpus, principal))
+    app.include_router(files_router(FileService(corpus), principal))
+    app.include_router(workspace_router(WorkspaceService(service), principal))
 
     @app.get("/health")
     def health():

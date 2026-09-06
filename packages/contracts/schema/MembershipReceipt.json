@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "author": {
+      "title": "Author",
+      "type": "string"
+    },
+    "subject": {
+      "title": "Subject",
+      "type": "string"
+    },
+    "previous_role": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Previous Role"
+    },
+    "new_role": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "New Role"
+    },
+    "resulting_revision": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Resulting Revision"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "author",
+    "subject",
+    "previous_role",
+    "new_role",
+    "resulting_revision",
+    "reason",
+    "created_at"
+  ],
+  "title": "MembershipReceipt",
+  "type": "object"
+}

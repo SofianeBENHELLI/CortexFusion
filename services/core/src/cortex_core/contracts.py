@@ -1,5 +1,6 @@
 """Typed contract source; exported JSON Schema is checked into packages/contracts."""
 
+from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Literal
 from uuid import UUID
@@ -73,6 +74,7 @@ class ProposalInput(Contract):
 
 
 class ApprovalInput(Contract):
+    expected_review_revision: int = Field(default=0, ge=0)
     digest: str = Field(pattern=r"^[a-f0-9]{64}$")
     expected_version: int = Field(ge=0)
     reason: str = Field(min_length=1, max_length=2000)
@@ -226,3 +228,216 @@ CONTRACTS += [
     ImportView,
     ImportPage,
 ]
+
+
+class ReviewInput(Contract):
+    action: Literal["reject", "defer", "request_changes", "reopen"]
+    digest: str = Field(pattern=r"^[a-f0-9]{64}$")
+    expected_review_revision: int = Field(ge=0)
+    reason: str = Field(min_length=1, max_length=2000)
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+
+CONTRACTS += [ReviewInput]
+
+
+ProposalStatus = Literal[
+    "ready", "approved", "published", "rejected", "deferred", "changes_requested", "superseded"
+]
+
+
+class ProposalValidation(Contract):
+    status: Literal["passed"]
+    source_support: Literal["verbatim_v1"]
+    graph: Literal["acyclic"]
+    policy: Literal["owner_low_risk_v1"]
+    risk: Literal["low"]
+    source_ids: list[UUID]
+
+
+class ProposalView(Contract):
+    id: UUID
+    base_version: int
+    digest: str
+    reason: str
+    status: ProposalStatus
+    validation: ProposalValidation
+    payload: list[Change]
+    review_revision: int
+    replaces_id: UUID | None
+
+
+class ProposalPage(Contract):
+    items: list[ProposalView]
+    next_after: UUID | None
+
+
+class ReviewReceipt(Contract):
+    id: UUID
+    proposal_id: UUID
+    author: str
+    action: str
+    reason: str
+    proposal_digest: str
+    review_revision: int
+    resulting_status: ProposalStatus
+    created_at: datetime
+
+
+class ReviewPage(Contract):
+    items: list[ReviewReceipt]
+    next_after: UUID | None
+
+
+class EpisodeHistoryItem(Contract):
+    id: UUID
+    question: str
+    result: QueryResult
+    served_version: int
+    created_at: datetime
+
+
+class EpisodePage(Contract):
+    items: list[EpisodeHistoryItem]
+    next_after: UUID | None
+
+
+class AccessibleDomain(Contract):
+    id: UUID
+    name: str
+    role: Literal["owner", "corpus_manager", "contributor", "agent", "viewer"]
+    capabilities: list[str]
+
+
+class IdentityView(Contract):
+    subject: str
+    tenant_id: UUID
+    domains: list[AccessibleDomain]
+
+
+CONTRACTS += [ProposalView, ProposalPage, ReviewReceipt, ReviewPage, EpisodePage, IdentityView]
+
+
+class FileUploadInput(Contract):
+    filename: str = Field(min_length=1, max_length=200, pattern=r"^[^/\\\x00-\x1f]+$")
+    content_base64: str = Field(min_length=1, max_length=666668)
+    allowed_subjects: list[str] = Field(min_length=1, max_length=100)
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+
+class FileView(Contract):
+    id: UUID
+    collection_id: UUID
+    filename: str
+    content_hash: str
+    size_bytes: int
+    status: Literal["pending", "processing", "succeeded", "failed", "cancelled"]
+    source_id: UUID | None
+    error_code: str | None
+    attempts: int
+    spans: list[dict[str, int]]
+
+
+class FilePage(Contract):
+    items: list[FileView]
+    next_after: UUID | None
+
+
+CONTRACTS += [FileUploadInput, FileView, FilePage]
+
+
+class ConversationInput(Contract):
+    title: str = Field(default="Nouvelle conversation", min_length=1, max_length=200)
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+
+class ConversationUpdate(Contract):
+    title: str = Field(min_length=1, max_length=200)
+    archived: bool
+    expected_revision: int = Field(ge=0)
+
+
+class ConversationView(Contract):
+    id: UUID
+    title: str
+    archived: bool
+    revision: int
+    created_at: datetime
+
+
+class ConversationPage(Contract):
+    items: list[ConversationView]
+    next_after: UUID | None
+
+
+class ConversationQueryInput(QueryInput):
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+
+class ConversationMessage(Contract):
+    sequence: int
+    question: str
+    result: QueryResult
+    created_at: datetime
+
+
+class ConversationMessages(Contract):
+    items: list[ConversationMessage]
+    next_after: int | None
+
+
+CONTRACTS += [
+    ConversationInput,
+    ConversationUpdate,
+    ConversationView,
+    ConversationPage,
+    ConversationQueryInput,
+    ConversationMessages,
+]
+
+
+class MembershipInput(Contract):
+    subject: str = Field(min_length=1, max_length=300)
+    role: Literal["owner", "corpus_manager", "contributor", "agent", "viewer"] | None
+    expected_revision: int | None = Field(default=None, ge=0)
+    reason: str = Field(min_length=1, max_length=2000)
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+
+class MemberView(Contract):
+    subject: str
+    role: str
+    revision: int
+
+
+class MemberPage(Contract):
+    items: list[MemberView]
+    next_after: str | None
+
+
+class MembershipReceipt(Contract):
+    id: UUID
+    author: str
+    subject: str
+    previous_role: str | None
+    new_role: str | None
+    resulting_revision: int | None
+    reason: str
+    created_at: datetime
+
+
+class CommitSummary(Contract):
+    sequence: int
+    proposal_id: UUID
+    author: str
+    reason: str
+    digest: str
+    created_at: datetime
+
+
+class CommitPage(Contract):
+    items: list[CommitSummary]
+    next_after: int | None
+
+
+CONTRACTS += [MembershipInput, MemberPage, MembershipReceipt, CommitPage]

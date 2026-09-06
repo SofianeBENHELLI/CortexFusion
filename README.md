@@ -60,3 +60,5 @@ evals/               Evaluation methodology; enterprise data stays private
 The repository license has not been selected. The dependency policy does not grant a license to Cortex Fusion. Installed dependency metadata is checked separately; see the [architecture decision](docs/architecture/decisions/0001-executable-core.md).
 
 The [corpus API](docs/corpus-api.md) now provides private collections, source listing and resumable text import receipts, with a dedicated corpus-manager role.
+
+The [workspace backend](docs/backend-workspace.md) adds review decisions, private file parsing, recoverable workers, personal conversations and scoped membership administration.

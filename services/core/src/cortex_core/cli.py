@@ -21,7 +21,28 @@ def main():
     bootstrap.add_argument(
         "--member", action="append", default=[], help="subject:viewer or subject:agent"
     )
+    worker = sub.add_parser(
+        "worker", help="Run the trusted-host file parser for one configured identity/domain"
+    )
+    worker.add_argument("--tenant", type=UUID, required=True)
+    worker.add_argument("--domain", type=UUID, required=True)
+    worker.add_argument("--subject", required=True)
+    worker.add_argument("--once", action="store_true")
+    worker.add_argument("--max-jobs", type=int, default=20, choices=range(1, 101))
+    worker.add_argument("--poll-seconds", type=int, default=5, choices=range(1, 301))
     args = parser.parse_args()
+    if args.command == "worker":
+        from .worker import run_worker
+
+        run_worker(
+            str(args.tenant),
+            str(args.domain),
+            args.subject,
+            args.once,
+            args.max_jobs,
+            args.poll_seconds,
+        )
+        return
     if args.command == "serve":
         import uvicorn
 

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "question": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Question",
+      "type": "string"
+    },
+    "max_chars": {
+      "default": 8000,
+      "maximum": 20000,
+      "minimum": 100,
+      "title": "Max Chars",
+      "type": "integer"
+    },
+    "limit": {
+      "default": 5,
+      "maximum": 10,
+      "minimum": 1,
+      "title": "Limit",
+      "type": "integer"
+    },
+    "idempotency_key": {
+      "maxLength": 128,
+      "minLength": 8,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "question",
+    "idempotency_key"
+  ],
+  "title": "ConversationQueryInput",
+  "type": "object"
+}

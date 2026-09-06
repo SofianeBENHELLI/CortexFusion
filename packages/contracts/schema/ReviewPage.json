@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ReviewReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "author": {
+          "title": "Author",
+          "type": "string"
+        },
+        "action": {
+          "title": "Action",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "proposal_digest": {
+          "title": "Proposal Digest",
+          "type": "string"
+        },
+        "review_revision": {
+          "title": "Review Revision",
+          "type": "integer"
+        },
+        "resulting_status": {
+          "enum": [
+            "ready",
+            "approved",
+            "published",
+            "rejected",
+            "deferred",
+            "changes_requested",
+            "superseded"
+          ],
+          "title": "Resulting Status",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "proposal_id",
+        "author",
+        "action",
+        "reason",
+        "proposal_digest",
+        "review_revision",
+        "resulting_status",
+        "created_at"
+      ],
+      "title": "ReviewReceipt",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "items": {
+        "$ref": "#/$defs/ReviewReceipt"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "next_after": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Next After"
+    }
+  },
+  "required": [
+    "items",
+    "next_after"
+  ],
+  "title": "ReviewPage",
+  "type": "object"
+}

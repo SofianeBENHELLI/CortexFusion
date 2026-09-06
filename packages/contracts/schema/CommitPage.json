@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "CommitSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "sequence": {
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "author": {
+          "title": "Author",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "digest": {
+          "title": "Digest",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sequence",
+        "proposal_id",
+        "author",
+        "reason",
+        "digest",
+        "created_at"
+      ],
+      "title": "CommitSummary",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "items": {
+        "$ref": "#/$defs/CommitSummary"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "next_after": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Next After"
+    }
+  },
+  "required": [
+    "items",
+    "next_after"
+  ],
+  "title": "CommitPage",
+  "type": "object"
+}

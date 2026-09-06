@@ -1,15 +1,15 @@
 /* Generated from the checked-in wire schema. Do not edit. */
 
-export type ExpectedReviewRevision = number;
+export type Action = "reject" | "defer" | "request_changes" | "reopen";
 export type Digest = string;
-export type ExpectedVersion = number;
+export type ExpectedReviewRevision = number;
 export type Reason = string;
 export type IdempotencyKey = string;
 
-export interface ApprovalInput {
-  expected_review_revision?: ExpectedReviewRevision;
+export interface ReviewInput {
+  action: Action;
   digest: Digest;
-  expected_version: ExpectedVersion;
+  expected_review_revision: ExpectedReviewRevision;
   reason: Reason;
   idempotency_key: IdempotencyKey;
 }

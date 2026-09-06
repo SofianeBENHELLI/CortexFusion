@@ -12,7 +12,9 @@ from sqlalchemy.exc import DBAPIError
 def corpus(world):
     with world.admin.begin() as conn:
         conn.execute(
-            text("INSERT INTO cf_memberships VALUES(:t,:d,'manager','corpus_manager')"),
+            text(
+                "INSERT INTO cf_memberships(tenant_id,domain_id,subject,role) VALUES(:t,:d,'manager','corpus_manager')"
+            ),
             {"t": world.tenant, "d": world.domain},
         )
     return world

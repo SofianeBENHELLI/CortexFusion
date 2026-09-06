@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "title": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "archived": {
+      "title": "Archived",
+      "type": "boolean"
+    },
+    "expected_revision": {
+      "minimum": 0,
+      "title": "Expected Revision",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "title",
+    "archived",
+    "expected_revision"
+  ],
+  "title": "ConversationUpdate",
+  "type": "object"
+}

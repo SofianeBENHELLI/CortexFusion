@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "MemberView": {
+      "additionalProperties": false,
+      "properties": {
+        "subject": {
+          "title": "Subject",
+          "type": "string"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "subject",
+        "role",
+        "revision"
+      ],
+      "title": "MemberView",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "items": {
+        "$ref": "#/$defs/MemberView"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "next_after": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Next After"
+    }
+  },
+  "required": [
+    "items",
+    "next_after"
+  ],
+  "title": "MemberPage",
+  "type": "object"
+}

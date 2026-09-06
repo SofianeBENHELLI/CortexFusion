@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "FileView": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "collection_id": {
+          "format": "uuid",
+          "title": "Collection Id",
+          "type": "string"
+        },
+        "filename": {
+          "title": "Filename",
+          "type": "string"
+        },
+        "content_hash": {
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "size_bytes": {
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "processing",
+            "succeeded",
+            "failed",
+            "cancelled"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "source_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Id"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Code"
+        },
+        "attempts": {
+          "title": "Attempts",
+          "type": "integer"
+        },
+        "spans": {
+          "items": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "title": "Spans",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "collection_id",
+        "filename",
+        "content_hash",
+        "size_bytes",
+        "status",
+        "source_id",
+        "error_code",
+        "attempts",
+        "spans"
+      ],
+      "title": "FileView",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "items": {
+        "$ref": "#/$defs/FileView"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "next_after": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Next After"
+    }
+  },
+  "required": [
+    "items",
+    "next_after"
+  ],
+  "title": "FilePage",
+  "type": "object"
+}

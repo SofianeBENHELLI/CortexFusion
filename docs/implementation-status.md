@@ -10,6 +10,8 @@ The Python and TypeScript contract artifacts are generated and checked for drift
 
 A first corpus API increment now adds private immutable collections, permission-filtered source/collection lists and persistent text import batches. The new `corpus_manager` role can import and propose but cannot approve. Each caller-driven processing step atomically registers sources and records per-item outcomes; failed items can be retried and pending items cancelled. This is JSON text/Markdown registration, not binary upload, PDF parsing or background execution. See [corpus API](corpus-api.md).
 
+A subsequent workspace increment adds review decisions/revisions and diffs, personal conversations/history, identity/domain discovery, owner-scoped membership administration, private binary uploads, bounded PDF/DOCX/text parsing and a recoverable file-worker command. See [workspace backend](backend-workspace.md) for endpoint semantics and limitations. Initial login/bootstrap, enterprise administration and semantic model answering remain separate work.
+
 ## Relationship to the coding plan
 
 | Planned work | Current state |
@@ -22,7 +24,7 @@ A first corpus API increment now adds private immutable collections, permission-
 | CF-010–013 — objects/proposals/approval/journal | Verbatim-source subset implemented; full semantic risk engine and reviewer policies deferred |
 | CF-014 — publication | JSONB concept/relationship projection is atomic; AGE/vector projection integration is not implemented |
 | CF-015–016 — replay/compensation/demo | Implemented and demonstrated on synthetic PostgreSQL data |
-| CF-017–022 — ingestion and learning | Collections, paginated source listing and persistent text import receipts implemented; Docling, Temporal, model adapters, summaries and enterprise batch review remain open |
+| CF-017–022 — ingestion and learning | Collections, paginated source listing and persistent text import receipts implemented; bounded PDF/DOCX parsing and a file worker added; Docling, Temporal, model adapters and summaries remain open |
 | CF-023–027 — retrieval/protocol/harness | Lexical extractive baseline, episodes, feedback, MCP, and Cordis service seam implemented; semantic answering and full harness execution remain open |
 | CF-028–030 — product interface | Not started; interactive API documentation is a developer surface, not the product UI |
 | CF-031–036 — consolidation/evaluation | Basic owner brief exists; scheduled consolidation, model evaluation, recovery packaging and enterprise benchmark remain open |
@@ -35,7 +37,7 @@ The local storage compatibility probe is documented separately. The Compose defi
 
 ## Next increment
 
-1. Extend the persistent text import seam with private binary storage, document parsing and a durable worker.
+1. Extend baseline binary parsing with logical document versions, chunking, layout fidelity and production worker orchestration.
 2. Connect a configured local or approved model endpoint to structured extraction and fidelity evaluation, using synthetic inputs first.
 3. Introduce versioned embedding/graph projection adapters with the same publication tests.
 4. Build the owner review and chat interface on the existing contracts.

@@ -32,7 +32,9 @@ def main():
         )
         for subject, role in [("demo-owner", "owner"), ("demo-agent", "agent")]:
             conn.execute(
-                text("INSERT INTO cf_memberships VALUES(:t,:d,:s,:r)"),
+                text(
+                    "INSERT INTO cf_memberships(tenant_id,domain_id,subject,role) VALUES(:t,:d,:s,:r)"
+                ),
                 {"t": tenant, "d": domain, "s": subject, "r": role},
             )
     engine.dispose()
