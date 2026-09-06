@@ -93,47 +93,51 @@ class KnowledgeService:
             }
 
     def create_source(self, p, domain, data: SourceInput):
+        with self.db.transaction(p, domain, corpus=True) as conn:
+            return self._create_source(conn, p, domain, data)
+
+    def _create_source(self, conn, p, domain, data: SourceInput):
         payload = data.model_dump(mode="json")
-        with self.db.transaction(p, domain, owner=True) as conn:
-            self._domain(conn, p, domain, lock=True)
-            self._validate_subjects(conn, p, domain, payload["allowed_subjects"])
-            if p.subject not in payload["allowed_subjects"]:
-                raise CoreError("VALIDATION_FAILED", "Uploader must retain access", 422)
-            if data.supersedes:
-                self._source(conn, p, domain, data.supersedes)
-            content_hash = hashlib.sha256(data.content.encode()).hexdigest()
-            existing = one(
-                conn,
-                "SELECT * FROM cf_sources WHERE tenant_id=:tenant AND domain_id=:domain AND location=:location AND content_hash=:hash",
-                **self.keys(p, domain),
-                location=data.location,
-                hash=content_hash,
-            )
-            if existing:
-                if (
-                    existing["title"] != data.title
-                    or set(existing["allowed_subjects"]) != set(data.allowed_subjects)
-                    or existing["supersedes"] != payload["supersedes"]
-                ):
-                    raise CoreError(
-                        "IDEMPOTENCY_CONFLICT", "Source already exists with different metadata"
-                    )
-                return self._source_view(existing)
-            ident = str(uuid4())
-            run(
-                conn,
-                """INSERT INTO cf_sources(tenant_id,domain_id,id,title,location,content,content_hash,allowed_subjects,supersedes)
-                        VALUES(:tenant,:domain,:id,:title,:location,:content,:hash,CAST(:acl AS jsonb),:supersedes)""",
-                **self.keys(p, domain),
-                id=ident,
-                title=data.title,
-                location=data.location,
-                content=data.content,
-                hash=content_hash,
-                acl=encoded(sorted(set(data.allowed_subjects))),
-                supersedes=payload["supersedes"],
-            )
-            return self._source_view(self._source(conn, p, domain, ident))
+        self._domain(conn, p, domain, lock=True)
+        self._validate_subjects(conn, p, domain, payload["allowed_subjects"])
+        if p.subject not in payload["allowed_subjects"]:
+            raise CoreError("VALIDATION_FAILED", "Uploader must retain access", 422)
+        if data.supersedes:
+            self._source(conn, p, domain, data.supersedes)
+        content_hash = hashlib.sha256(data.content.encode()).hexdigest()
+        existing = one(
+            conn,
+            "SELECT * FROM cf_sources WHERE tenant_id=:tenant AND domain_id=:domain AND location=:location AND content_hash=:hash",
+            **self.keys(p, domain),
+            location=data.location,
+            hash=content_hash,
+        )
+        if existing:
+            self._source(conn, p, domain, existing["id"])
+            if (
+                existing["title"] != data.title
+                or set(existing["allowed_subjects"]) != set(data.allowed_subjects)
+                or existing["supersedes"] != payload["supersedes"]
+            ):
+                raise CoreError(
+                    "IDEMPOTENCY_CONFLICT", "Source already exists with different metadata"
+                )
+            return self._source_view(existing)
+        ident = str(uuid4())
+        run(
+            conn,
+            """INSERT INTO cf_sources(tenant_id,domain_id,id,title,location,content,content_hash,allowed_subjects,supersedes)
+                    VALUES(:tenant,:domain,:id,:title,:location,:content,:hash,CAST(:acl AS jsonb),:supersedes)""",
+            **self.keys(p, domain),
+            id=ident,
+            title=data.title,
+            location=data.location,
+            content=data.content,
+            hash=content_hash,
+            acl=encoded(sorted(set(data.allowed_subjects))),
+            supersedes=payload["supersedes"],
+        )
+        return self._source_view(self._source(conn, p, domain, ident))
 
     @staticmethod
     def _source_view(row):

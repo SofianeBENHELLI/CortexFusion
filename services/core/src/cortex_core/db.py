@@ -32,6 +32,7 @@ class Database:
         *,
         owner=False,
         write=False,
+        corpus=False,
         isolation="REPEATABLE READ",
     ):
         with self.engine.connect().execution_options(isolation_level=isolation) as conn:
@@ -50,7 +51,9 @@ class Database:
                     raise CoreError("NOT_FOUND", "Domain not found", 404)
                 if owner and role != "owner":
                     raise CoreError("NOT_AUTHORIZED", "Domain owner required", 403)
-                if write and role not in ("owner", "agent", "contributor"):
+                if corpus and role not in ("owner", "corpus_manager"):
+                    raise CoreError("NOT_AUTHORIZED", "Corpus management permission required", 403)
+                if write and role not in ("owner", "agent", "contributor", "corpus_manager"):
                     raise CoreError("NOT_AUTHORIZED", "Proposal permission required", 403)
                 yield conn
 

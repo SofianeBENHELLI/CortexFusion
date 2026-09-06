@@ -17,6 +17,8 @@ from .contracts import (
     RollbackInput,
     SourceInput,
 )
+from .corpus import CorpusService
+from .corpus_api import corpus_router
 from .db import Database
 from .service import KnowledgeService
 from .settings import Settings
@@ -134,6 +136,8 @@ def create_app(settings: Settings | None = None):
         x_tenant_id: str | None = Header(default=None),
     ):
         return auth.authenticate(authorization, x_tenant_id)
+
+    app.include_router(corpus_router(CorpusService(service), principal))
 
     @app.get("/health")
     def health():

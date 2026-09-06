@@ -147,3 +147,82 @@ CONTRACTS = [
     DomainVersion,
     QueryResult,
 ]
+
+
+class CollectionInput(Contract):
+    name: str = Field(min_length=1, max_length=200)
+    description: str = Field(default="", max_length=2000)
+    allowed_subjects: list[str] = Field(min_length=1, max_length=100)
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+
+class CollectionView(Contract):
+    id: UUID
+    name: str
+    description: str
+    allowed_subjects: list[str]
+
+
+class CollectionPage(Contract):
+    items: list[CollectionView]
+    next_after: UUID | None
+
+
+class SourceSummary(Contract):
+    id: UUID
+    title: str
+    location: str
+    content_hash: str
+    allowed_subjects: list[str]
+    supersedes: UUID | None
+
+
+class SourcePage(Contract):
+    items: list[SourceSummary]
+    next_after: UUID | None
+
+
+class TextImportItem(Contract):
+    filename: str = Field(min_length=1, max_length=200, pattern=r"^[^/\\\x00-\x1f]+$")
+    content: str = Field(min_length=1, max_length=30000, pattern=r"^[^\x00]+$")
+    allowed_subjects: list[str] = Field(min_length=1, max_length=100)
+
+
+class TextImportInput(Contract):
+    items: list[TextImportItem] = Field(min_length=1, max_length=20)
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+
+class ImportItemView(Contract):
+    position: int
+    filename: str
+    status: Literal["pending", "succeeded", "failed", "cancelled"]
+    source_id: UUID | None
+    error_code: str | None
+    attempts: int
+
+
+class ImportView(Contract):
+    id: UUID
+    collection_id: UUID
+    status: Literal["pending", "partial", "succeeded", "failed", "cancelled"]
+    processing: Literal["local_text_only"] = "local_text_only"
+    items: list[ImportItemView]
+
+
+class ImportPage(Contract):
+    items: list[ImportView]
+    next_after: UUID | None
+
+
+CONTRACTS += [
+    CollectionInput,
+    CollectionView,
+    CollectionPage,
+    SourceSummary,
+    SourcePage,
+    TextImportInput,
+    ImportItemView,
+    ImportView,
+    ImportPage,
+]

@@ -46,8 +46,8 @@ def main():
         members = [(args.owner, "owner")]
         for value in args.member:
             subject, role = value.rsplit(":", 1)
-            if role not in ("viewer", "agent", "contributor"):
-                parser.error("member role must be viewer, agent, or contributor")
+            if role not in ("viewer", "agent", "contributor", "corpus_manager"):
+                parser.error("member role must be viewer, agent, contributor, or corpus_manager")
             members.append((subject, role))
         for subject, role in members:
             conn.execute(
