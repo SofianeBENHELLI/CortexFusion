@@ -29,7 +29,7 @@ No reviewer quorum or automatic approval is implemented. Proposal/history scans 
 
 Parsing runs in a subprocess with a 15-second wall timeout, a 10-second CPU limit, and a 512 MiB virtual-memory cap on Linux. The parser environment excludes application secrets. This is process isolation/resource bounding, not a full OS security sandbox. macOS does not receive the Linux virtual-memory cap. DOCX archive expansion is bounded and files are not extracted onto the filesystem. External links and macros are not executed.
 
-The parser returns page or paragraph locators mapped to Unicode character spans in the extracted source. PDF uses pinned pypdf 6.17.0 (BSD-3-Clause); DOCX uses bounded ZIP/XML parsing. These are explicit baseline adapters, not Docling integration. Text extraction can lose reading order, tables, fields, headers, footers and layout; review is still required. Scanned/image-only PDFs receive `NO_EXTRACTABLE_TEXT`; encrypted, malformed or oversized documents produce specific/generic failure receipts. No OCR or password handling is implemented. Extraction above 30,000 characters requires splitting; automatic document chunking is not implemented.
+The parser returns page or paragraph locators mapped to Unicode character spans in the extracted source. PDF uses pinned pypdf 6.17.0 (BSD-3-Clause); DOCX uses bounded ZIP/XML parsing. These are explicit baseline adapters, not Docling integration. Text extraction can lose reading order, tables, fields, headers, footers and layout; review is still required. Scanned/image-only PDFs receive `NO_EXTRACTABLE_TEXT`; encrypted, malformed or oversized documents produce specific/generic failure receipts. No OCR or password handling is implemented. Extraction above 30,000 characters requires splitting; registered-source chunk browsing is available as described below; this does not expand the parser input limit.
 
 [pypdf documents the extraction limits and lack of OCR](https://pypdf.readthedocs.io/en/6.12.0/user/extract-text.html). The bounded subprocess addresses resource exposure without claiming layout fidelity.
 
@@ -63,4 +63,18 @@ Membership events are immutable and available to authorized owners at `/membersh
 
 ## Remaining enterprise work
 
-Product UI and browser login/session handling; real enterprise corpus evaluation; structured model extraction/synthesis; semantic/vector retrieval and integrated AGE projections; logical source revisions and chunking; team issue triage; organization administration; retention/purge and recovery tooling; managed worker deployment and operational budgets. Local API tests and synthetic parsing evidence do not establish enterprise readiness.
+Product UI and browser login/session handling; real enterprise corpus evaluation; canonical model synthesis; semantic/vector retrieval and integrated AGE projections; logical source revisions and semantic document segmentation; shared team issue triage; organization administration; retention/purge and recovery tooling; managed worker deployment and operational budgets. Local API tests and synthetic parsing evidence do not establish enterprise readiness.
+
+## Source chunks and bounded extraction
+
+`GET /sources/{id}/chunks?offset=0&limit=10` returns deterministic spans of an immutable source. Each span contains at most 2,000 Unicode code points and 6,000 UTF-8 bytes, with exact content/hash and a `next_offset` cursor. The versioned algorithm preserves every character, prefers nearby whitespace boundaries and uses no overlap. It does not infer semantic sections or improve PDF reading order. Invalid offsets are rejected; source permissions apply to every page.
+
+The generic `/sources/{id}/extract` request now accepts an optional `span` containing `source_id`, `start` and `end`. The backend sends only that source substring, validates output against it, and translates the resulting citation offsets back to the original source. An unrelated source ID, out-of-bounds span or oversized input fails before a model call. Different spans require different idempotency keys. Whole-source requests retain their previous receipt fingerprints. New receipts record the transmitted span and its SHA-256; older receipts have null input metadata.
+
+## Personal issue lifecycle
+
+Apply migration `0008` before starting this version. Gaps and disputed answers are now browsable through `GET /issues`, `GET /issues/{id}` and `GET /issues/{id}/events`. Lists accept `limit`, `after` and an optional exact status filter. Cursors follow stable ID order; event revisions provide decision chronology.
+
+`POST /issues/{id}/decisions` takes `action`, `expected_revision`, a required `reason` and `idempotency_key`. Actions are `start` (open → in_progress), `resolve` or `dismiss` (open/in_progress → resolved/dismissed), and `reopen` (resolved/dismissed → open). Each successful decision atomically advances the revision and writes an immutable receipt. Successful retries return that receipt, stale/concurrent decisions conflict, and failed receipt writes roll back the status change. Resolving a signal does not modify or certify the knowledge base.
+
+These issues remain personal to the originating episode's author, for every member role. Domain ownership does not reveal another user's questions or decisions. Source revocation hides the issue and its history, including cached decision retries. Shared triage/assignment needs a separate explicit sharing policy and is not implemented. The owner brief includes only the owner's currently accessible open/in-progress issues.

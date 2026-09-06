@@ -1,3 +1,4 @@
+from hashlib import sha256
 from threading import BoundedSemaphore
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
@@ -44,27 +45,40 @@ class ExtractionService:
                 "Requested destination differs from the configured model provider",
                 422,
             )
-        fingerprint = digest({"source": source_id, **data.model_dump(mode="json")})
+        # Keep the fingerprint of existing whole-source requests stable.
+        fingerprint = digest(
+            {"source": source_id, **data.model_dump(mode="json", exclude_none=True)}
+        )
         with self.db.transaction(p, domain, owner=True) as conn:
             source = self.k._source(conn, p, domain, source_id)
             old = self._existing(conn, p, domain, data.idempotency_key, fingerprint)
             if old:
                 return old
+        span = getattr(data, "span", None)
+        base, stop = (span.start, span.end) if span else (0, len(source["content"]))
+        if span and (str(span.source_id) != source_id or stop > len(source["content"])):
+            raise CoreError("INVALID_SPAN", "Extraction span must belong to this source", 422)
+        content = source["content"][base:stop]
+        if len(content.encode("utf-8")) > 6000:
+            raise CoreError(
+                "EXTRACTION_LIMIT", "Select a source chunk of at most 6,000 UTF-8 bytes", 422
+            )
         if not self.slot.acquire(blocking=False):
             raise CoreError("MODEL_BUSY", "A model extraction is already running", 503)
         try:
-            selection = self.model.select(source["content"])
+            selection = self.model.select(content)
             # Independent boundary check, even when a model adapter is replaced.
             start, end = selection["start"], selection["end"]
             if (
                 type(start) is not int
                 or type(end) is not int
-                or not (0 <= start < end <= len(source["content"]))
-                or source["content"][start:end] != selection["quote"]
+                or not (0 <= start < end <= len(content))
+                or content[start:end] != selection["quote"]
             ):
                 raise CoreError(
                     "UNSUPPORTED_MODEL_OUTPUT", "Selected passage is not supported", 422
                 )
+            start, end = base + start, base + end
             with self.db.transaction(p, domain, owner=True) as conn:
                 domain_row = self.k._domain(conn, p, domain, lock=True)
                 self.k._source(conn, p, domain, source_id)
@@ -110,6 +124,8 @@ class ExtractionService:
                     )
                 }
                 metadata.update(
+                    input_span={"source_id": source_id, "start": base, "end": stop},
+                    input_sha256=sha256(content.encode("utf-8")).hexdigest(),
                     provider=getattr(self.model, "provider", "ollama"),
                     request_id=selection.get("request_id"),
                     cost_usd=selection.get("cost_usd"),

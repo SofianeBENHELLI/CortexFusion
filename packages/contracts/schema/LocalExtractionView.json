@@ -306,6 +306,29 @@
   },
   "additionalProperties": false,
   "properties": {
+    "input_span": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "input_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Input Sha256"
+    },
     "provider": {
       "default": "ollama",
       "enum": [

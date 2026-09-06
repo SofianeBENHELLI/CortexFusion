@@ -10,6 +10,7 @@ from .contracts import (
     CollectionView,
     ImportPage,
     ImportView,
+    SourceChunkPage,
     SourcePage,
     TextImportInput,
 )
@@ -17,6 +18,16 @@ from .contracts import (
 
 def corpus_router(service, principal):
     router = APIRouter(prefix="/v1/domains/{domain}", tags=["corpus"])
+
+    @router.get("/sources/{source_id}/chunks", response_model=SourceChunkPage)
+    def chunks(
+        domain: UUID,
+        source_id: UUID,
+        offset: int = Query(0, ge=0),
+        limit: int = Query(10, ge=1, le=50),
+        p=Depends(principal),
+    ):
+        return service.chunks(p, str(domain), str(source_id), offset, limit)
 
     @router.post("/collections", response_model=CollectionView, status_code=201)
     def create_collection(domain: UUID, data: CollectionInput, p=Depends(principal)):

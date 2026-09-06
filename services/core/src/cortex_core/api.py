@@ -30,6 +30,8 @@ from .files import FileService
 from .files_api import files_router
 from .governance import GovernanceService
 from .governance_api import governance_router
+from .issues import IssueService
+from .issues_api import issues_router
 from .local_model import LocalPassageModel
 from .openrouter_model import OpenRouterPassageModel
 from .service import KnowledgeService
@@ -168,6 +170,7 @@ def create_app(settings: Settings | None = None):
     corpus = CorpusService(service)
     app.include_router(corpus_router(corpus, principal))
     app.include_router(files_router(FileService(corpus), principal))
+    app.include_router(issues_router(IssueService(service), principal))
     app.include_router(
         workspace_router(
             WorkspaceService(

@@ -30,7 +30,13 @@ class WorkspaceService:
             )
             result = []
             for d in domains:
-                capabilities = ["query", "inspect", "personal_history", "feedback"]
+                capabilities = [
+                    "query",
+                    "inspect",
+                    "personal_history",
+                    "feedback",
+                    "personal_issues",
+                ]
                 if d["role"] in ("owner", "corpus_manager", "agent", "contributor"):
                     capabilities += ["propose", "read_proposals"]
                 if d["role"] in ("owner", "corpus_manager"):
@@ -42,7 +48,6 @@ class WorkspaceService:
                         "publish",
                         "compensate",
                         "source_acl",
-                        "manage_members",
                         "manage_members",
                     ]
                 if d["role"] == "owner" and self.extraction_provider:

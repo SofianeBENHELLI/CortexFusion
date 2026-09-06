@@ -450,6 +450,8 @@ class LocalExtractionInput(Contract):
 
 
 class LocalExtractionView(Contract):
+    input_span: SourceRef | None = None
+    input_sha256: str | None = None
     provider: Literal["ollama", "openrouter"] = "ollama"
     request_id: str | None = None
     cost_usd: float | None = Field(default=None, ge=0, allow_inf_nan=False)
@@ -494,6 +496,67 @@ CONTRACTS += [MembershipEventPage, ProposalDifference]
 class ExtractionInput(Contract):
     processing_destination: Literal["ollama", "openrouter"]
     idempotency_key: str = Field(min_length=8, max_length=128)
+    span: SourceRef | None = None
 
 
 CONTRACTS += [ExtractionInput]
+
+
+class SourceChunk(Contract):
+    start: int = Field(ge=0)
+    end: int = Field(gt=0)
+    content: str
+    sha256: str
+
+
+class SourceChunkPage(Contract):
+    source_id: UUID
+    algorithm: Literal["unicode-2000-6000-v1"]
+    items: list[SourceChunk]
+    next_offset: int | None
+
+
+CONTRACTS += [SourceChunkPage]
+
+IssueStatus = Literal["open", "in_progress", "resolved", "dismissed"]
+
+
+class IssueView(Contract):
+    id: UUID
+    episode_id: UUID
+    kind: Literal["knowledge_gap", "disputed_answer"]
+    reason: str
+    status: IssueStatus
+    revision: int
+    created_at: datetime
+
+
+class IssuePage(Contract):
+    items: list[IssueView]
+    next_after: UUID | None
+
+
+class IssueDecisionInput(Contract):
+    action: Literal["start", "resolve", "dismiss", "reopen"]
+    expected_revision: int = Field(ge=0)
+    reason: str = Field(min_length=1, max_length=2000)
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+
+class IssueEvent(Contract):
+    id: UUID
+    issue_id: UUID
+    author: str
+    previous_status: IssueStatus
+    status: IssueStatus
+    revision: int
+    reason: str
+    created_at: datetime
+
+
+class IssueEventPage(Contract):
+    items: list[IssueEvent]
+    next_after: UUID | None
+
+
+CONTRACTS += [IssueView, IssuePage, IssueDecisionInput, IssueEvent, IssueEventPage]

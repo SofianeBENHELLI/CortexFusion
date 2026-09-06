@@ -1,5 +1,15 @@
 /* Generated from the checked-in wire schema. Do not edit. */
 
+export type SourceId = string;
+/**
+ * Zero-based Unicode code point offset, inclusive
+ */
+export type Start = number;
+/**
+ * Unicode code point offset, exclusive; not UTF-16 units
+ */
+export type End = number;
+export type InputSha256 = string | null;
 export type Provider = "ollama" | "openrouter";
 export type RequestId = string | null;
 export type CostUsd = number | null;
@@ -25,15 +35,6 @@ export type Maturity = "emerging" | "observed" | "established" | "reference";
  * @maxItems 30
  */
 export type Sources = [SourceRef, ...SourceRef[]];
-export type SourceId = string;
-/**
- * Zero-based Unicode code point offset, inclusive
- */
-export type Start = number;
-/**
- * Unicode code point offset, exclusive; not UTF-16 units
- */
-export type End = number;
 export type TargetId = string;
 export type Kind1 = "structural" | "associative";
 export type Primary = boolean;
@@ -55,6 +56,8 @@ export type OutputTokens = number | null;
 export type Processing = "local_model_passage_selection" | "openrouter_passage_selection";
 
 export interface LocalExtractionView {
+  input_span?: SourceRef | null;
+  input_sha256?: InputSha256;
   provider?: Provider;
   request_id?: RequestId;
   cost_usd?: CostUsd;
@@ -66,6 +69,11 @@ export interface LocalExtractionView {
   input_tokens: InputTokens;
   output_tokens: OutputTokens;
   processing?: Processing;
+}
+export interface SourceRef {
+  source_id: SourceId;
+  start: Start;
+  end: End;
 }
 export interface ProposalView {
   id: Id1;
@@ -97,11 +105,6 @@ export interface Concept {
   maturity?: Maturity;
   sources: Sources;
   links?: Links;
-}
-export interface SourceRef {
-  source_id: SourceId;
-  start: Start;
-  end: End;
 }
 export interface Link {
   target_id: TargetId;

@@ -14,6 +14,8 @@ A subsequent workspace increment adds review decisions/revisions and diffs, pers
 
 An opt-in, owner-only [OpenRouter adapter](openrouter.md) or [local passage selector](local-extraction.md) now has an immutable model receipt and independent exact-span validation. A real synthetic loopback model-to-publication round trip passed. This is not canonical-summary synthesis or semantic answering.
 
+Registered sources now have deterministic Unicode/UTF-8 bounded chunk pages and extraction can target one span while retaining original-source citations. Personal issue resolution/reopening has revision checks and immutable decision receipts. Shared team triage remains separate.
+
 ## Relationship to the coding plan
 
 | Planned work | Current state |
@@ -39,7 +41,7 @@ The local storage compatibility probe is documented separately. The Compose defi
 
 ## Next increment
 
-1. Extend baseline binary parsing with logical document versions, chunking, layout fidelity and production worker orchestration.
+1. Extend baseline binary parsing with logical document versions, semantic segmentation, layout fidelity and production worker orchestration.
 2. Validate the configured OpenRouter model with synthetic inputs, then add extraction fidelity evaluation. The adapter is implemented; no live OpenRouter call has been made.
 3. Introduce versioned embedding/graph projection adapters with the same publication tests.
 4. Build the owner review and chat interface on the existing contracts.

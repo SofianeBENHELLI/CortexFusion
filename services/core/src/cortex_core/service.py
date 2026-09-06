@@ -896,7 +896,7 @@ class KnowledgeService:
             issues = []
             for row in run(
                 conn,
-                "SELECT i.* FROM cf_issues i JOIN cf_episodes e USING(tenant_id,domain_id) WHERE i.tenant_id=:tenant AND i.domain_id=:domain AND e.id=i.episode_id AND e.subject=:subject ORDER BY i.created_at",
+                "SELECT i.* FROM cf_issues i JOIN cf_episodes e USING(tenant_id,domain_id) WHERE i.tenant_id=:tenant AND i.domain_id=:domain AND e.id=i.episode_id AND e.subject=:subject AND i.status IN ('open','in_progress') ORDER BY i.created_at",
                 **self.keys(p, domain),
                 subject=p.subject,
             ).mappings():

@@ -8,11 +8,27 @@ transaction leaves the pending work available to a later caller.
 from uuid import uuid4
 
 from .auth import CoreError
+from .chunks import source_chunks
 from .contracts import SourceInput
 from .service import digest, encoded, one, run
 
 
 class CorpusService:
+    def chunks(self, p, domain, source_id, offset, limit):
+        with self.db.transaction(p, domain) as conn:
+            source = self.knowledge._source(conn, p, domain, source_id)
+            chunks = list(source_chunks(source["content"]))
+            if offset not in {c["start"] for c in chunks} | {len(source["content"])}:
+                raise CoreError("INVALID_CURSOR", "Offset must be a chunk boundary", 422)
+            remaining = [c for c in chunks if c["start"] >= offset]
+            page = remaining[:limit]
+            return {
+                "source_id": source_id,
+                "algorithm": "unicode-2000-6000-v1",
+                "items": page,
+                "next_offset": page[-1]["end"] if len(remaining) > limit else None,
+            }
+
     def __init__(self, knowledge):
         self.knowledge = knowledge
         self.db = knowledge.db
