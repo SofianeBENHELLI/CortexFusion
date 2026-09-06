@@ -12,6 +12,7 @@ ALLOWED = {
     "BSD-3-Clause",
     "ISC",
     "PSF-2.0",
+    "MIT AND PSF-2.0",
     "Python-2.0",
     "Apache-2.0 OR BSD-3-Clause",
     "Apache-2.0 OR BSD-2-Clause",

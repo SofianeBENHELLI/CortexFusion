@@ -544,3 +544,33 @@ def test_compensation_retry_after_publication_is_idempotent(world):
     again = world.service.rollback_proposal(world.owner, world.domain, 1, data)
     assert again["id"] == first["id"]
     assert world.service.version(world.owner, world.domain)["accepted_version"] == 2
+
+
+def test_replay_response_does_not_disclose_restricted_state(world):
+    source = world.source()
+    world.approve(world.proposal(source))
+    world.service.set_access(
+        world.owner, world.domain, source["id"], AccessInput(allowed_subjects=["bob"])
+    )
+    result = world.service.replay(world.owner, world.domain)
+    assert result["concept_count"] == 0
+    # Replay still reconstructs the entire projection internally.
+    assert len(world.service.concepts(world.viewer, world.domain)) == 1
+
+
+def test_proposal_endpoint_evidence_is_rechecked_after_revocation(world):
+    source = world.source()
+    target = world.proposal(source)
+    world.approve(target)
+    linked = world.proposal(
+        links=[{"target_id": target["payload"][0]["concept"]["concept_id"], "kind": "associative"}]
+    )
+    assert source["id"] in linked["validation"]["source_ids"]
+    world.service.set_access(
+        world.owner, world.domain, source["id"], AccessInput(allowed_subjects=["bob"])
+    )
+    with pytest.raises(CoreError, match="Source"):
+        world.service.proposal(world.owner, world.domain, linked["id"])
+    with pytest.raises(CoreError, match="Source"):
+        world.approve(linked)
+    assert linked["id"] not in str(world.service.brief(world.owner, world.domain))

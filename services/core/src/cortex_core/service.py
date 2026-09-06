@@ -281,7 +281,7 @@ class KnowledgeService:
         if data.base_version != d["published_version"]:
             raise CoreError("STALE_BASE", "Refresh the published knowledge version")
         state = self._state(conn, p, domain)
-        self._validate_changes(conn, p, domain, payload["changes"], state)
+        validated_state = self._validate_changes(conn, p, domain, payload["changes"], state)
         evidence_sources = set()
         for change in payload["changes"]:
             concept = change.get("concept") or state.get(change["concept_id"])
@@ -289,6 +289,14 @@ class KnowledgeService:
             old = state.get(concept["concept_id"])
             if old:
                 evidence_sources.update(ref["source_id"] for ref in old["sources"])
+            # Proposal payloads also reveal relationship endpoints. Preserve their
+            # evidence ACLs even if the linked concept is subsequently retired.
+            for obj, snapshot in ((concept, validated_state), (old, state)):
+                if obj:
+                    for link in obj["links"]:
+                        target = snapshot.get(link["target_id"])
+                        if target:
+                            evidence_sources.update(ref["source_id"] for ref in target["sources"])
         proposal_digest = digest(
             {
                 "tenant": p.tenant_id,
@@ -388,6 +396,7 @@ class KnowledgeService:
             )
             if not proposal:
                 raise CoreError("NOT_FOUND", "Proposal not found", 404)
+            self._check_proposal_access(conn, p, domain, proposal)
             if proposal["digest"] != data.digest or proposal["status"] != "ready":
                 raise CoreError("STALE_BASE", "Proposal changed or was already decided")
             if d["accepted_version"] != d["published_version"]:
@@ -518,10 +527,22 @@ class KnowledgeService:
             for commit in commits:
                 self._apply(conn, p, domain, commit["sequence"], commit["changes"])
             state = self._state(conn, p, domain)
+            visible = {
+                ident: value
+                for ident, value in state.items()
+                if self._visible(conn, p, domain, value)
+            }
+            visible = {
+                ident: {
+                    **value,
+                    "links": [link for link in value["links"] if link["target_id"] in visible],
+                }
+                for ident, value in visible.items()
+            }
             return {
                 "published_version": d["published_version"],
-                "concept_count": len(state),
-                "state_hash": digest(state),
+                "concept_count": len(visible),
+                "state_hash": digest(visible),
             }
 
     def rollback_proposal(self, p, domain, sequence, data: RollbackInput):
