@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "rating": {
+      "enum": [
+        "helpful",
+        "unhelpful"
+      ],
+      "title": "Rating",
+      "type": "string"
+    },
+    "explanation": {
+      "default": "",
+      "maxLength": 2000,
+      "title": "Explanation",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 128,
+      "minLength": 8,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "rating",
+    "idempotency_key"
+  ],
+  "title": "FeedbackInput",
+  "type": "object"
+}

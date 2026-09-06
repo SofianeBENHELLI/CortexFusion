@@ -1,0 +1,21 @@
+{
+  "name": "cortexfusion",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.15.1",
+  "scripts": {
+    "contracts:generate": "node scripts/generate-types.mjs",
+    "contracts:check": "node scripts/generate-types.mjs --check",
+    "test": "node --test packages/contracts/test/*.test.mjs apps/harness/test/*.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.2",
+    "@types/node": "^22.18.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "json-schema-to-typescript": "^15.0.4",
+    "typescript": "^5.9.2"
+  }
+}

@@ -1,5 +1,5 @@
-# infra
+# Local infrastructure
 
-Local development infrastructure and later deployment definitions. Start with only the dependencies required for the first runnable slice. Pin and verify dependencies before adding containers. Commit configuration examples without secrets; no deployable configuration exists yet.
+`compose.yaml` supplies PostgreSQL 17.11 for the development/test core, bound to loopback. `postgres/init.sh` provisions a separate non-superuser application role using configured credentials. Do not use migration credentials in the API.
 
-Status: planned component; this directory currently documents its responsibility only.
+This profile intentionally omits AGE/vector, Temporal, identity hosting, and production deployment. AGE/vector compatibility was checked separately; no graph/vector adapter is active in the application yet. Follow the [development guide](../docs/development.md).

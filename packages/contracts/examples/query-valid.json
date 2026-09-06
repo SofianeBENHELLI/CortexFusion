@@ -1,0 +1,7 @@
+{
+  "contract": "QueryInput",
+  "valid": true,
+  "value": {
+    "question": "What is the incident procedure?"
+  }
+}

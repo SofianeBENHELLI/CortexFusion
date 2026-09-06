@@ -14,6 +14,6 @@ Start with the [prototype scope](docs/product/prototype-scope.md) and [architect
 
 ## Validation
 
-There is no runnable application or application test suite yet. For documentation changes, check relative links, source preservation, and `git diff --check`. With implementation, add meaningful checks for approval authorization, tenant isolation, provenance, journal replay, consistent publication, and rollback. Include commands and results in the PR.
+Follow `docs/development.md`, then run `make test` and `make demo-core` against an isolated PostgreSQL test database. Add meaningful checks for changed approval, isolation, provenance, replay, publication, or rollback behavior. For documentation-only edits, check links and `git diff --check`. Include actual commands, results, and unverified areas in the PR.
 
 See [cross-component tests](tests/README.md) and [evaluations](evals/README.md) for their separate responsibilities.

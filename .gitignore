@@ -29,3 +29,12 @@ coverage/
 *.log
 .DS_Store
 .idea/
+
+# Local tooling, credentials, and test outputs
+/work/
+.runtime/
+.coverage
+htmlcov/
+*.tsbuildinfo
+*.egg-info/
+.envrc

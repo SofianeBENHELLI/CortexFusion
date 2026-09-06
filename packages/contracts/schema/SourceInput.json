@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "title": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "location": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Location",
+      "type": "string"
+    },
+    "content": {
+      "maxLength": 200000,
+      "minLength": 1,
+      "title": "Content",
+      "type": "string"
+    },
+    "allowed_subjects": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Allowed Subjects",
+      "type": "array"
+    },
+    "supersedes": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedes"
+    }
+  },
+  "required": [
+    "title",
+    "location",
+    "content",
+    "allowed_subjects"
+  ],
+  "title": "SourceInput",
+  "type": "object"
+}

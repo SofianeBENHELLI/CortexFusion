@@ -4,6 +4,8 @@ Cortex Fusion is the product name. The original French v0.5 dossier is preserved
 
 ## Working documents
 
+Start with the [development guide](development.md), [implementation status](implementation-status.md), and [executable-core decision](architecture/decisions/0001-executable-core.md).
+
 | Document | Purpose |
 |---|---|
 | [Prototype scope](product/prototype-scope.md) | Bounded first release and observable acceptance criteria |

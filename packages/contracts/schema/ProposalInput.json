@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Concept": {
+      "additionalProperties": false,
+      "properties": {
+        "concept_id": {
+          "format": "uuid",
+          "title": "Concept Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "body": {
+          "maxLength": 30000,
+          "minLength": 1,
+          "title": "Body",
+          "type": "string"
+        },
+        "maturity": {
+          "$ref": "#/$defs/Maturity",
+          "default": "emerging"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceRef"
+          },
+          "maxItems": 30,
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/Link"
+          },
+          "maxItems": 100,
+          "title": "Links",
+          "type": "array"
+        }
+      },
+      "required": [
+        "concept_id",
+        "title",
+        "body",
+        "sources"
+      ],
+      "title": "Concept",
+      "type": "object"
+    },
+    "Link": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "structural",
+            "associative"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "primary": {
+          "default": false,
+          "title": "Primary",
+          "type": "boolean"
+        },
+        "weight": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "target_id",
+        "kind"
+      ],
+      "title": "Link",
+      "type": "object"
+    },
+    "Maturity": {
+      "enum": [
+        "emerging",
+        "observed",
+        "established",
+        "reference"
+      ],
+      "title": "Maturity",
+      "type": "string"
+    },
+    "PutConcept": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "put_concept",
+          "default": "put_concept",
+          "title": "Kind",
+          "type": "string"
+        },
+        "concept": {
+          "$ref": "#/$defs/Concept"
+        }
+      },
+      "required": [
+        "concept"
+      ],
+      "title": "PutConcept",
+      "type": "object"
+    },
+    "RetireConcept": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "retire_concept",
+          "default": "retire_concept",
+          "title": "Kind",
+          "type": "string"
+        },
+        "concept_id": {
+          "format": "uuid",
+          "title": "Concept Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "concept_id"
+      ],
+      "title": "RetireConcept",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "start": {
+          "description": "Zero-based Unicode code point offset, inclusive",
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "description": "Unicode code point offset, exclusive; not UTF-16 units",
+          "exclusiveMinimum": 0,
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source_id",
+        "start",
+        "end"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "base_version": {
+      "minimum": 0,
+      "title": "Base Version",
+      "type": "integer"
+    },
+    "changes": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "put_concept": "#/$defs/PutConcept",
+            "retire_concept": "#/$defs/RetireConcept"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/PutConcept"
+          },
+          {
+            "$ref": "#/$defs/RetireConcept"
+          }
+        ]
+      },
+      "maxItems": 50,
+      "minItems": 1,
+      "title": "Changes",
+      "type": "array"
+    },
+    "reason": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 128,
+      "minLength": 8,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "base_version",
+    "changes",
+    "reason",
+    "idempotency_key"
+  ],
+  "title": "ProposalInput",
+  "type": "object"
+}

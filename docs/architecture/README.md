@@ -1,6 +1,6 @@
 # Architecture
 
-Status: component boundaries derived from v0.5; no services are implemented yet.
+Status: target component boundaries derived from v0.5. The first executable core and Cordis service adapter are implemented; see the [accepted slice decision](decisions/0001-executable-core.md) and [implementation status](../implementation-status.md) for the precise subset.
 
 ```mermaid
 flowchart TD

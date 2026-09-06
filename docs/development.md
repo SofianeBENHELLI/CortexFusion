@@ -1,0 +1,75 @@
+# Run the executable development core
+
+The current slice is an authenticated PostgreSQL-backed API with a local extractive answer mode. It imports Markdown/plain text through the source-content API, proposes verbatim knowledge, records owner approval, publishes it, returns citations, accepts feedback, and supports replay and compensating changes. No enterprise corpus or model credentials are bundled.
+
+## Prerequisites
+
+- Python 3.12 or 3.13 and `uv` 0.12.10.
+- Node 24 and pnpm 10.15.1.
+- PostgreSQL 17.11, supplied by Docker Compose or an existing local installation.
+
+Run commands from the repository root. Source and evaluation data must stay outside the public checkout. The source specification documents remain local and are not needed to run the synthetic demonstration.
+
+## Standard local setup
+
+1. Copy `.env.example` to `.env`. Replace both password placeholders with distinct local passwords and use their URL-encoded values in the corresponding database URLs.
+2. Export the configured environment in your terminal. With shell-safe values in `.env`, use `set -a; . ./.env; set +a`. Do not put shell commands in the environment file.
+3. Run `make setup`, then `make dev-up`.
+4. Wait for the database health check, then run `make migrate`.
+5. Run `make test` and `make demo-core`.
+
+The Compose profile binds only to loopback and uses an application role distinct from the migration user. Changing passwords in `.env` does not rotate existing database roles after a volume has already initialized. Keep the existing credentials or rotate them deliberately; do not delete a data volume as a routine troubleshooting step.
+
+The Docker definition is provided for reproducibility; this development session exercised the same migration and API against a locally compiled PostgreSQL server because Docker was unavailable. CI provides a separate clean Linux/PostgreSQL check.
+
+## Existing PostgreSQL
+
+Provision a dedicated database ending in `_test` and a login named `cortex_app` with `NOSUPERUSER NOBYPASSRLS`. Run migrations with a separate administrator/migration identity; the API must not own the tables. Set:
+
+```text
+CORTEX_MIGRATION_DATABASE_URL=postgresql+pg8000://MIGRATION_USER:PASSWORD@127.0.0.1:5432/cortex_test
+CORTEX_TEST_ADMIN_URL=<the same isolated test database, administrative identity>
+CORTEX_TEST_DATABASE_URL=postgresql+pg8000://cortex_app:PASSWORD@127.0.0.1:5432/cortex_test
+```
+
+`make migrate`, `make test`, and `make demo-core` then work without Docker. On macOS, a private Unix socket can be configured with the `unix_sock` URL parameter pointing at the full `.s.PGSQL.PORT` file.
+
+The demo generates ephemeral signing keys and synthetic tenants. It sends actual HTTP requests through the application's ASGI boundary against the real database. It verifies the agent receives 403 for approval, an approved but unpublished concept is absent from answers, publication makes its exact passage available, replay is stable, and compensation advances history without deleting the journal. It does not start a persistent web server.
+
+## Run the API
+
+Set `CORTEX_DATABASE_URL` to the restricted application URL, `CORTEX_JWT_ISSUER` and `CORTEX_JWT_AUDIENCE`, plus exactly one of `CORTEX_JWKS_URL` or `CORTEX_JWT_PUBLIC_KEY_FILE`. Public-key mode accepts RS256 only; the private key is held outside the service. The JWKS URL must use HTTPS. Missing identity configuration prevents startup.
+
+Use `uv run cortex bootstrap --tenant <UUID> --domain <UUID> --owner <issuer-subject> --member <subject>:agent --member <subject>:viewer` with migration credentials to establish a domain. The command only inserts missing records; it does not silently replace an existing owner or membership role.
+
+Run `make serve`. The loopback API is at `http://127.0.0.1:8000`, with interactive API documentation at `/docs` and an OpenAPI schema at `/openapi.json`.
+
+Send `Authorization: Bearer <valid token>` and `X-Tenant-ID: <tenant UUID>` on protected requests. Do not put tokens in URLs. An identity subject must also have membership in the requested domain. The JWT's role field is ignored for application authorization.
+
+## Knowledge flow
+
+1. Owner: `POST /v1/domains/{domain}/sources` with a title, original location, text content, and allowed subjects. The uploader must have access, and all readers must be domain members.
+2. Agent/contributor/owner: `POST /sources/{source}/propose` with an `Idempotency-Key` header, or submit an explicit typed change batch to `/proposals`.
+3. Owner: inspect `/proposals/{id}` and its source evidence, then `POST /proposals/{id}/approve` with the exact digest, base version, reason, and a new idempotency key.
+4. Owner: `POST /publish`. This applies accepted changes only; it does not approve new ones. A production worker for this step is not implemented yet.
+5. Domain member: `POST /query` with a question. The result is exact excerpt retrieval, explicitly `mode: extractive` and `processing: local_no_model`.
+6. Caller: submit feedback to their own `/episodes/{id}/feedback`. Owner: inspect `/brief` for authorized pending proposals and issues from their own episodes.
+7. Owner: create a compensation proposal at `/commits/{sequence}/compensate`, review/approve it, and publish. Conflicting later changes require a revised proposal.
+
+Use `/version` to distinguish accepted and published positions. `POST /replay` rebuilds the current published projection transactionally from the journal. Repeated model execution is not involved. Source access updates at `/sources/{id}/access` immediately affect subsequent authorized reads, including historical episodes.
+
+## MCP and the harness seam
+
+MCP Streamable HTTP is mounted at `/mcp/`. Clients send the same bearer and tenant headers. Exposed tools are `query`, `inspect_concept`, `propose`, and `feedback`; approval/publication are absent from the agent tool catalog.
+
+The initial transport uses the SDK's loopback host protection and a preconfigured issuer/token. OAuth discovery/dynamic client registration and a production remote MCP deployment are not implemented. Use the loopback development endpoint; do not disable host protection to make a public deployment appear to work.
+
+The TypeScript `CoreClient` and Cordis plugin live under `apps/harness/src/`. Instantiate a per-identity/domain client with a token callback. It supports cancellation and rejects remote cleartext origins and credential-bearing URLs. The real Cordis package is exercised in Node tests. Registration into the complete DeepSeek tools/model loop and AG-UI remains a later integration step.
+
+## Validation and limitations
+
+`make test` checks formatting, schemas, generated TypeScript, database/API invariants, Node client/Cordis behavior, and installed dependency license metadata. Integration tests intentionally fail if the explicit test database variables are absent. They create unique synthetic tenants and never truncate the database; test data accumulates until the dedicated test database is deliberately reset.
+
+Two upstream deprecation warnings currently arise from Starlette/httpx and AnyIO integration; they do not fail the tests. No warnings are suppressed by the test configuration.
+
+The core currently supports verbatim text only, conservative structural validation, lexical matching, and character-bounded context. PDF/DOCX parsing, semantic embeddings, LLM synthesis/fidelity evaluation, the full risk engine, durable workers, Keycloak login verification, and a product chat/review interface remain unfinished. Do not interpret this slice as an enterprise-ready deployment.

@@ -2,53 +2,59 @@
 
 **Your company’s collective brain.**
 
-Cortex Fusion is a planned enterprise knowledge platform that turns documents and expertise into a shared, governed memory for people and AI agents. It learns from qualified sources, preserves the history of knowledge, and makes gaps and uncertainty visible.
+Cortex Fusion is building a shared, governed memory for people and AI agents. The first executable slice establishes how knowledge becomes trusted, how answers retain their sources, and how changes can be reversed.
 
-## Project status
+## What works now
 
-**Specification and repository setup.** The v0.5 design has been organized locally; public import of the original documents awaits approval because they are labeled confidential. Application code, dependency installation, deployment, and performance validation have not started. “Enterprise Brain” is the former working name used in the preserved source documents.
+- Independent Python/FastAPI service backed by PostgreSQL.
+- Signed RS256 identity validation and tenant/domain membership checks.
+- Versioned text sources with explicit reader permissions.
+- Verbatim knowledge proposals, owner-only approval, immutable journal, and atomic publication.
+- Structural relationship validation, deterministic replay, and compensating changes with conflict checks.
+- Local lexical retrieval with exact excerpts, citations, served versions, episodes, and feedback.
+- MCP query/inspection/proposal/feedback tools without approval authority.
+- Generated JSON Schema/TypeScript contracts and a tested Cordis service adapter.
 
-## The brain analogy
+**This is a development core.** It currently makes no model calls. Model extraction, semantic retrieval, durable workers, real enterprise evaluation, and the product chat/review interface are still planned. Original confidential specifications and enterprise corpora remain local.
 
-- **Observe:** identify useful sources and gaps in company knowledge.
-- **Learn:** propose sourced knowledge and submit it for appropriate review.
-- **Remember:** preserve approved changes and their provenance.
-- **Serve:** provide compact, current context to people and AI agents.
-- **Consolidate:** improve the organization of knowledge over time.
-- **Reflect:** surface uncertainty, contradictions, costs, and review needs.
+## Run and verify
 
-Conversations produce proposals, not silent changes to trusted knowledge. An authenticated domain owner approves changes; agents do not hold approval credentials.
+Follow the [development guide](docs/development.md) to configure Python, Node, and an isolated PostgreSQL database. Then:
 
-## Start here
+```sh
+make setup
+make migrate
+make test
+make demo-core
+```
 
-1. [Documentation index](docs/README.md)
-2. [Prototype scope and acceptance criteria](docs/product/prototype-scope.md)
-3. [Architecture and component boundaries](docs/architecture/README.md)
-4. [Development roadmap](docs/product/roadmap.md)
-5. [Open decisions](docs/architecture/open-decisions.md)
-6. [Contributing](CONTRIBUTING.md)
+The synthetic demo imports a source, demonstrates that an agent cannot approve it, records owner approval, publishes it, returns its cited passage, rebuilds the state, and compensates the change without erasing history.
+
+For a persistent API, configure your identity provider/public key and run `make serve`. Interactive API documentation is available at `/docs` on the loopback server.
+
+## Project navigation
+
+- [Implementation status and next increment](docs/implementation-status.md)
+- [Architecture decision for the executable core](docs/architecture/decisions/0001-executable-core.md)
+- [Compatibility evidence](docs/architecture/compatibility-evidence.md)
+- [Prototype scope](docs/product/prototype-scope.md) and [roadmap](docs/product/roadmap.md)
+- [Documentation index](docs/README.md) and [contributing](CONTRIBUTING.md)
 
 ## Repository layout
 
 ```text
-apps/web/             TypeScript interface: chat, review, knowledge map
-apps/harness/         TypeScript agent runtime adapter
-services/core/        Independent Python knowledge service and MCP boundary
-services/workflows/   Python ingestion, evaluation, and consolidation jobs
-packages/agents/      Python agent behavior behind project-owned contracts
-packages/contracts/   Shared wire schemas and protocol examples
-infra/                Local infrastructure and deployment configuration
-tests/               Cross-component integration and isolation tests
-evals/               Question banks, evaluation scenarios, benchmark reports
-docs/                Product, architecture, decisions, and source specifications
+services/core/       Executable Python knowledge core, API, MCP, migrations
+packages/contracts/ Wire schemas, shared examples, generated TypeScript
+apps/harness/        TypeScript client and Cordis service adapter
+scripts/             Contract generation, license metadata gate, synthetic demo
+infra/               Local PostgreSQL profile
+tests/               PostgreSQL/API invariants and contract checks
+apps/web/            Planned product interface
+services/workflows/  Planned durable ingestion and consolidation
+packages/agents/     Planned model-driven behavior
+evals/               Evaluation methodology; enterprise data stays private
 ```
-
-Each component currently contains a responsibility guide only. Runtime and package configuration will be added with the first implementation slice.
-
-## First implementation slice
-
-Create one tenant and one domain, submit a sourced knowledge proposal, approve it as the owner, append the resulting change, materialize it, and retrieve the approved concept with its source and version. Demonstrate that an agent cannot approve its own proposal and that replay reconstructs the same state.
 
 ## Licensing
 
-The project license has not been selected. The dependency license policy in the design does not grant a license to this repository. See [open decisions](docs/architecture/open-decisions.md).
+The repository license has not been selected. The dependency policy does not grant a license to Cortex Fusion. Installed dependency metadata is checked separately; see the [architecture decision](docs/architecture/decisions/0001-executable-core.md).
