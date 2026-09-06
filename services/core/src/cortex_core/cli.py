@@ -9,6 +9,16 @@ from sqlalchemy import create_engine, text
 def main():
     parser = argparse.ArgumentParser(prog="cortex")
     sub = parser.add_subparsers(dest="command", required=True)
+    model_check = sub.add_parser(
+        "model-check", help="Check OpenRouter configuration; --live sends one synthetic request"
+    )
+    model_check.add_argument("--model", help="Exact OpenRouter model ID; otherwise use environment")
+    model_check.add_argument(
+        "--live", action="store_true", help="Make one potentially paid request"
+    )
+    model_check.add_argument(
+        "--prompt-key", action="store_true", help="Read key privately from an interactive terminal"
+    )
     serve = sub.add_parser("serve")
     serve.add_argument("--port", type=int, default=8000)
     bootstrap = sub.add_parser(
@@ -31,6 +41,24 @@ def main():
     worker.add_argument("--max-jobs", type=int, default=20, choices=range(1, 101))
     worker.add_argument("--poll-seconds", type=int, default=5, choices=range(1, 301))
     args = parser.parse_args()
+    if args.command == "model-check":
+        import json
+
+        from .model_check import check_model
+
+        key = None
+        if args.prompt_key:
+            import getpass
+            import sys
+
+            from pydantic import SecretStr
+
+            if not sys.stdin.isatty():
+                parser.error("--prompt-key requires an interactive terminal")
+            key = SecretStr(getpass.getpass("OpenRouter API key (hidden): "))
+        report, status = check_model(live=args.live, model=args.model, api_key=key)
+        print(json.dumps(report, ensure_ascii=False))
+        raise SystemExit(status)
     if args.command == "worker":
         from .worker import run_worker
 

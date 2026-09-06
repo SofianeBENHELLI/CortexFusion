@@ -77,6 +77,8 @@ def test_untrusted_provider_output(monkeypatch, payload):
 @pytest.mark.parametrize(
     "status,code",
     [
+        (400, "MODEL_REQUEST_REJECTED"),
+        (404, "MODEL_ROUTE_UNAVAILABLE"),
         (401, "MODEL_AUTH_FAILED"),
         (402, "MODEL_BUDGET_EXHAUSTED"),
         (429, "MODEL_RATE_LIMITED"),

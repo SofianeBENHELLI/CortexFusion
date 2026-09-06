@@ -43,9 +43,11 @@ class OpenRouterPassageModel:
             return result
         except urllib.error.HTTPError as exc:
             code = {
+                400: "MODEL_REQUEST_REJECTED",
                 401: "MODEL_AUTH_FAILED",
                 403: "MODEL_AUTH_FAILED",
                 402: "MODEL_BUDGET_EXHAUSTED",
+                404: "MODEL_ROUTE_UNAVAILABLE",
                 429: "MODEL_RATE_LIMITED",
             }.get(exc.code, "MODEL_UNAVAILABLE")
             raise CoreError(
