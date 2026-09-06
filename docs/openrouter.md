@@ -5,10 +5,10 @@ OpenRouter is the default model provider. Extraction remains disabled until both
 ```sh
 export CORTEX_MODEL_PROVIDER=openrouter
 export CORTEX_OPENROUTER_API_KEY='your-private-key'
-export CORTEX_OPENROUTER_MODEL='provider/model-id'
+export CORTEX_OPENROUTER_MODEL='deepseek/deepseek-v4-flash'
 ```
 
-`OPENROUTER_API_KEY` is also accepted; the Cortex-prefixed key takes precedence. Do not commit `.env` or paste real keys into issues, prompts or frontend configuration. Select a model supporting structured outputs; Cortex does not choose a paid model automatically.
+`OPENROUTER_API_KEY` is also accepted; the Cortex-prefixed key takes precedence. Do not commit `.env` or paste real keys into issues, prompts or frontend configuration. The selected model is [DeepSeek V4 Flash](https://openrouter.ai/deepseek/deepseek-v4-flash), using the exact ID `deepseek/deepseek-v4-flash` (currently labeled 0423 in the catalog). The public endpoint catalog advertises structured outputs on several providers; eligibility under the configured routing restrictions and actual extraction behavior still require a live check. A server-side key is required before extraction is enabled.
 
 An owner with access to the source invokes:
 
