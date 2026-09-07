@@ -224,8 +224,8 @@
     "frontend": "Respecter l'ordre et le curseur renvoyés. Les réponses de compagnon peuvent nécessiter leur lecture dédiée ; ce n'est pas une mémoire automatiquement envoyée au modèle."
   },
   "conversations.query": {
-    "description": "Pose une question dans une conversation et crée son épisode avec une clé de reprise stable.",
-    "frontend": "Conserver la même clé après timeout. Le résultat reste une recherche extractive ; la synthèse citée est aujourd'hui un parcours compagnon séparé."
+    "description": "Pose une question dans une conversation et crée son épisode avec une clé de reprise stable. Réponse JSON par défaut ; Accept: text/event-stream diffuse un démarrage puis le résultat extractif ou une erreur, sans tokens LLM.",
+    "frontend": "Conserver la même clé après timeout ou déconnexion. Avec SSE, attendre un événement result avant d'afficher la réussite ; une erreur peut arriver après le statut HTTP 200. La synthèse citée reste un parcours compagnon séparé."
   },
   "feedback.preferences": {
     "description": "Lit le consentement personnel aux événements observés et inférés, désactivés par défaut.",

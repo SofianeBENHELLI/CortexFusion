@@ -1,6 +1,7 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
+from starlette.concurrency import run_in_threadpool
 
 from .contracts import (
     ConversationInput,
@@ -11,6 +12,7 @@ from .contracts import (
     ConversationView,
     QueryResult,
 )
+from .conversation_stream import SSE_CONTENT, stream_query, wants_stream
 
 
 def conversations_router(service, principal):
@@ -48,8 +50,22 @@ def conversations_router(service, principal):
     ):
         return service.messages(p, str(domain), str(ident), limit, after)
 
-    @router.post("/{ident}/query", response_model=QueryResult)
-    def query(domain: UUID, ident: UUID, data: ConversationQueryInput, p=Depends(principal)):
-        return service.k.query(p, str(domain), data, conversation_id=str(ident))
+    @router.post(
+        "/{ident}/query",
+        response_model=QueryResult,
+        responses={200: {"content": {"text/event-stream": SSE_CONTENT}}},
+    )
+    async def query(
+        domain: UUID,
+        ident: UUID,
+        data: ConversationQueryInput,
+        request: Request,
+        p=Depends(principal),
+    ):
+        if wants_stream(request.headers.get("accept", "")):
+            return await stream_query(service, principal, request, p, str(domain), str(ident), data)
+        return await run_in_threadpool(
+            service.k.query, p, str(domain), data, conversation_id=str(ident)
+        )
 
     return router

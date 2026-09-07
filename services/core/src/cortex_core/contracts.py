@@ -138,6 +138,31 @@ class QueryResult(Contract):
     processing: Literal["local_no_model"] = "local_no_model"
 
 
+class QueryStreamStarted(Contract):
+    event: Literal["started"] = "started"
+    protocol_version: Literal["1"] = "1"
+    operation_id: Literal["conversations.query"] = "conversations.query"
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+
+class QueryStreamResult(Contract):
+    event: Literal["result"] = "result"
+    protocol_version: Literal["1"] = "1"
+    result: QueryResult
+
+
+class QueryStreamError(Contract):
+    event: Literal["error"] = "error"
+    protocol_version: Literal["1"] = "1"
+    error: str
+    http_status: int = Field(ge=400, le=599)
+    message: str = "La réponse n'a pas pu être livrée. Relire l'état ou reprendre la même clé."
+    recovery: Literal["inspect_or_retry_same_key"] = "inspect_or_retry_same_key"
+
+
+STREAM_CONTRACTS = [QueryStreamStarted, QueryStreamResult, QueryStreamError]
+
+
 CONTRACTS = [
     ProposalInput,
     ApprovalInput,
@@ -149,6 +174,7 @@ CONTRACTS = [
     DomainVersion,
     QueryResult,
 ]
+CONTRACTS += STREAM_CONTRACTS
 
 
 class CollectionInput(Contract):

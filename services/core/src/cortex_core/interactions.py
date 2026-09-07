@@ -134,6 +134,14 @@ def install_openapi(app):
             title=app.title, version=app.version, description=app.description, routes=app.routes
         )
         spec["x-cortex-http-confirmation-mode"] = app.state.confirmation_guard.mode
+        from .contracts import STREAM_CONTRACTS
+
+        components = spec.setdefault("components", {}).setdefault("schemas", {})
+        for event in STREAM_CONTRACTS:
+            event_schema = event.model_json_schema(ref_template="#/components/schemas/{model}")
+            for name, definition in event_schema.pop("$defs", {}).items():
+                components.setdefault(name, definition)
+            components[event.__name__] = event_schema
         spec.setdefault("components", {}).setdefault("securitySchemes", {})["BearerAuth"] = {
             "type": "http",
             "scheme": "bearer",

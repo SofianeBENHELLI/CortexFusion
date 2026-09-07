@@ -3376,6 +3376,22 @@
                 "schema": {
                   "$ref": "#/components/schemas/QueryResult"
                 }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                },
+                "x-cortex-events": {
+                  "started": {
+                    "$ref": "#/components/schemas/QueryStreamStarted"
+                  },
+                  "result": {
+                    "$ref": "#/components/schemas/QueryStreamResult"
+                  },
+                  "error": {
+                    "$ref": "#/components/schemas/QueryStreamError"
+                  }
+                }
               }
             }
           },
@@ -25302,6 +25318,109 @@
           "published_version"
         ],
         "title": "VersionView"
+      },
+      "QueryStreamStarted": {
+        "additionalProperties": false,
+        "properties": {
+          "event": {
+            "const": "started",
+            "default": "started",
+            "title": "Event",
+            "type": "string"
+          },
+          "protocol_version": {
+            "const": "1",
+            "default": "1",
+            "title": "Protocol Version",
+            "type": "string"
+          },
+          "operation_id": {
+            "const": "conversations.query",
+            "default": "conversations.query",
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Idempotency Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotency_key"
+        ],
+        "title": "QueryStreamStarted",
+        "type": "object"
+      },
+      "QueryStreamResult": {
+        "additionalProperties": false,
+        "properties": {
+          "event": {
+            "const": "result",
+            "default": "result",
+            "title": "Event",
+            "type": "string"
+          },
+          "protocol_version": {
+            "const": "1",
+            "default": "1",
+            "title": "Protocol Version",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/QueryResult"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "QueryStreamResult",
+        "type": "object"
+      },
+      "QueryStreamError": {
+        "additionalProperties": false,
+        "properties": {
+          "event": {
+            "const": "error",
+            "default": "error",
+            "title": "Event",
+            "type": "string"
+          },
+          "protocol_version": {
+            "const": "1",
+            "default": "1",
+            "title": "Protocol Version",
+            "type": "string"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "http_status": {
+            "maximum": 599,
+            "minimum": 400,
+            "title": "Http Status",
+            "type": "integer"
+          },
+          "message": {
+            "default": "La réponse n'a pas pu être livrée. Relire l'état ou reprendre la même clé.",
+            "title": "Message",
+            "type": "string"
+          },
+          "recovery": {
+            "const": "inspect_or_retry_same_key",
+            "default": "inspect_or_retry_same_key",
+            "title": "Recovery",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "http_status"
+        ],
+        "title": "QueryStreamError",
+        "type": "object"
       }
     },
     "securitySchemes": {

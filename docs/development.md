@@ -76,6 +76,10 @@ The TypeScript `CoreClient` and Cordis plugin live under `apps/harness/src/`. In
 
 The [reference companion guide](reference-companion.md) documents CLI questions, conversations, feedback and optional comment assessment using the MCP SDK. It adds one bounded external synthesis after lexical retrieval, validates exact references and records a personal response receipt. Live synthetic OpenRouter demonstrations have succeeded; normal tests use mock providers. `--allow-openrouter` and an explicitly configured private key are required for the model commands.
 
+## Conversation query streaming
+
+The existing conversation query POST negotiates `Accept: text/event-stream` for a real started event followed by a sourced result or safe error. Default JSON and generated MCP stay unchanged. This is extractive-query progress, not model-token generation. Authentication and source access are rechecked before final delivery; disconnects do not imply rollback. Retry the same request/key to reuse the durable episode. Last-Event-ID replay is not implemented. See the [French SSE contract](frontend-guide.fr.md).
+
 ## Validation and limitations
 
 `make test` checks formatting, schemas, generated TypeScript, database/API invariants, Node client/Cordis behavior, and installed dependency license metadata. Integration tests intentionally fail if the explicit test database variables are absent. They create unique synthetic tenants and never truncate the database; test data accumulates until the dedicated test database is deliberately reset.

@@ -421,9 +421,9 @@ Retourne une page de l'historique personnel de conversation à partir d'une posi
 <a id="action-conversations-query"></a>
 ## conversations.query
 
-Pose une question dans une conversation et crée son épisode avec une clé de reprise stable.
+Pose une question dans une conversation et crée son épisode avec une clé de reprise stable. Réponse JSON par défaut ; Accept: text/event-stream diffuse un démarrage puis le résultat extractif ou une erreur, sans tokens LLM.
 
-**Utilisation frontend :** Conserver la même clé après timeout. Le résultat reste une recherche extractive ; la synthèse citée est aujourd'hui un parcours compagnon séparé.
+**Utilisation frontend :** Conserver la même clé après timeout ou déconnexion. Avec SSE, attendre un événement result avant d'afficher la réussite ; une erreur peut arriver après le statut HTTP 200. La synthèse citée reste un parcours compagnon séparé.
 
 - HTTP : `POST /v1/domains/{domain}/conversations/{ident}/query`.
 - MCP : `api_conversations_query` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
@@ -443,6 +443,8 @@ Pose une question dans une conversation et crée son épisode avec une clé de r
 
 - Corps requis `application/json` : [ConversationQueryInput](#schema-conversationqueryinput).
 - Succès HTTP 200, `application/json` : [QueryResult](#schema-queryresult).
+- Succès HTTP 200, `text/event-stream` : texte.
+- Événements SSE versionnés : `started` : [QueryStreamStarted](#schema-querystreamstarted); `result` : [QueryStreamResult](#schema-querystreamresult); `error` : [QueryStreamError](#schema-querystreamerror). Une erreur après ouverture du flux est portée par l'événement, pas par le statut HTTP déjà envoyé.
 - Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
 
 <a id="action-members-list"></a>
@@ -3025,6 +3027,43 @@ Champs non déclarés interdits.
 | `concepts` | oui | liste de [Concept](#schema-concept) | — |
 | `citations` | oui | liste de [Citation](#schema-citation) | — |
 | `processing` | non | `"local_no_model"` | défaut : `"local_no_model"` |
+
+<a id="schema-querystreamerror"></a>
+### QueryStreamError
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `event` | non | `"error"` | défaut : `"error"` |
+| `protocol_version` | non | `"1"` | défaut : `"1"` |
+| `error` | oui | texte | — |
+| `http_status` | oui | entier | minimum : `400`; maximum : `599` |
+| `message` | non | texte | défaut : `"La réponse n'a pas pu être livrée. Relire l'état ou reprendre la même clé."` |
+| `recovery` | non | `"inspect_or_retry_same_key"` | défaut : `"inspect_or_retry_same_key"` |
+
+<a id="schema-querystreamresult"></a>
+### QueryStreamResult
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `event` | non | `"result"` | défaut : `"result"` |
+| `protocol_version` | non | `"1"` | défaut : `"1"` |
+| `result` | oui | [QueryResult](#schema-queryresult) | — |
+
+<a id="schema-querystreamstarted"></a>
+### QueryStreamStarted
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `event` | non | `"started"` | défaut : `"started"` |
+| `protocol_version` | non | `"1"` | défaut : `"1"` |
+| `operation_id` | non | `"conversations.query"` | défaut : `"conversations.query"` |
+| `idempotency_key` | oui | texte | longueur min. : `8`; longueur max. : `128` |
 
 <a id="schema-replayreceipt"></a>
 ### ReplayReceipt

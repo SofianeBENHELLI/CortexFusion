@@ -8,7 +8,7 @@ La [référence exhaustive des endpoints](frontend-api.fr.md) donne, pour chaque
 
 | Parcours demandé | Disponible | Écart ou limite actuelle |
 |---|---|---|
-| Interroger le domaine | Recherche publiée, épisode personnel, citations exactes, version servie, manque de connaissance ; compagnon de référence avec synthèse citée | Pas encore de route de chat HTTP en streaming. Le SSE du transport MCP n'est pas un flux de tokens du chat. La validation des citations ne prouve pas la vérité de chaque phrase générée. |
+| Interroger le domaine | Recherche publiée, épisode personnel, citations exactes, version servie, manque de connaissance ; compagnon de référence avec synthèse citée | Flux SSE de recherche livré sur la question de conversation ; il ne diffuse pas de tokens LLM. La validation des citations ne prouve pas la vérité de chaque phrase générée. |
 | Piloter et naviguer dans six vues | Brief propriétaire, concepts/relations, conversations archivables, propositions, signaux personnels, corpus/imports, journal | Le brief est un instantané à la demande, pas une synthèse quotidienne programmée. Pas de moteur de mémoire court/long terme distinct. |
 | Valider et publier | Diff/preuves, rejet, report, demande de modification, réouverture, approbation et publication séparées | Pas de tâche de publication asynchrone ni de barre de progression métier ; le reçu confirme la transaction. |
 | Corriger un concept ou une relation | Proposition typée de remplacement de concept avec ses relations et preuves, revue puis publication | Pas de PATCH direct sur une relation canonique. Préparer la nouvelle représentation complète à partir du concept relu. |
@@ -136,7 +136,37 @@ L'ID d'épisode et les références viennent du serveur. Chaque citation porte s
 
 Le rendu Markdown traite la réponse comme non fiable : ne pas exécuter de HTML ou d'instructions intégrées au corpus. Les citations doivent être reliées aux références du reçu, pas à des URLs inventées par le modèle.
 
-**Streaming :** aucune route HTTP de tokens de réponse n'est exposée à cet état. Le transport MCP Streamable HTTP peut utiliser SSE pour ses messages de protocole ; cela ne fournit pas un abonnement métier à une conversation. Ne pas créer dans le frontend un contrat `/stream` supposé. Le lot backend suivant doit documenter ses événements et sa reprise avant intégration.
+### Flux SSE de la question de conversation
+
+Le même `POST /v1/domains/{domain}/conversations/{ident}/query` accepte `Accept: text/event-stream`. Le corps reste `ConversationQueryInput`, avec clé d'idempotence. Sans préférence explicite pour SSE, la réponse reste `QueryResult` en JSON ; le MCP généré conserve ce comportement JSON. Une égalité de préférence entre JSON et SSE conserve JSON.
+
+Le flux est du UTF-8 `text/event-stream`, avec `Cache-Control: no-store` et `X-Accel-Buffering: no`. Vérifier aussi les réglages du proxy de déploiement. Deux événements métier au maximum sont émis : started puis result ou error. Le démarrage est envoyé avant l'exécution de la recherche, après les premiers contrôles de conversation. Aucun pourcentage, faux token ou réponse partielle non vérifiée n'est généré.
+
+| Événement | Données | Comportement frontend |
+|---|---|---|
+| started | protocol_version=1, operation_id=conversations.query, idempotency_key | Afficher la recherche en cours. Ce n'est pas une preuve d'écriture ou de réussite. |
+| result | protocol_version=1, result de type QueryResult | Insérer le résultat sourcé et la version dans le cache ; terminer le chargement. |
+| error | protocol_version=1, error, http_status, message et recovery=inspect_or_retry_same_key | Terminer le chargement en échec/incertitude ; lire l'état ou reprendre avec la même clé. |
+
+Exemple de trame de démarrage (les données sont une seule ligne JSON) :
+
+```text
+event: started
+data: {"event":"started","protocol_version":"1","operation_id":"conversations.query","idempotency_key":"question-logique-000001"}
+
+```
+
+Les objets d'événement sont typés dans QueryStreamStarted, QueryStreamResult et QueryStreamError et exportés en TypeScript. Le JSON échappe les retours à la ligne du contenu : ne pas interpréter le texte d'une citation comme des trames SSE.
+
+Utiliser `fetch` POST avec un `AbortSignal`, les en-têtes d'identité et le corps JSON. Lire le `ReadableStream` avec un décodeur UTF-8 incrémental et un parseur SSE qui conserve les fragments entre lectures réseau. Une lecture réseau n'est pas forcément un événement complet. L'objet natif `EventSource` ne correspond pas directement à ce POST authentifié avec corps. Ne pas placer le jeton dans l'URL.
+
+Avant ouverture du flux, les erreurs de validation, d'identité, de conversation privée/archivée ou de clé déjà conflictuelle restent des réponses HTTP JSON 4xx. Après le statut HTTP 200, une erreur se trouve dans l'événement error : ne pas considérer `response.ok` seul comme une réussite du chat. Une fermeture sans événement terminal laisse l'issue inconnue.
+
+Une déconnexion n'annule pas une transaction déjà commencée ou validée. Reprendre le même POST avec le même contenu et la même clé, en JSON ou SSE : l'épisode déjà enregistré est relu sous les droits actuels. Une clé réutilisée pour une autre question reçoit un conflit. Aucun curseur durable d'événements n'est proposé ; un `Last-Event-ID` non vide reçoit `STREAM_CURSOR_UNSUPPORTED` avant le flux. Le résultat complet est rejoué, pas un suffixe de tokens.
+
+Le jeton et les droits sur les preuves sont vérifiés de nouveau après le calcul, avant livraison. Une révocation pendant ce travail peut donc produire un événement error sans livrer le texte. Le reçu peut néanmoins déjà exister et rester inaccessible selon les droits actuels.
+
+Ce flux expose l'avancement et la réponse de la recherche extractive. La génération citée d'un compagnon reste un traitement distinct : il n'y a ni diffusion des tokens OpenRouter ni abonnement permanent aux messages futurs dans ce contrat.
 
 **Voix :** le backend actuel reçoit du texte, pas de l'audio. Le frontend peut préparer une transcription éditable, puis envoyer la même commande query. Il faut documenter la destination réelle du traitement vocal choisi ; l'usage de Web Speech API ne doit pas être présenté comme une garantie de traitement local. Aucun endpoint STT ni reçu vocal n'est encore fourni.
 
@@ -212,4 +242,4 @@ Les codes sont plus stables que les messages. Les traductions react-intl doivent
 2. **Import → revue → publication** : corpus manager dépose un fichier, traite, crée une proposition ; sa tentative d'approbation est refusée. Le propriétaire lit le diff, diffère puis rouvre/accepte, publie et constate la nouvelle version.
 3. **Pouce bas → traitement personnel → correction** : cibler le reçu de réponse, envoyer un vote explicite, lire le signalement, prendre en charge, créer une proposition séparée, puis résoudre ou classer avec raison. Vérifier qu'aucune inférence ne gonfle le nombre de votes.
 
-Ces scénarios peuvent guider Playwright côté frontend ; le backend maintient les tests HTTP/MCP et PostgreSQL correspondants avec données synthétiques. Les demandes de streaming, CORS et vues agrégées doivent être rattachées à des contrats livrés, sans endpoints imaginaires.
+Ces scénarios peuvent guider Playwright côté frontend ; le backend maintient les tests HTTP/MCP et PostgreSQL correspondants avec données synthétiques. Les variantes SSE et JSON utilisent la même clé de question. Les futures vues agrégées ou la génération de tokens doivent être rattachées à leurs propres contrats livrés.

@@ -235,6 +235,15 @@ def render(document):
                         f"- Succès HTTP {status}, `{media}` : "
                         f"{schema_type(content.get('schema', {}))}."
                     )
+                    if content.get("x-cortex-events"):
+                        lines.append(
+                            "- Événements SSE versionnés : "
+                            + "; ".join(
+                                f"`{event}` : {schema_type(schema)}"
+                                for event, schema in content["x-cortex-events"].items()
+                            )
+                            + ". Une erreur après ouverture du flux est portée par l'événement, pas par le statut HTTP déjà envoyé."
+                        )
         errors = [s for s in item["responses"] if not s.startswith("2")]
         lines.append(
             "- Erreurs déclarées : " + (", ".join(errors) or "voir erreurs de transport") + "."
