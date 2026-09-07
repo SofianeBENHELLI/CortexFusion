@@ -385,3 +385,57 @@ def test_member_can_confirm_only_their_own_feedback_preferences(
         )["error"]
         == "CONFIRMATION_INVALID"
     )
+
+
+def test_error_and_confirmation_receipts_match_advertised_output_schemas(world):
+    import jsonschema
+    from cortex_core.mcp_bridge import definitions
+
+    inventory = definitions(world.app.openapi())
+    cases = [
+        (
+            "api_sources_read",
+            {"path": {"domain": world.domain, "source_id": str(uuid4())}},
+            "alice",
+            404,
+        ),
+        (
+            "api_sources_read",
+            {"path": {"domain": "invalid", "source_id": str(uuid4())}},
+            "alice",
+            422,
+        ),
+        ("api_domain_publish", {"path": {"domain": world.domain}}, "alice", 428),
+        ("api_domain_publish", {"path": {"domain": world.domain}}, "bob", 403),
+        (
+            "api_sources_extract",
+            {
+                "path": {"domain": world.domain, "source_id": str(uuid4())},
+                "body": {"processing_destination": "openrouter", "idempotency_key": str(uuid4())},
+            },
+            "alice",
+            428,
+        ),
+    ]
+    for name, args, subject, status in cases:
+        result = rpc(world, name, args, subject=subject)
+        receipt = result["structuredContent"]
+        assert receipt["http_status"] == status and result["isError"] is True
+        schema = inventory[name]["tool"].outputSchema
+        jsonschema.Draft202012Validator.check_schema(schema)
+        jsonschema.validate(receipt, schema)
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate({**receipt, "http_status": 200}, schema)
+    for entry in inventory.values():
+        jsonschema.Draft202012Validator.check_schema(entry["tool"].outputSchema)
+
+
+def test_success_receipts_also_match_the_union_schema(world):
+    import jsonschema
+    from cortex_core.mcp_bridge import definitions
+
+    result = rpc(world, "api_identity_read")["structuredContent"]
+    schema = definitions(world.app.openapi())["api_identity_read"]["tool"].outputSchema
+    jsonschema.validate(result, schema)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate({**result, "http_status": 404}, schema)

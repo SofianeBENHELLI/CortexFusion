@@ -45,6 +45,8 @@ Personal [companion response receipts](companion-responses.md) now preserve the 
 | CF-028–030 — product interface | Not started; interactive API documentation is a developer surface, not the product UI |
 | CF-031–036 — consolidation/evaluation | Basic owner brief exists; scheduled consolidation, model evaluation, recovery packaging and enterprise benchmark remain open |
 
+A [local restore rehearsal](restore-rehearsal.md) matched 29 tables and RLS policies in an isolated database and passed the synthetic governed-knowledge demonstration afterward. This does not establish production disaster recovery.
+
 ## Evidence
 
 Run `make test` and `make demo-core` in the environment described in the development guide. Tests use actual PostgreSQL, not SQLite or an in-memory substitute. They include publication failure/retry, concurrent approvals, consistent reads during publication, in-flight permission revocation, immutable records, replay, compensation conflicts, wire examples and authenticated MCP calls.

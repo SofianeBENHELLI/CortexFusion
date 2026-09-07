@@ -12,6 +12,28 @@ from starlette.concurrency import run_in_threadpool
 from .auth import CoreError
 from .confirmations import ConfirmationVerifier, command_hash
 
+MCP_ERROR = {
+    "type": "object",
+    "properties": {
+        "error": {"type": "string"},
+        "message": {"type": "string"},
+        "details": {"type": "array", "items": {"type": "object"}},
+    },
+    "required": ["error"],
+    "additionalProperties": False,
+}
+MCP_CONFIRMATION = {
+    "type": "object",
+    "properties": {
+        "action": {"type": "string"},
+        "command_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "transport_header": {"const": "X-Cortex-Confirmation"},
+        "max_lifetime_seconds": {"const": 300},
+    },
+    "required": ["action", "command_hash", "transport_header", "max_lifetime_seconds"],
+    "additionalProperties": False,
+}
+
 
 def standalone(schema, components):
     result = copy.deepcopy(schema)
@@ -96,14 +118,52 @@ def definitions(spec):
                     "required": ["media_type", "base64"],
                     "additionalProperties": False,
                 }
-            output_schema = standalone(
-                {
-                    "type": "object",
-                    "properties": {"http_status": {"type": "integer"}, "data": output},
-                    "required": ["http_status", "data"],
-                    "additionalProperties": False,
+            error_ref = {"$ref": "#/components/schemas/MCPError"}
+            envelope = {
+                "type": "object",
+                "properties": {
+                    "http_status": {"type": "integer"},
+                    "data": {"anyOf": [output, error_ref]},
                 },
-                spec["components"]["schemas"],
+                "required": ["http_status", "data"],
+                "additionalProperties": False,
+                "oneOf": [
+                    {
+                        "properties": {
+                            "http_status": {
+                                "enum": [
+                                    int(c) for c in operation["responses"] if c.startswith("2")
+                                ]
+                            },
+                            "data": output,
+                        },
+                        "not": {"required": ["confirmation_request"]},
+                    },
+                    {
+                        "properties": {
+                            "http_status": {"minimum": 400, "maximum": 599},
+                            "data": error_ref,
+                        }
+                    },
+                ],
+            }
+            if sensitive:
+                envelope["properties"]["confirmation_request"] = {
+                    "$ref": "#/components/schemas/MCPConfirmationRequest"
+                }
+                envelope["allOf"] = [
+                    {
+                        "if": {"required": ["confirmation_request"]},
+                        "then": {"properties": {"http_status": {"const": 428}}},
+                    }
+                ]
+            output_schema = standalone(
+                envelope,
+                {
+                    **spec["components"]["schemas"],
+                    "MCPError": MCP_ERROR,
+                    "MCPConfirmationRequest": MCP_CONFIRMATION,
+                },
             )
             tool = Tool(
                 name=name,

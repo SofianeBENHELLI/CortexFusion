@@ -939,7 +939,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ProtectedResourceMetadata"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ProtectedResourceMetadata"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -947,6 +954,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ProtectedResourceMetadata"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ProtectedResourceMetadata": {
             "properties": {
@@ -983,6 +1020,27 @@
               "resource_name"
             ],
             "title": "ProtectedResourceMetadata"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -1127,7 +1185,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/CompanionResponseView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/CompanionResponseView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -1135,6 +1200,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  201
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/CompanionResponseView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "CompanionResponseView": {
             "properties": {
@@ -1329,6 +1424,27 @@
               "excerpt"
             ],
             "title": "Citation"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -1377,7 +1493,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/CompanionResponseView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/CompanionResponseView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -1385,6 +1508,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/CompanionResponseView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "CompanionResponseView": {
             "properties": {
@@ -1579,6 +1732,27 @@
               "excerpt"
             ],
             "title": "Citation"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -1659,7 +1833,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/CompanionResponsePage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/CompanionResponsePage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -1667,6 +1848,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/CompanionResponsePage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "CompanionResponsePage": {
             "properties": {
@@ -1891,6 +2102,27 @@
               "excerpt"
             ],
             "title": "Citation"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -1959,7 +2191,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ModelAttemptPage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ModelAttemptPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -1967,6 +2206,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ModelAttemptPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ModelAttemptPage": {
             "properties": {
@@ -2129,6 +2398,27 @@
               "end"
             ],
             "title": "SourceRef"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -2177,7 +2467,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ModelAttemptView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ModelAttemptView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -2185,6 +2482,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ModelAttemptView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ModelAttemptView": {
             "properties": {
@@ -2317,6 +2644,27 @@
               "end"
             ],
             "title": "SourceRef"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -2359,7 +2707,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ModelUsageView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ModelUsageView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -2367,6 +2722,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ModelUsageView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ModelUsageView": {
             "properties": {
@@ -2405,6 +2790,27 @@
               "scope"
             ],
             "title": "ModelUsageView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -2476,7 +2882,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ConversationView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ConversationView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -2484,6 +2897,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  201
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ConversationView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ConversationView": {
             "properties": {
@@ -2520,6 +2963,27 @@
               "created_at"
             ],
             "title": "ConversationView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -2593,7 +3057,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ConversationPage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ConversationPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -2601,6 +3072,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ConversationPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ConversationPage": {
             "properties": {
@@ -2667,6 +3168,27 @@
               "created_at"
             ],
             "title": "ConversationView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -2715,7 +3237,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ConversationView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ConversationView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -2723,6 +3252,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ConversationView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ConversationView": {
             "properties": {
@@ -2759,6 +3318,27 @@
               "created_at"
             ],
             "title": "ConversationView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -2840,7 +3420,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ConversationView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ConversationView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -2848,6 +3435,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ConversationView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ConversationView": {
             "properties": {
@@ -2884,6 +3501,27 @@
               "created_at"
             ],
             "title": "ConversationView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -2952,7 +3590,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ConversationMessages"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ConversationMessages"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -2960,6 +3605,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ConversationMessages"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ConversationMessages": {
             "properties": {
@@ -3251,6 +3926,27 @@
               "excerpt"
             ],
             "title": "Citation"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -3342,7 +4038,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/QueryResult"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/QueryResult"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -3350,6 +4053,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/QueryResult"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "QueryResult": {
             "properties": {
@@ -3583,6 +4316,27 @@
               "excerpt"
             ],
             "title": "Citation"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -3645,7 +4399,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/MemberPage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/MemberPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -3653,6 +4414,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/MemberPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "MemberPage": {
             "properties": {
@@ -3706,6 +4497,27 @@
               "revision"
             ],
             "title": "MemberView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -3815,7 +4627,17 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/MembershipReceipt"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/MembershipReceipt"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          },
+          "confirmation_request": {
+            "$ref": "#/$defs/MCPConfirmationRequest"
           }
         },
         "required": [
@@ -3823,6 +4645,52 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  201
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/MembershipReceipt"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "confirmation_request"
+              ]
+            },
+            "then": {
+              "properties": {
+                "http_status": {
+                  "const": 428
+                }
+              }
+            }
+          }
+        ],
         "$defs": {
           "MembershipReceipt": {
             "properties": {
@@ -3895,6 +4763,52 @@
               "created_at"
             ],
             "title": "MembershipReceipt"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          "MCPConfirmationRequest": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "command_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "transport_header": {
+                "const": "X-Cortex-Confirmation"
+              },
+              "max_lifetime_seconds": {
+                "const": 300
+              }
+            },
+            "required": [
+              "action",
+              "command_hash",
+              "transport_header",
+              "max_lifetime_seconds"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -3963,7 +4877,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/MembershipEventPage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/MembershipEventPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -3971,6 +4892,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/MembershipEventPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "MembershipEventPage": {
             "properties": {
@@ -4073,6 +5024,27 @@
               "created_at"
             ],
             "title": "MembershipReceipt"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -4135,7 +5107,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/CommitPage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/CommitPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -4143,6 +5122,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/CommitPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "CommitPage": {
             "properties": {
@@ -4213,6 +5222,27 @@
               "created_at"
             ],
             "title": "CommitSummary"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -4261,7 +5291,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ProposalDifference"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ProposalDifference"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -4269,6 +5306,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ProposalDifference"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ProposalDifference": {
             "properties": {
@@ -4479,6 +5546,27 @@
               "kind"
             ],
             "title": "Link"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -4547,7 +5635,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/SourceChunkPage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SourceChunkPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -4555,6 +5650,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/SourceChunkPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "SourceChunkPage": {
             "properties": {
@@ -4627,6 +5752,27 @@
               "sha256"
             ],
             "title": "SourceChunk"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -4714,7 +5860,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/CollectionView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/CollectionView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -4722,6 +5875,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  201
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/CollectionView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "CollectionView": {
             "properties": {
@@ -4755,6 +5938,27 @@
               "allowed_subjects"
             ],
             "title": "CollectionView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -4829,7 +6033,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/CollectionPage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/CollectionPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -4837,6 +6048,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/CollectionPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "CollectionPage": {
             "properties": {
@@ -4900,6 +6141,27 @@
               "allowed_subjects"
             ],
             "title": "CollectionView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -4948,7 +6210,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/CollectionView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/CollectionView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -4956,6 +6225,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/CollectionView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "CollectionView": {
             "properties": {
@@ -4989,6 +6288,27 @@
               "allowed_subjects"
             ],
             "title": "CollectionView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -5075,7 +6395,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/SourcePage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SourcePage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -5083,6 +6410,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/SourcePage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "SourcePage": {
             "properties": {
@@ -5164,6 +6521,27 @@
               "supersedes"
             ],
             "title": "SourceSummary"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -5264,7 +6642,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/SourceSummary"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SourceSummary"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -5272,6 +6657,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  201
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/SourceSummary"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "SourceSummary": {
             "properties": {
@@ -5323,6 +6738,27 @@
               "supersedes"
             ],
             "title": "SourceSummary"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -5438,7 +6874,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ImportView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ImportView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -5446,6 +6889,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  202
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ImportView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ImportView": {
             "properties": {
@@ -5553,6 +7026,27 @@
               "attempts"
             ],
             "title": "ImportItemView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -5621,7 +7115,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ImportPage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ImportPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -5629,6 +7130,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ImportPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ImportPage": {
             "properties": {
@@ -5766,6 +7297,27 @@
               "attempts"
             ],
             "title": "ImportItemView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -5814,7 +7366,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ImportView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ImportView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -5822,6 +7381,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ImportView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ImportView": {
             "properties": {
@@ -5929,6 +7518,27 @@
               "attempts"
             ],
             "title": "ImportItemView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -5991,7 +7601,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ImportView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ImportView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -5999,6 +7616,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ImportView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ImportView": {
             "properties": {
@@ -6106,6 +7753,27 @@
               "attempts"
             ],
             "title": "ImportItemView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -6154,7 +7822,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ImportView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ImportView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -6162,6 +7837,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ImportView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ImportView": {
             "properties": {
@@ -6269,6 +7974,27 @@
               "attempts"
             ],
             "title": "ImportItemView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -6317,7 +8043,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ImportView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ImportView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -6325,6 +8058,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ImportView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ImportView": {
             "properties": {
@@ -6432,6 +8195,27 @@
               "attempts"
             ],
             "title": "ImportItemView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -6527,7 +8311,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/FileView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FileView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -6535,6 +8326,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  202
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/FileView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "FileView": {
             "properties": {
@@ -6624,6 +8445,27 @@
               "spans"
             ],
             "title": "FileView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -6697,7 +8539,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/FilePage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FilePage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -6705,6 +8554,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/FilePage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "FilePage": {
             "properties": {
@@ -6824,6 +8703,27 @@
               "spans"
             ],
             "title": "FileView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -6872,7 +8772,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/FileView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FileView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -6880,6 +8787,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/FileView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "FileView": {
             "properties": {
@@ -6969,6 +8906,27 @@
               "spans"
             ],
             "title": "FileView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -7017,27 +8975,100 @@
             "type": "integer"
           },
           "data": {
-            "type": "object",
-            "properties": {
-              "media_type": {
-                "type": "string"
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "media_type": {
+                    "type": "string"
+                  },
+                  "base64": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "media_type",
+                  "base64"
+                ],
+                "additionalProperties": false
               },
-              "base64": {
-                "type": "string"
+              {
+                "$ref": "#/$defs/MCPError"
               }
-            },
-            "required": [
-              "media_type",
-              "base64"
-            ],
-            "additionalProperties": false
+            ]
           }
         },
         "required": [
           "http_status",
           "data"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "media_type": {
+                    "type": "string"
+                  },
+                  "base64": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "media_type",
+                  "base64"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "$defs": {
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        }
       },
       "annotations": {
         "readOnlyHint": true,
@@ -7084,7 +9115,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/FileView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FileView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -7092,6 +9130,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/FileView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "FileView": {
             "properties": {
@@ -7181,6 +9249,27 @@
               "spans"
             ],
             "title": "FileView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -7229,7 +9318,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/FileView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FileView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -7237,6 +9333,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/FileView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "FileView": {
             "properties": {
@@ -7326,6 +9452,27 @@
               "spans"
             ],
             "title": "FileView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -7374,7 +9521,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/FileView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FileView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -7382,6 +9536,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/FileView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "FileView": {
             "properties": {
@@ -7471,6 +9655,27 @@
               "spans"
             ],
             "title": "FileView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -7568,7 +9773,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/FeedbackSummary"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FeedbackSummary"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -7576,6 +9788,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/FeedbackSummary"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "FeedbackSummary": {
             "properties": {
@@ -7774,6 +10016,27 @@
               "neutral"
             ],
             "title": "InferredFeedbackCounts"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -7816,7 +10079,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/FeedbackPreferences"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FeedbackPreferences"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -7824,6 +10094,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/FeedbackPreferences"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "FeedbackPreferences": {
             "properties": {
@@ -7849,6 +10149,27 @@
               "revision"
             ],
             "title": "FeedbackPreferences"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -7922,7 +10243,17 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/FeedbackPreferences"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FeedbackPreferences"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          },
+          "confirmation_request": {
+            "$ref": "#/$defs/MCPConfirmationRequest"
           }
         },
         "required": [
@@ -7930,6 +10261,52 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/FeedbackPreferences"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "confirmation_request"
+              ]
+            },
+            "then": {
+              "properties": {
+                "http_status": {
+                  "const": 428
+                }
+              }
+            }
+          }
+        ],
         "$defs": {
           "FeedbackPreferences": {
             "properties": {
@@ -7955,6 +10332,52 @@
               "revision"
             ],
             "title": "FeedbackPreferences"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          "MCPConfirmationRequest": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "command_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "transport_header": {
+                "const": "X-Cortex-Confirmation"
+              },
+              "max_lifetime_seconds": {
+                "const": 300
+              }
+            },
+            "required": [
+              "action",
+              "command_hash",
+              "transport_header",
+              "max_lifetime_seconds"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -8117,7 +10540,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/FeedbackSignalView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FeedbackSignalView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -8125,6 +10555,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  201
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/FeedbackSignalView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "FeedbackSignalView": {
             "properties": {
@@ -8278,6 +10738,27 @@
               "idempotency_key"
             ],
             "title": "FeedbackSignalInput"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -8358,7 +10839,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/FeedbackSignalPage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FeedbackSignalPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -8366,6 +10854,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/FeedbackSignalPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "FeedbackSignalPage": {
             "properties": {
@@ -8549,6 +11067,27 @@
               "idempotency_key"
             ],
             "title": "FeedbackSignalInput"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -8634,7 +11173,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/IssuePage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/IssuePage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -8642,6 +11188,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/IssuePage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "IssuePage": {
             "properties": {
@@ -8729,6 +11305,27 @@
               "created_at"
             ],
             "title": "IssueView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -8777,7 +11374,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/IssueView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/IssueView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -8785,6 +11389,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/IssueView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "IssueView": {
             "properties": {
@@ -8842,6 +11476,27 @@
               "created_at"
             ],
             "title": "IssueView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -8916,7 +11571,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/IssueEventPage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/IssueEventPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -8924,6 +11586,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/IssueEventPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "IssueEventPage": {
             "properties": {
@@ -9018,6 +11710,27 @@
               "created_at"
             ],
             "title": "IssueEvent"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -9112,7 +11825,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/IssueEvent"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/IssueEvent"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -9120,6 +11840,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  201
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/IssueEvent"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "IssueEvent": {
             "properties": {
@@ -9184,6 +11934,27 @@
               "created_at"
             ],
             "title": "IssueEvent"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -9209,7 +11980,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/IdentityView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/IdentityView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -9217,6 +11995,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/IdentityView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "IdentityView": {
             "properties": {
@@ -9300,6 +12108,27 @@
               "capabilities"
             ],
             "title": "AccessibleDomain"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -9388,7 +12217,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ProposalPage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ProposalPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -9396,6 +12232,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ProposalPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ProposalPage": {
             "properties": {
@@ -9728,6 +12594,27 @@
               "concept_id"
             ],
             "title": "RetireConcept"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -9995,7 +12882,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ProposalView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ProposalView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -10003,6 +12897,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  201
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ProposalView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ProposalView": {
             "properties": {
@@ -10305,6 +13229,27 @@
               "concept_id"
             ],
             "title": "RetireConcept"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -10373,7 +13318,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/EpisodePage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/EpisodePage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -10381,6 +13333,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/EpisodePage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "EpisodePage": {
             "properties": {
@@ -10679,6 +13661,27 @@
               "excerpt"
             ],
             "title": "Citation"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -10779,7 +13782,17 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ReviewReceipt"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ReviewReceipt"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          },
+          "confirmation_request": {
+            "$ref": "#/$defs/MCPConfirmationRequest"
           }
         },
         "required": [
@@ -10787,6 +13800,52 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  201
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ReviewReceipt"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "confirmation_request"
+              ]
+            },
+            "then": {
+              "properties": {
+                "http_status": {
+                  "const": 428
+                }
+              }
+            }
+          }
+        ],
         "$defs": {
           "ReviewReceipt": {
             "properties": {
@@ -10853,6 +13912,52 @@
               "created_at"
             ],
             "title": "ReviewReceipt"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          "MCPConfirmationRequest": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "command_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "transport_header": {
+                "const": "X-Cortex-Confirmation"
+              },
+              "max_lifetime_seconds": {
+                "const": 300
+              }
+            },
+            "required": [
+              "action",
+              "command_hash",
+              "transport_header",
+              "max_lifetime_seconds"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -10927,7 +14032,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ReviewPage"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ReviewPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -10935,6 +14047,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ReviewPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ReviewPage": {
             "properties": {
@@ -11031,6 +14173,27 @@
               "created_at"
             ],
             "title": "ReviewReceipt"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -11304,7 +14467,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ProposalView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ProposalView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -11312,6 +14482,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  201
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ProposalView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ProposalView": {
             "properties": {
@@ -11614,6 +14814,27 @@
               "concept_id"
             ],
             "title": "RetireConcept"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -11690,7 +14911,17 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/LocalExtractionView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/LocalExtractionView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          },
+          "confirmation_request": {
+            "$ref": "#/$defs/MCPConfirmationRequest"
           }
         },
         "required": [
@@ -11698,6 +14929,52 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  201
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/LocalExtractionView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "confirmation_request"
+              ]
+            },
+            "then": {
+              "properties": {
+                "http_status": {
+                  "const": 428
+                }
+              }
+            }
+          }
+        ],
         "$defs": {
           "LocalExtractionView": {
             "properties": {
@@ -12127,6 +15404,52 @@
               "concept_id"
             ],
             "title": "RetireConcept"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          "MCPConfirmationRequest": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "command_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "transport_header": {
+                "const": "X-Cortex-Confirmation"
+              },
+              "max_lifetime_seconds": {
+                "const": 300
+              }
+            },
+            "required": [
+              "action",
+              "command_hash",
+              "transport_header",
+              "max_lifetime_seconds"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -12245,7 +15568,17 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/LocalExtractionView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/LocalExtractionView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          },
+          "confirmation_request": {
+            "$ref": "#/$defs/MCPConfirmationRequest"
           }
         },
         "required": [
@@ -12253,6 +15586,52 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  201
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/LocalExtractionView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "confirmation_request"
+              ]
+            },
+            "then": {
+              "properties": {
+                "http_status": {
+                  "const": 428
+                }
+              }
+            }
+          }
+        ],
         "$defs": {
           "LocalExtractionView": {
             "properties": {
@@ -12682,6 +16061,52 @@
               "concept_id"
             ],
             "title": "RetireConcept"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          "MCPConfirmationRequest": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "command_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "transport_header": {
+                "const": "X-Cortex-Confirmation"
+              },
+              "max_lifetime_seconds": {
+                "const": 300
+              }
+            },
+            "required": [
+              "action",
+              "command_hash",
+              "transport_header",
+              "max_lifetime_seconds"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -12730,7 +16155,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/LocalExtractionView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/LocalExtractionView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -12738,6 +16170,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/LocalExtractionView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "LocalExtractionView": {
             "properties": {
@@ -13167,6 +16629,27 @@
               "concept_id"
             ],
             "title": "RetireConcept"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -13192,7 +16675,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/HealthView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/HealthView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -13200,6 +16690,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/HealthView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "HealthView": {
             "properties": {
@@ -13226,6 +16746,27 @@
               "mode"
             ],
             "title": "HealthView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -13268,7 +16809,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/VersionView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/VersionView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -13276,6 +16824,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/VersionView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "VersionView": {
             "properties": {
@@ -13301,6 +16879,27 @@
               "published_version"
             ],
             "title": "VersionView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -13349,7 +16948,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/SourceDetail"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SourceDetail"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -13357,6 +16963,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/SourceDetail"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "SourceDetail": {
             "properties": {
@@ -13413,6 +17049,27 @@
               "content"
             ],
             "title": "SourceDetail"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -13486,7 +17143,17 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/AccessReceipt"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/AccessReceipt"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          },
+          "confirmation_request": {
+            "$ref": "#/$defs/MCPConfirmationRequest"
           }
         },
         "required": [
@@ -13494,6 +17161,52 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/AccessReceipt"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "confirmation_request"
+              ]
+            },
+            "then": {
+              "properties": {
+                "http_status": {
+                  "const": 428
+                }
+              }
+            }
+          }
+        ],
         "$defs": {
           "AccessReceipt": {
             "properties": {
@@ -13517,6 +17230,52 @@
               "allowed_subjects"
             ],
             "title": "AccessReceipt"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          "MCPConfirmationRequest": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "command_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "transport_header": {
+                "const": "X-Cortex-Confirmation"
+              },
+              "max_lifetime_seconds": {
+                "const": 300
+              }
+            },
+            "required": [
+              "action",
+              "command_hash",
+              "transport_header",
+              "max_lifetime_seconds"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -13581,7 +17340,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ProposalView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ProposalView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -13589,6 +17355,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ProposalView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ProposalView": {
             "properties": {
@@ -13891,6 +17687,27 @@
               "concept_id"
             ],
             "title": "RetireConcept"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -13939,7 +17756,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ProposalView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ProposalView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -13947,6 +17771,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ProposalView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "ProposalView": {
             "properties": {
@@ -14249,6 +18103,27 @@
               "concept_id"
             ],
             "title": "RetireConcept"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -14344,7 +18219,17 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ApprovalReceipt"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ApprovalReceipt"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          },
+          "confirmation_request": {
+            "$ref": "#/$defs/MCPConfirmationRequest"
           }
         },
         "required": [
@@ -14352,6 +18237,52 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ApprovalReceipt"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "confirmation_request"
+              ]
+            },
+            "then": {
+              "properties": {
+                "http_status": {
+                  "const": 428
+                }
+              }
+            }
+          }
+        ],
         "$defs": {
           "ApprovalReceipt": {
             "properties": {
@@ -14378,6 +18309,52 @@
               "accepted"
             ],
             "title": "ApprovalReceipt"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          "MCPConfirmationRequest": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "command_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "transport_header": {
+                "const": "X-Cortex-Confirmation"
+              },
+              "max_lifetime_seconds": {
+                "const": 300
+              }
+            },
+            "required": [
+              "action",
+              "command_hash",
+              "transport_header",
+              "max_lifetime_seconds"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -14420,7 +18397,17 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/PublicationReceipt"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/PublicationReceipt"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          },
+          "confirmation_request": {
+            "$ref": "#/$defs/MCPConfirmationRequest"
           }
         },
         "required": [
@@ -14428,6 +18415,52 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/PublicationReceipt"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "confirmation_request"
+              ]
+            },
+            "then": {
+              "properties": {
+                "http_status": {
+                  "const": 428
+                }
+              }
+            }
+          }
+        ],
         "$defs": {
           "PublicationReceipt": {
             "properties": {
@@ -14447,6 +18480,52 @@
               "changed"
             ],
             "title": "PublicationReceipt"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          "MCPConfirmationRequest": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "command_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "transport_header": {
+                "const": "X-Cortex-Confirmation"
+              },
+              "max_lifetime_seconds": {
+                "const": 300
+              }
+            },
+            "required": [
+              "action",
+              "command_hash",
+              "transport_header",
+              "max_lifetime_seconds"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -14489,7 +18568,17 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ReplayReceipt"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ReplayReceipt"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          },
+          "confirmation_request": {
+            "$ref": "#/$defs/MCPConfirmationRequest"
           }
         },
         "required": [
@@ -14497,6 +18586,52 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ReplayReceipt"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "confirmation_request"
+              ]
+            },
+            "then": {
+              "properties": {
+                "http_status": {
+                  "const": 428
+                }
+              }
+            }
+          }
+        ],
         "$defs": {
           "ReplayReceipt": {
             "properties": {
@@ -14521,6 +18656,52 @@
               "state_hash"
             ],
             "title": "ReplayReceipt"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          "MCPConfirmationRequest": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "command_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "transport_header": {
+                "const": "X-Cortex-Confirmation"
+              },
+              "max_lifetime_seconds": {
+                "const": 300
+              }
+            },
+            "required": [
+              "action",
+              "command_hash",
+              "transport_header",
+              "max_lifetime_seconds"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -14603,7 +18784,17 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/ProposalView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ProposalView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          },
+          "confirmation_request": {
+            "$ref": "#/$defs/MCPConfirmationRequest"
           }
         },
         "required": [
@@ -14611,6 +18802,52 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ProposalView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "confirmation_request"
+              ]
+            },
+            "then": {
+              "properties": {
+                "http_status": {
+                  "const": 428
+                }
+              }
+            }
+          }
+        ],
         "$defs": {
           "ProposalView": {
             "properties": {
@@ -14913,6 +19150,52 @@
               "concept_id"
             ],
             "title": "RetireConcept"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          "MCPConfirmationRequest": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "command_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "transport_header": {
+                "const": "X-Cortex-Confirmation"
+              },
+              "max_lifetime_seconds": {
+                "const": 300
+              }
+            },
+            "required": [
+              "action",
+              "command_hash",
+              "transport_header",
+              "max_lifetime_seconds"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -14955,11 +19238,18 @@
             "type": "integer"
           },
           "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/$defs/Concept"
-            },
-            "title": "Response Concepts V1 Domains  Domain  Concepts Get"
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Concept"
+                },
+                "title": "Response Concepts V1 Domains  Domain  Concepts Get"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -14967,6 +19257,40 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Concept"
+                },
+                "title": "Response Concepts V1 Domains  Domain  Concepts Get"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "Concept": {
             "properties": {
@@ -15093,6 +19417,27 @@
               "kind"
             ],
             "title": "Link"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -15141,7 +19486,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/Concept"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Concept"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -15149,6 +19501,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/Concept"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "Concept": {
             "properties": {
@@ -15275,6 +19657,27 @@
               "kind"
             ],
             "title": "Link"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -15353,7 +19756,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/QueryResult"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/QueryResult"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -15361,6 +19771,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/QueryResult"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "QueryResult": {
             "properties": {
@@ -15594,6 +20034,27 @@
               "excerpt"
             ],
             "title": "Citation"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -15642,7 +20103,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/QueryResult"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/QueryResult"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -15650,6 +20118,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/QueryResult"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "QueryResult": {
             "properties": {
@@ -15883,6 +20381,27 @@
               "excerpt"
             ],
             "title": "Citation"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -15968,7 +20487,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/FeedbackReceipt"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FeedbackReceipt"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -15976,6 +20502,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/FeedbackReceipt"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "FeedbackReceipt": {
             "properties": {
@@ -15991,6 +20547,27 @@
               "feedback_id"
             ],
             "title": "FeedbackReceipt"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -16033,7 +20610,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/BriefView"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/BriefView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -16041,6 +20625,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/BriefView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "BriefView": {
             "properties": {
@@ -16425,6 +21039,27 @@
               "episode_id"
             ],
             "title": "BriefIssue"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -16450,7 +21085,14 @@
             "type": "integer"
           },
           "data": {
-            "$ref": "#/$defs/InteractionCatalog"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/InteractionCatalog"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
           }
         },
         "required": [
@@ -16458,6 +21100,36 @@
           "data"
         ],
         "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/InteractionCatalog"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
         "$defs": {
           "InteractionCatalog": {
             "properties": {
@@ -16552,6 +21224,27 @@
               "object_authorization"
             ],
             "title": "InteractionView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
           }
         }
       },

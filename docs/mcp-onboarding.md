@@ -1,6 +1,6 @@
 # Connect a companion to Cortex Fusion
 
-The server exposes Streamable HTTP at `/mcp/`, exhaustive application tools, read-only resources and user-selected prompts. It does not include a companion UI or an authorization server. The transport tests use an actual in-process MCP session with synthetic signed identities; no external companion or live enterprise identity provider has been validated yet.
+The server exposes Streamable HTTP at `/mcp/`, exhaustive application tools, read-only resources and user-selected prompts. It does not include a companion UI or an authorization server. Transport tests include the installed MCP Python SDK over in-process HTTP with synthetic signed identities. The SDK completes discovery, cited query, companion response receipt, targeted feedback and revoked-access rejection. No external companion product or live enterprise identity provider has been validated yet.
 
 ## Discovery primitives
 
