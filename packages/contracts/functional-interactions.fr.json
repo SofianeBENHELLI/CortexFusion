@@ -4879,7 +4879,7 @@
       "path": "/v1/domains/{domain}/proposals",
       "operation_id": "proposals.list",
       "description_fr": "Liste les propositions accessibles avec leurs états de revue et d'acceptation.",
-      "frontend_fr": "Séparer les actions de l'auteur de celles du propriétaire ; la visibilité d'une proposition n'autorise pas son approbation.",
+      "frontend_fr": "Filtrer par source_id depuis un reçu d’import ou de fichier, puis éventuellement par status ; paginer avec after en conservant les filtres. Le filtre porte sur les sources des preuves requises, y compris anciennes preuves et relations, pas sur un certificat d’origine d’extraction. Toutes les preuves doivent rester accessibles et le rôle doit autoriser la lecture des propositions. La visibilité n’autorise pas l’approbation.",
       "effect_fr": "Lecture sans modification métier durable.",
       "mcp_tool": "api_proposals_list",
       "mcp_confirmation_required": false,
@@ -4946,6 +4946,23 @@
               }
             ],
             "title": "Status"
+          }
+        },
+        {
+          "name": "source_id",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
           }
         },
         {

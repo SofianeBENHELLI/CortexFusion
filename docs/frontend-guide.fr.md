@@ -260,6 +260,16 @@ Lire le reçu jusqu'à l'état pertinent, avec temporisation et arrêt du pollin
 
 Après extraction réussie, utiliser la source créée pour proposer un passage exact. Le propriétaire garde la revue et la publication. Les fichiers ne deviennent pas automatiquement une connaissance servie.
 
+### Suivre les propositions associées à une source importée
+
+Quand un élément d’import ou un fichier traité fournit un `source_id`, appeler `GET /v1/domains/{domain}/proposals?source_id={source_id}` ou `api_proposals_list` avec `query.source_id`. Ajouter `status=ready`, `approved` ou `published` pour une vue ciblée. Conserver les mêmes filtres lors de la pagination avec `after` et `limit` (1 à 100). Dans TanStack Query, inclure le domaine, l’identité, la source et le statut dans la clé de cache.
+
+Une liste vide signifie qu’aucune proposition correspondante n’est visible, sans déduire qu’un traitement IA a échoué. Un import `succeeded` reste réussi même si aucune proposition n’a été créée : import, proposition, acceptation et publication sont quatre étapes distinctes. La création d’une proposition et les décisions de revue/publication invalident les listes concernées ; le reçu d’import ne change pas lorsqu’une proposition est publiée.
+
+Le filtre recherche la source dans l’ensemble des preuves requises de la proposition. Il peut donc inclure une preuve de l’état remplacé ou d’un concept relié. Il ne certifie pas que la proposition a été générée par l’extraction de cette seule source. Lire le diff et les preuves pour expliquer son rôle exact.
+
+La source inexistante, d’un autre domaine/tenant ou devenue inaccessible retourne 404. Le rôle `viewer` n’a pas accès à la liste des propositions (403). Une proposition mêlant cette source à une autre preuve privée reste masquée ; aucun total global des propositions cachées n’est exposé. Une source reste consultable séparément selon ses droits. La pagination filtre les preuves avant de choisir le curseur ; son coût dépend du nombre de candidats invisibles, malgré l’index de recherche par source.
+
 ## Parcours 7 — droits et audit
 
 L'administration porte sur un domaine. Une modification de membre renseigne sujet, rôle (ou null pour retrait selon le contrat), révision attendue, raison et clé. Les lecteurs d'une source sont un autre contrôle ; appartenir au domaine ne rend pas toute source lisible.

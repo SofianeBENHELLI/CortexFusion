@@ -1421,7 +1421,7 @@ Retourne l'identité effective et les domaines auxquels elle appartient, avec le
 
 Liste les propositions accessibles avec leurs états de revue et d'acceptation.
 
-**Utilisation frontend :** Séparer les actions de l'auteur de celles du propriétaire ; la visibilité d'une proposition n'autorise pas son approbation.
+**Utilisation frontend :** Filtrer par source_id depuis un reçu d’import ou de fichier, puis éventuellement par status ; paginer avec after en conservant les filtres. Le filtre porte sur les sources des preuves requises, y compris anciennes preuves et relations, pas sur un certificat d’origine d’extraction. Toutes les preuves doivent rester accessibles et le rôle doit autoriser la lecture des propositions. La visibilité n’autorise pas l’approbation.
 
 - HTTP : `GET /v1/domains/{domain}/proposals`.
 - MCP : `api_proposals_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
@@ -1437,6 +1437,7 @@ Liste les propositions accessibles avec leurs états de revue et d'acceptation.
 | query | `limit` | non | entier | minimum : `1`; maximum : `100`; défaut : `20` |
 | query | `after` | non | texte / null | — |
 | query | `status` | non | `"ready"`, `"approved"`, `"published"`, `"rejected"`, `"deferred"`, `"changes_requested"`, `"superseded"` / null | — |
+| query | `source_id` | non | texte / null | — |
 | header | `x-tenant-id` | oui | texte | format : `"uuid"` |
 
 ### Corps et résultat

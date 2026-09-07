@@ -13236,6 +13236,18 @@
                   }
                 ],
                 "title": "Status"
+              },
+              "source_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Source Id"
               }
             },
             "additionalProperties": false,

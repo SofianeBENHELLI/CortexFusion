@@ -121,7 +121,7 @@
   },
   "proposals.list": {
     "description": "Liste les propositions accessibles avec leurs états de revue et d'acceptation.",
-    "frontend": "Séparer les actions de l'auteur de celles du propriétaire ; la visibilité d'une proposition n'autorise pas son approbation."
+    "frontend": "Filtrer par source_id depuis un reçu d’import ou de fichier, puis éventuellement par status ; paginer avec after en conservant les filtres. Le filtre porte sur les sources des preuves requises, y compris anciennes preuves et relations, pas sur un certificat d’origine d’extraction. Toutes les preuves doivent rester accessibles et le rôle doit autoriser la lecture des propositions. La visibilité n’autorise pas l’approbation."
   },
   "proposals.read": {
     "description": "Lit le contenu, les preuves et l'état actuel d'une proposition accessible.",

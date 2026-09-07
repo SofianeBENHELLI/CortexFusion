@@ -95,3 +95,7 @@ The core includes bounded PDF/DOCX/text parsing, a recoverable file worker, opti
 ## Issue correction references
 
 Migration 0014 adds nullable correction references to immutable personal issue decisions. start/resolve may explicitly bind a currently readable proposal; resolution with a reference requires published status and records its historical commit sequence. This does not certify semantic effectiveness or change knowledge. Personal issue visibility and current proposal visibility both apply; linked history entries are filtered after evidence or role revocation. Omitted/null input preserves pre-migration idempotency hashes. Domain locks and membership rechecks serialize decisions with access changes. Run migrations before starting the updated service.
+
+## Source-to-proposal navigation
+
+proposals.list accepts optional source_id, matched against the proposal validation evidence-source set with a JSONB containment predicate. Migration 0015 adds its GIN expression index. The requested source and every candidate proposal retain their evidence ACL checks and writer-role requirement. This includes historical/link evidence, not only direct extraction origin. Pagination keeps the existing visible-item cursor; the number of candidate ACL checks is not a fixed work limit.

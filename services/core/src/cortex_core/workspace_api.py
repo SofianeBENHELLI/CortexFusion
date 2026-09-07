@@ -37,9 +37,17 @@ def workspace_router(service, principal):
             "superseded",
         ]
         | None = None,
+        source_id: UUID | None = None,
         p=Depends(principal),
     ):
-        return service.proposals(p, str(domain), limit, str(after) if after else None, status)
+        return service.proposals(
+            p,
+            str(domain),
+            limit,
+            str(after) if after else None,
+            status,
+            str(source_id) if source_id else None,
+        )
 
     @router.get("/v1/domains/{domain}/episodes", response_model=EpisodePage)
     def episodes(

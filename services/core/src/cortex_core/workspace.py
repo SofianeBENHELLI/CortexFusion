@@ -111,8 +111,10 @@ class WorkspaceService:
             "next_after": visible[limit - 1]["id"] if len(visible) > limit else None,
         }
 
-    def proposals(self, p, domain, limit, after, status):
+    def proposals(self, p, domain, limit, after, status, source_id=None):
         with self.db.transaction(p, domain, write=True) as conn:
+            if source_id:
+                self.k._source(conn, p, domain, source_id)
             return self._page(
                 conn,
                 p,
@@ -122,8 +124,11 @@ class WorkspaceService:
                 after,
                 lambda row: self.k._check_proposal_access(conn, p, domain, row),
                 self.k._proposal_view,
-                "AND (:status='' OR status=:status)",
-                {"status": status or ""},
+                "AND (:status='' OR status=:status)"
+                + (
+                    " AND (validation->'source_ids') @> CAST(:source AS jsonb)" if source_id else ""
+                ),
+                {"status": status or "", **({"source": encoded([source_id])} if source_id else {})},
             )
 
     def episodes(self, p, domain, limit, after):
