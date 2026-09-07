@@ -284,7 +284,10 @@ def test_endpoint_rejects_secret_urls_and_remote_cleartext(url):
         validate_endpoint(url)
 
 
-def test_reference_companion_uses_real_sdk_and_respects_revocation(world, identity_keys, tmp_path):
+@pytest.mark.parametrize("lose_ack", [False, True])
+def test_reference_companion_uses_real_sdk_and_respects_revocation(
+    world, identity_keys, tmp_path, lose_ack
+):
     source = world.source()
     world.approve(world.proposal(source))
     app = create_app(
@@ -320,6 +323,19 @@ def test_reference_companion_uses_real_sdk_and_respects_revocation(world, identi
                             model=model,
                         )
                         with Journal(tmp_path / "sdk.db", "0.05").locked() as journal:
+                            original_save = journal.save
+                            lost = []
+
+                            def save(ident, state, payload):
+                                if lose_ack and state == "complete" and not lost:
+                                    lost.append(True)
+                                    raise OSError("Synthetic lost local acknowledgement")
+                                original_save(ident, state, payload)
+
+                            journal.save = save
+                            if lose_ack:
+                                with pytest.raises(OSError):
+                                    await ask(session, journal=journal, **kwargs)
                             first = await ask(session, journal=journal, **kwargs)
                             assert first["semantic_validation"] == "not_performed"
                             assert first["reference_validation"] == "episode_references_checked"
@@ -327,6 +343,12 @@ def test_reference_companion_uses_real_sdk_and_respects_revocation(world, identi
                                 "id"
                             ]
                             assert model.calls == 1
+                            saved = world.client.get(
+                                world.prefix + "/companion-responses",
+                                headers=world.headers("bob"),
+                                params={"episode_id": first["episode_id"]},
+                            ).json()
+                            assert len(saved["items"]) == 1
                             world.service.set_access(
                                 world.owner,
                                 world.domain,

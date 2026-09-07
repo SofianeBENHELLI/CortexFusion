@@ -79,3 +79,15 @@ def test_lexical_checks_detect_injection_and_unsupported_answer():
         },
     )
     assert checks["answer_kind"] is False and checks["forbidden_terms_absent"] is False
+
+
+def test_new_prompt_version_has_a_distinct_evaluation_attempt(tmp_path):
+    model = Model()
+    model.PROMPT_VERSION = "synthetic-v1"
+    journal = Journal(tmp_path / "versions.db", "0.10")
+    first = asyncio.run(evaluation.evaluate(scenarios()[:1], model, journal))
+    model.PROMPT_VERSION = "synthetic-v2"
+    second = asyncio.run(evaluation.evaluate(scenarios()[:1], model, journal))
+    assert model.calls == 2
+    assert first[0]["request_id"] != second[0]["request_id"]
+    assert second[0]["configured_prompt_version"] == "synthetic-v2"

@@ -105,8 +105,16 @@ async def evaluate(scenarios, model, journal):
         digest = hashlib.sha256(
             json.dumps({k: scenario[k] for k in ("question", "excerpts")}, sort_keys=True).encode()
         ).hexdigest()
-        request_id = ident(scenario["id"] + "/" + digest + "/" + model.model)
-        row = {"scenario": scenario["id"], "request_id": request_id, "fixture_sha256": digest}
+        version = getattr(model, "PROMPT_VERSION", None)
+        request_id = ident(
+            scenario["id"] + "/" + digest + "/" + model.model + ("/" + version if version else "")
+        )
+        row = {
+            "scenario": scenario["id"],
+            "request_id": request_id,
+            "fixture_sha256": digest,
+            "configured_prompt_version": version,
+        }
         started = time.monotonic()
         with journal.locked() as locked:
             existing = locked.conn.execute(
@@ -141,6 +149,7 @@ async def evaluate(scenarios, model, journal):
                     checks=checks,
                     response=receipt["response"],
                     usage=payload["draft"]["usage"],
+                    generated_prompt_version=payload["draft"].get("prompt_version"),
                     reused=bool(existing),
                 )
             except Exception as exc:

@@ -104,8 +104,14 @@ The request has at most 2,000 comment characters, 15,000 serialized UTF-8 bytes 
 
 Consent is checked again after generation and by the server on append. If withdrawn during the model call, the inference is discarded and only usage accounting remains in that journal run. Re-enabling consent does not automatically resurrect that discarded assessment. A provider request already sent while authorized cannot be recalled. Existing historical signals are not deleted by opt-out. Access is reread again before the signal is sent; a revoked source or response blocks collection.
 
-New synthesis drafts record `cited-synthesis-v1`; comment assessments record `comment-satisfaction-v1`. Old saved drafts may lack prompt-version metadata. Request IDs retain their original idempotency meaning across upgrades: use a deliberate new request for a new generation. Do not relabel an old saved result as a newly generated answer.
+New synthesis drafts record `cited-synthesis-v2`; comment assessments record `comment-satisfaction-v1`. Old saved drafts may lack prompt-version metadata. Request IDs retain their original idempotency meaning across upgrades: use a deliberate new request for a new generation. Do not relabel an old saved result as a newly generated answer.
 
 For the real-loopback synthetic demo, use `scripts/demo_companion.py --live-assessment --journal … --output …`. This simulates the answer model, explicitly enables inferred feedback for the ephemeral demo viewer, makes at most one real comment-assessment call, checks signal reuse and verifies opt-out. `--live` and `--live-assessment` are mutually exclusive. Normal automated tests use no paid provider.
 
 Live synthetic assessment on 2026-09-07 passed over the real loopback MCP server. DeepSeek returned negative sentiment with declared confidence 0.9 (not calibrated), recorded one inferred signal and no explicit votes or observed iteration count. Repetition reused the signal and subsequent opt-out blocked processing. The call reported 141 input tokens, 70 output tokens and $0.0000213339. This single fixture does not validate a general satisfaction classifier.
+
+## Prompt v2 and acknowledgement-loss audit
+
+Synthesis v2 explicitly distinguishes factual sentences from unrelated instructions within the same excerpt. It asks the model to use relevant facts while ignoring the instructions, instead of abstaining merely because an attack is present. The response schema, evidence checks and routing restrictions are unchanged. This remains a prompt-level instruction, not a proof of resistance to all injected content.
+
+SDK tests now simulate losing the local acknowledgement after the backend has already recorded a response or inferred signal. Repeating the command reuses the server-side idempotency key and the saved model result: one response/signal and one model generation remain. The assessment CLI also has a no-consent test proving that neither comment nor key is sent to the provider.

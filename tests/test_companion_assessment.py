@@ -213,7 +213,10 @@ def test_comment_bounds_prevent_network(tmp_path):
     assert not session.calls and not model.calls
 
 
-def test_inferred_feedback_uses_real_mcp_and_keeps_votes_separate(world, identity_keys, tmp_path):
+@pytest.mark.parametrize("lose_ack", [False, True])
+def test_inferred_feedback_uses_real_mcp_and_keeps_votes_separate(
+    world, identity_keys, tmp_path, lose_ack
+):
     source = world.source()
     world.approve(world.proposal(source))
     episode = world.client.post(
@@ -274,6 +277,19 @@ def test_inferred_feedback_uses_real_mcp_and_keeps_votes_separate(world, identit
                                     "expected_revision": 0,
                                 },
                             ).raise_for_status()
+                            original_save = journal.save
+                            lost = []
+
+                            def save(ident, state, payload):
+                                if lose_ack and state == "complete" and not lost:
+                                    lost.append(True)
+                                    raise OSError("Synthetic lost signal acknowledgement")
+                                original_save(ident, state, payload)
+
+                            journal.save = save
+                            if lose_ack:
+                                with pytest.raises(OSError):
+                                    await assess_feedback(session, journal=journal, **command)
                             first = await assess_feedback(session, journal=journal, **command)
                             second = await assess_feedback(session, journal=journal, **command)
                             assert first["signal"]["id"] == second["signal"]["id"]
@@ -288,3 +304,51 @@ def test_inferred_feedback_uses_real_mcp_and_keeps_votes_separate(world, identit
 
     asyncio.run(workflow())
     assert len(model.calls) == 1
+
+
+def test_cli_checks_consent_without_sending_comment_or_key(monkeypatch, tmp_path, capsys):
+    from contextlib import asynccontextmanager
+
+    from cortex_core.cli import main
+
+    session = Session(False)
+
+    @asynccontextmanager
+    async def connection(**kwargs):
+        assert kwargs["token"] == "synthetic-private-token"
+        yield session
+
+    monkeypatch.setattr("cortex_core.companion.connected_session", connection)
+    monkeypatch.setattr(OpenRouterAssessment, "_request", lambda *_: pytest.fail("Consent is off"))
+    monkeypatch.setenv("CORTEX_COMPANION_TOKEN", "synthetic-private-token")
+    monkeypatch.setenv("CORTEX_OPENROUTER_API_KEY", "synthetic-private-key")
+    monkeypatch.setenv("CORTEX_OPENROUTER_MODEL", "synthetic/model")
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "cortex",
+            "companion-assess",
+            "--endpoint",
+            "http://localhost:8000/mcp/",
+            "--tenant",
+            str(uuid4()),
+            "--domain",
+            str(uuid4()),
+            "--response-id",
+            str(uuid4()),
+            "--request-id",
+            str(uuid4()),
+            "--comment",
+            "Private comment",
+            "--journal",
+            str(tmp_path / "cli.db"),
+            "--budget-usd",
+            "0.05",
+            "--allow-openrouter",
+        ],
+    )
+    main()
+    output = capsys.readouterr().out
+    assert json.loads(output) == {"status": "not_collected", "reason": "consent_disabled"}
+    assert "Private comment" not in output and "synthetic-private" not in output
+    assert session.calls == ["api_feedback_preferences"]
