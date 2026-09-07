@@ -70,6 +70,60 @@
       "operation_id": "responses.list"
     },
     {
+      "action_id": "syntheses.create",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "synthesis",
+      "effect_description": "Sends an episode question and cited excerpts to configured OpenRouter; may incur charges; records a personal response without publishing knowledge.",
+      "intent_example": "Génère une réponse citée à cet épisode via OpenRouter.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/episodes/{episode_id}/syntheses",
+      "operation_id": "syntheses.create"
+    },
+    {
+      "action_id": "syntheses.read",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre le résultat durable de cette synthèse personnelle.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/syntheses/{ident}",
+      "operation_id": "syntheses.read"
+    },
+    {
+      "action_id": "syntheses.list",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Retrouve mes tentatives de synthèse.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/syntheses",
+      "operation_id": "syntheses.list"
+    },
+    {
       "action_id": "models.attempts",
       "roles": [
         "owner"

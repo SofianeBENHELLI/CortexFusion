@@ -4,7 +4,7 @@ Générée par `scripts/export_frontend_reference.py` depuis OpenAPI, le catalog
 
 Lire d'abord le [guide des parcours frontend](frontend-guide.fr.md). Cette référence décrit le comportement actuel, pas des fonctions futures. Le catalogue machine français est `packages/contracts/functional-interactions.fr.json`.
 
-Couverture : **74 opérations HTTP**, chacune liée à son outil MCP généré. Les outils de compatibilité et les ressources/prompts sont décrits dans le guide MCP.
+Couverture : **77 opérations HTTP**, chacune liée à son outil MCP généré. Les outils de compatibilité et les ressources/prompts sont décrits dans le guide MCP.
 
 ## Règles communes
 
@@ -23,6 +23,9 @@ Couverture : **74 opérations HTTP**, chacune liée à son outil MCP généré. 
 | [responses.create](#action-responses-create) | `POST /v1/domains/{domain}/episodes/{episode_id}/companion-responses` | Conserve la réponse de mon companion et ses références à cet épisode. |
 | [responses.read](#action-responses-read) | `GET /v1/domains/{domain}/companion-responses/{response_id}` | Montre cette réponse et les preuves de l'épisode associé. |
 | [responses.list](#action-responses-list) | `GET /v1/domains/{domain}/companion-responses` | Retrouve les réponses personnelles de mes companions. |
+| [syntheses.create](#action-syntheses-create) | `POST /v1/domains/{domain}/episodes/{episode_id}/syntheses` | Génère une réponse citée à cet épisode via OpenRouter. |
+| [syntheses.read](#action-syntheses-read) | `GET /v1/domains/{domain}/syntheses/{ident}` | Montre le résultat durable de cette synthèse personnelle. |
+| [syntheses.list](#action-syntheses-list) | `GET /v1/domains/{domain}/syntheses` | Retrouve mes tentatives de synthèse. |
 | [models.attempts](#action-models-attempts) | `GET /v1/domains/{domain}/model-attempts` | Liste mes tentatives d'extraction et leurs résultats durables. |
 | [models.attempt](#action-models-attempt) | `GET /v1/domains/{domain}/model-attempts/{attempt_id}` | Inspecte cette tentative sans relancer le fournisseur. |
 | [models.usage](#action-models-usage) | `GET /v1/domains/{domain}/model-usage` | Quel quota de tentatives IA reste disponible aujourd'hui dans ce domaine ? |
@@ -198,6 +201,90 @@ Liste les réponses personnelles conservées des companions selon les filtres du
 
 - Aucun corps attendu.
 - Succès HTTP 200, `application/json` : [CompanionResponsePage](#schema-companionresponsepage).
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+
+<a id="action-syntheses-create"></a>
+## syntheses.create
+
+Génère une synthèse personnelle à partir de la question et des citations d’un épisode, avec réservation durable avant tout appel OpenRouter.
+
+**Utilisation frontend :** Confirmation signée requise selon le mode HTTP/MCP. Conserver une clé distincte de la question et examiner status même sur HTTP 200 : succeeded fournit response_id, failed un code sûr, unresolved interdit une relance automatique. Sans preuve, abstention déterministe sans fournisseur. Invalider réponses et timeline après succès.
+
+- HTTP : `POST /v1/domains/{domain}/episodes/{episode_id}/syntheses`.
+- MCP : `api_syntheses_create` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
+- Effet : Synthèse personnelle via OpenRouter, potentiellement facturée, sans publication de connaissance.
+- Décision : accord explicite ; confirmation signée en MCP et HTTP strict.
+
+### Paramètres
+
+| Emplacement | Nom | Requis | Type | Contraintes |
+|---|---|---|---|---|
+| path | `domain` | oui | texte | format : `"uuid"` |
+| path | `episode_id` | oui | texte | format : `"uuid"` |
+| header | `x-tenant-id` | oui | texte | format : `"uuid"` |
+
+### Corps et résultat
+
+- Corps requis `application/json` : [SynthesisInput](#schema-synthesisinput).
+- Succès HTTP 200, `application/json` : [SynthesisView](#schema-synthesisview).
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503, 428.
+
+<a id="action-syntheses-read"></a>
+## syntheses.read
+
+Lit l’état durable, le modèle demandé, l’usage déclaré et le lien vers la réponse de ma tentative de synthèse.
+
+**Utilisation frontend :** Lire response_id via responses.read ; la tentative ne contient pas le texte généré. failed et succeeded sont terminaux ; unresolved signifie en cours ou résultat non établi. budget_reserved ne prouve pas une facturation et usage n’est pas une facture.
+
+- HTTP : `GET /v1/domains/{domain}/syntheses/{ident}`.
+- MCP : `api_syntheses_read` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
+- Effet : Lecture sans modification métier durable.
+- Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
+
+### Paramètres
+
+| Emplacement | Nom | Requis | Type | Contraintes |
+|---|---|---|---|---|
+| path | `domain` | oui | texte | format : `"uuid"` |
+| path | `ident` | oui | texte | format : `"uuid"` |
+| header | `x-tenant-id` | oui | texte | format : `"uuid"` |
+
+### Corps et résultat
+
+- Aucun corps attendu.
+- Succès HTTP 200, `application/json` : [SynthesisView](#schema-synthesisview).
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+
+<a id="action-syntheses-list"></a>
+## syntheses.list
+
+Liste mes tentatives de synthèse visibles, avec filtres optionnels épisode et clé d’idempotence.
+
+**Utilisation frontend :** Retrouver une tentative après une perte de réponse. Conserver les filtres pendant la pagination ; ne pas créer une nouvelle clé pour contourner un état unresolved. Les résultats d’autrui et épisodes devenus inaccessibles restent masqués.
+
+- HTTP : `GET /v1/domains/{domain}/syntheses`.
+- MCP : `api_syntheses_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
+- Effet : Lecture sans modification métier durable.
+- Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
+
+### Paramètres
+
+| Emplacement | Nom | Requis | Type | Contraintes |
+|---|---|---|---|---|
+| path | `domain` | oui | texte | format : `"uuid"` |
+| query | `limit` | non | entier | minimum : `1`; maximum : `100`; défaut : `20` |
+| query | `after` | non | texte / null | — |
+| query | `episode_id` | non | texte / null | — |
+| query | `idempotency_key` | non | texte / null | — |
+| header | `x-tenant-id` | oui | texte | format : `"uuid"` |
+
+### Corps et résultat
+
+- Aucun corps attendu.
+- Succès HTTP 200, `application/json` : [SynthesisPage](#schema-synthesispage).
 - Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
 
 <a id="action-models-attempts"></a>
@@ -3292,6 +3379,59 @@ Champs non déclarés interdits.
 | `content_hash` | oui | texte | — |
 | `allowed_subjects` | oui | liste de texte | — |
 | `supersedes` | oui | texte / null | — |
+
+<a id="schema-synthesisinput"></a>
+### SynthesisInput
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `processing_destination` | oui | `"openrouter"` | — |
+| `idempotency_key` | oui | texte | longueur min. : `8`; longueur max. : `128` |
+
+<a id="schema-synthesispage"></a>
+### SynthesisPage
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `items` | oui | liste de [SynthesisView](#schema-synthesisview) | — |
+| `next_after` | oui | texte / null | — |
+
+<a id="schema-synthesisusage"></a>
+### SynthesisUsage
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `request_id` | oui | texte | motif : `"^[A-Za-z0-9._:/-]{1,200}$"` |
+| `cost_usd` | oui | nombre | minimum : `0.0` |
+| `input_tokens` | oui | entier | minimum : `0.0` |
+| `output_tokens` | oui | entier | minimum : `0.0` |
+
+<a id="schema-synthesisview"></a>
+### SynthesisView
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `id` | oui | texte | format : `"uuid"` |
+| `episode_id` | oui | texte | format : `"uuid"` |
+| `provider` | oui | `"openrouter"`, `"none"` | — |
+| `requested_model` | oui | texte / null | — |
+| `prompt_version` | oui | texte | — |
+| `budget_reserved` | oui | booléen | — |
+| `idempotency_key` | oui | texte | — |
+| `created_at` | oui | texte | format : `"date-time"` |
+| `status` | oui | `"unresolved"`, `"succeeded"`, `"failed"` | — |
+| `response_id` | oui | texte / null | — |
+| `error_code` | oui | texte / null | — |
+| `usage` | oui | [SynthesisUsage](#schema-synthesisusage) / null | — |
+| `finished_at` | oui | texte / null | — |
 
 <a id="schema-textimportinput"></a>
 ### TextImportInput

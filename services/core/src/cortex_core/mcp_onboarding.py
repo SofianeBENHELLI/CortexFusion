@@ -28,8 +28,10 @@ Resources and prompts are read-only guidance. Prompt selection does not execute 
 """
 
 
-def install_onboarding(server, service, caller, interaction_catalog, extraction_provider):
-    workspace = WorkspaceService(service, extraction_provider)
+def install_onboarding(
+    server, service, caller, interaction_catalog, extraction_provider, synthesis_enabled=False
+):
+    workspace = WorkspaceService(service, extraction_provider, synthesis_enabled)
     feedback = FeedbackSignalService(service)
 
     async def checked(fn, *args):

@@ -25,7 +25,12 @@ from .workspace import WorkspaceService
 
 
 def create_mcp(
-    service, auth, interaction_catalog=None, extraction_provider=None, transport_security=None
+    service,
+    auth,
+    interaction_catalog=None,
+    extraction_provider=None,
+    transport_security=None,
+    synthesis_enabled=False,
 ):
     server = FastMCP(
         "Cortex Fusion",
@@ -88,7 +93,9 @@ def create_mcp(
     @server.tool(annotations=read_only)
     def my_workspace(ctx: Context):
         """Discover this authenticated subject's domains and capabilities; never invent identity or roles."""
-        return WorkspaceService(service, extraction_provider).identity(caller(ctx))
+        return WorkspaceService(service, extraction_provider, synthesis_enabled).identity(
+            caller(ctx)
+        )
 
     @server.tool(annotations=read_only)
     def list_sources(
@@ -203,5 +210,7 @@ def create_mcp(
         """Apply the user's explicit decision to their own issue. Refresh stale revisions; resolution does not fix or certify knowledge."""
         return IssueService(service).decide(caller(ctx), str(domain_id), str(issue_id), decision)
 
-    install_onboarding(server, service, caller, interaction_catalog, extraction_provider)
+    install_onboarding(
+        server, service, caller, interaction_catalog, extraction_provider, synthesis_enabled
+    )
     return server

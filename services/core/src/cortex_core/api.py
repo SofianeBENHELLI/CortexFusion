@@ -58,6 +58,9 @@ from .model_attempts_api import model_attempts_router
 from .openrouter_model import OpenRouterPassageModel
 from .service import KnowledgeService
 from .settings import Settings
+from .synthesis import SynthesisService
+from .synthesis_api import synthesis_router
+from .synthesis_model import OpenRouterSynthesis
 from .workspace import WorkspaceService
 from .workspace_api import workspace_router
 
@@ -126,6 +129,13 @@ def create_app(settings: Settings | None = None):
         )
     elif settings.model_provider == "ollama" and settings.local_model:
         model_adapter = LocalPassageModel(settings.local_model, settings.ollama_url)
+    synthesis_factory = None
+    if settings.synthesis_enabled and settings.openrouter_model and settings.openrouter_api_key:
+
+        def synthesis_factory():
+            return OpenRouterSynthesis(settings.openrouter_model, settings.openrouter_api_key)
+
+    synthesis = SynthesisService(service, synthesis_factory, settings.model_daily_attempt_limit)
     extraction = ExtractionService(service, model_adapter, settings.model_daily_attempt_limit)
     from .mcp_adapter import create_mcp
 
@@ -135,6 +145,7 @@ def create_app(settings: Settings | None = None):
         interaction_catalog=lambda: catalog(app.openapi()),
         extraction_provider=model_adapter.provider if model_adapter else None,
         transport_security=transport_security(settings),
+        synthesis_enabled=bool(synthesis_factory),
     )
     mcp_app = mcp.streamable_http_app()
 
@@ -155,6 +166,7 @@ def create_app(settings: Settings | None = None):
     app.state.mcp = mcp
     app.state.service = service
     app.state.db = db
+    app.state.synthesis = synthesis
     app.state.confirmation_guard = confirmation_guard
     app.add_middleware(
         BoundaryMiddleware,
@@ -218,6 +230,7 @@ def create_app(settings: Settings | None = None):
 
     app.include_router(discovery_router(settings))
     app.include_router(companion_responses_router(CompanionResponseService(service), principal))
+    app.include_router(synthesis_router(synthesis, principal))
     app.include_router(model_attempts_router(extraction.attempts, principal))
     app.include_router(conversations_router(ConversationService(service), principal))
     app.include_router(governance_router(GovernanceService(service), principal))
@@ -229,7 +242,9 @@ def create_app(settings: Settings | None = None):
     app.include_router(
         workspace_router(
             WorkspaceService(
-                service, extraction_provider=model_adapter.provider if model_adapter else None
+                service,
+                extraction_provider=model_adapter.provider if model_adapter else None,
+                synthesis_enabled=bool(synthesis_factory),
             ),
             principal,
         )

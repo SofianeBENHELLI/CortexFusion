@@ -50,8 +50,8 @@ class OpenRouterSynthesis(OpenRouterPassageModel):
 
     PROMPT_VERSION = "cited-synthesis-v2"
 
-    def synthesize(self, question, episode):
-        self.last_diagnostic, self.last_usage = {"stage": "input"}, None
+    def prepare(self, question, episode):
+        """Validate the bounded request without contacting the provider."""
         evidence = [
             {"index": i, "excerpt": c["excerpt"]} for i, c in enumerate(episode["citations"], 1)
         ]
@@ -101,6 +101,12 @@ class OpenRouterSynthesis(OpenRouterPassageModel):
         }
         if len(json.dumps(payload).encode()) > 25000:
             raise CoreError("COMPANION_INPUT_LIMIT", "Evidence exceeds the synthesis budget", 422)
+        return payload
+
+    def synthesize(self, question, episode):
+        self.last_diagnostic, self.last_usage = {"stage": "input"}, None
+        payload = self.prepare(question, episode)
+        evidence = episode["citations"]
         self.last_diagnostic = {"stage": "provider_request"}
         response = self._request(payload)
         try:

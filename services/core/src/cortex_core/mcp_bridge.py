@@ -179,7 +179,7 @@ def definitions(spec):
                 annotations=ToolAnnotations(
                     readOnlyHint=method == "get",
                     destructiveHint=meta["effect"] in ("trusted", "access", "rebuild"),
-                    openWorldHint=meta["effect"] == "model",
+                    openWorldHint=meta["effect"] in ("model", "synthesis"),
                 ),
             )
             result[name] = {

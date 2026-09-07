@@ -294,5 +294,17 @@
   "conversations.timeline": {
     "description": "Lit une page de conversation personnelle regroupant chaque question, son résultat sourcé, les réponses réellement délivrées, les signaux et les signalements associés. Les références des réponses utilisent les citations de l’épisode sans dupliquer leur texte.",
     "frontend": "Suivre le curseur de séquence et les curseurs propres aux réponses, signaux et signalements. Une page peut être vide avec next_after non nul après filtrage des droits. Le volume est limité à 500 000 octets ; réduire les limites ou lire les objets séparément si un seul tour est trop volumineux. Utiliser direction=backward pour ouvrir les tours récents, puis garder cette direction avec le curseur renvoyé."
+  },
+  "syntheses.create": {
+    "description": "Génère une synthèse personnelle à partir de la question et des citations d’un épisode, avec réservation durable avant tout appel OpenRouter.",
+    "frontend": "Confirmation signée requise selon le mode HTTP/MCP. Conserver une clé distincte de la question et examiner status même sur HTTP 200 : succeeded fournit response_id, failed un code sûr, unresolved interdit une relance automatique. Sans preuve, abstention déterministe sans fournisseur. Invalider réponses et timeline après succès."
+  },
+  "syntheses.list": {
+    "description": "Liste mes tentatives de synthèse visibles, avec filtres optionnels épisode et clé d’idempotence.",
+    "frontend": "Retrouver une tentative après une perte de réponse. Conserver les filtres pendant la pagination ; ne pas créer une nouvelle clé pour contourner un état unresolved. Les résultats d’autrui et épisodes devenus inaccessibles restent masqués."
+  },
+  "syntheses.read": {
+    "description": "Lit l’état durable, le modèle demandé, l’usage déclaré et le lien vers la réponse de ma tentative de synthèse.",
+    "frontend": "Lire response_id via responses.read ; la tentative ne contient pas le texte généré. failed et succeeded sont terminaux ; unresolved signifie en cours ou résultat non établi. budget_reserved ne prouve pas une facturation et usage n’est pas une facture."
   }
 }

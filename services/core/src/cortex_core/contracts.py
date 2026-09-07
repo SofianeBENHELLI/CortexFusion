@@ -919,3 +919,39 @@ class ConversationTimeline(Contract):
 
 
 CONTRACTS += [TimelineResponse, TimelineResponsePage, ConversationTurn, ConversationTimeline]
+
+
+class SynthesisInput(Contract):
+    processing_destination: Literal["openrouter"]
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+
+class SynthesisUsage(Contract):
+    request_id: str = Field(pattern=r"^[A-Za-z0-9._:/-]{1,200}$")
+    cost_usd: float = Field(ge=0, allow_inf_nan=False)
+    input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+
+
+class SynthesisView(Contract):
+    id: UUID
+    episode_id: UUID
+    provider: Literal["openrouter", "none"]
+    requested_model: str | None
+    prompt_version: str
+    budget_reserved: bool
+    idempotency_key: str
+    created_at: datetime
+    status: Literal["unresolved", "succeeded", "failed"]
+    response_id: UUID | None
+    error_code: str | None
+    usage: SynthesisUsage | None
+    finished_at: datetime | None
+
+
+class SynthesisPage(Contract):
+    items: list[SynthesisView]
+    next_after: UUID | None
+
+
+CONTRACTS += [SynthesisInput, SynthesisUsage, SynthesisView, SynthesisPage]

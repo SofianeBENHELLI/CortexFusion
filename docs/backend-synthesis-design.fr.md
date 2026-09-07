@@ -1,6 +1,6 @@
 # Synthèse backend durable — contrat de réalisation
 
-État : conception et fondations internes. Les routes décrites ci-dessous ne sont pas encore livrées et ne figurent pas dans le catalogue exécutable. Le frontend utilise actuellement la recherche JSON/SSE et les reçus de compagnon ; le compagnon CLI peut déjà produire une synthèse citée.
+État : premier incrément implémenté, avec activation explicite. Les trois routes sont décrites dans le catalogue exécutable ; le guide frontend français précise leur utilisation. Ce document conserve les choix et critères de réalisation.
 
 ## Résultat recherché
 
@@ -16,9 +16,9 @@ L'API doit distinguer une réponse extractive, une synthèse générée et une a
 - Une instance d'adaptateur par tentative conserve son usage et son diagnostic propres. Réutiliser le prompt cité v2 et les contrôles de l'adaptateur existant ; ne pas créer une deuxième implémentation de validation.
 - Premier transport synchrone, borné par le délai fournisseur existant. Aucun streaming de tokens et aucune file de réessai automatique. Un client peut consulter le reçu de tentative indépendamment du POST en cours.
 
-## Routes proposées, à vérifier pendant l'implémentation
+## Routes du premier incrément
 
-| Interaction envisagée | Fonction |
+| Interaction | Fonction |
 |---|---|
 | POST `/v1/domains/{domain}/episodes/{episode_id}/syntheses` | Réserver puis effectuer au plus une tentative pour une clé donnée ; retourner l'état durable |
 | GET `/v1/domains/{domain}/syntheses/{ident}` | Consulter sa tentative et le lien vers sa réponse, sous droits actuels |

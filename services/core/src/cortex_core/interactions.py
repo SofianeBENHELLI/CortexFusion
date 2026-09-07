@@ -10,6 +10,9 @@ DEFINITIONS = """
 POST /episodes/{}/companion-responses|responses.create|member|personal|Conserve la réponse de mon companion et ses références à cet épisode.
 GET /companion-responses|responses.list|member|none|Retrouve les réponses personnelles de mes companions.
 GET /companion-responses/{}|responses.read|member|none|Montre cette réponse et les preuves de l'épisode associé.
+POST /episodes/{}/syntheses|syntheses.create|member|synthesis|Génère une réponse citée à cet épisode via OpenRouter.
+GET /syntheses|syntheses.list|member|none|Retrouve mes tentatives de synthèse.
+GET /syntheses/{}|syntheses.read|member|none|Montre le résultat durable de cette synthèse personnelle.
 GET /model-attempts|models.attempts|owner|none|Liste mes tentatives d'extraction et leurs résultats durables.
 GET /model-attempts/{}|models.attempt|owner|none|Inspecte cette tentative sans relancer le fournisseur.
 GET /model-usage|models.usage|owner|none|Quel quota de tentatives IA reste disponible aujourd'hui dans ce domaine ?
@@ -101,6 +104,7 @@ EFFECTS = {
     "trusted": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
     "rebuild": "Rebuilds the published projection from the journal.",
     "model": "Sends the selected source span to the explicitly selected configured provider; may incur charges; creates a proposal.",
+    "synthesis": "Sends an episode question and cited excerpts to configured OpenRouter; may incur charges; records a personal response without publishing knowledge.",
     "local_model": "Sends source text to the configured loopback model and creates a proposal.",
 }
 
@@ -120,7 +124,7 @@ for line in DEFINITIONS.strip().splitlines():
         "effect_description": EFFECTS[effect],
         "intent_example": intent,
         "confirmation_policy": "explicit_user_decision"
-        if effect in {"access", "trusted", "rebuild", "model", "local_model", "review"}
+        if effect in {"access", "trusted", "rebuild", "model", "local_model", "review", "synthesis"}
         or ident in {"feedback.configure", "commits.compensate"}
         else "authorized_user_intent",
         "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",

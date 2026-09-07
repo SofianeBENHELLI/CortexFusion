@@ -2146,6 +2146,960 @@
       }
     },
     {
+      "name": "api_syntheses_create",
+      "description": "Génère une réponse citée à cet épisode via OpenRouter.\n\nSends an episode question and cited excerpts to configured OpenRouter; may incur charges; records a personal response without publishing knowledge.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. Requires a trusted-host signed confirmation header bound to these exact arguments.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Domain"
+              },
+              "episode_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Episode Id"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain",
+              "episode_id"
+            ]
+          },
+          "body": {
+            "$ref": "#/$defs/SynthesisInput"
+          }
+        },
+        "required": [
+          "path",
+          "body"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "SynthesisInput": {
+            "properties": {
+              "processing_destination": {
+                "type": "string",
+                "const": "openrouter",
+                "title": "Processing Destination"
+              },
+              "idempotency_key": {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 8,
+                "title": "Idempotency Key"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "processing_destination",
+              "idempotency_key"
+            ],
+            "title": "SynthesisInput"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SynthesisView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          },
+          "confirmation_request": {
+            "$ref": "#/$defs/MCPConfirmationRequest"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/SynthesisView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "confirmation_request"
+              ]
+            },
+            "then": {
+              "properties": {
+                "http_status": {
+                  "const": 428
+                }
+              }
+            }
+          }
+        ],
+        "$defs": {
+          "SynthesisView": {
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Id"
+              },
+              "episode_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Episode Id"
+              },
+              "provider": {
+                "type": "string",
+                "enum": [
+                  "openrouter",
+                  "none"
+                ],
+                "title": "Provider"
+              },
+              "requested_model": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Requested Model"
+              },
+              "prompt_version": {
+                "type": "string",
+                "title": "Prompt Version"
+              },
+              "budget_reserved": {
+                "type": "boolean",
+                "title": "Budget Reserved"
+              },
+              "idempotency_key": {
+                "type": "string",
+                "title": "Idempotency Key"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "Created At"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "unresolved",
+                  "succeeded",
+                  "failed"
+                ],
+                "title": "Status"
+              },
+              "response_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Response Id"
+              },
+              "error_code": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Error Code"
+              },
+              "usage": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/SynthesisUsage"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "finished_at": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Finished At"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "id",
+              "episode_id",
+              "provider",
+              "requested_model",
+              "prompt_version",
+              "budget_reserved",
+              "idempotency_key",
+              "created_at",
+              "status",
+              "response_id",
+              "error_code",
+              "usage",
+              "finished_at"
+            ],
+            "title": "SynthesisView"
+          },
+          "SynthesisUsage": {
+            "properties": {
+              "request_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._:/-]{1,200}$",
+                "title": "Request Id"
+              },
+              "cost_usd": {
+                "type": "number",
+                "minimum": 0.0,
+                "title": "Cost Usd"
+              },
+              "input_tokens": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Input Tokens"
+              },
+              "output_tokens": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Output Tokens"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "request_id",
+              "cost_usd",
+              "input_tokens",
+              "output_tokens"
+            ],
+            "title": "SynthesisUsage"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          "MCPConfirmationRequest": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "command_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "transport_header": {
+                "const": "X-Cortex-Confirmation"
+              },
+              "max_lifetime_seconds": {
+                "const": 300
+              }
+            },
+            "required": [
+              "action",
+              "command_hash",
+              "transport_header",
+              "max_lifetime_seconds"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "api_syntheses_read",
+      "description": "Montre le résultat durable de cette synthèse personnelle.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Domain"
+              },
+              "ident": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Ident"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain",
+              "ident"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SynthesisView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/SynthesisView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "$defs": {
+          "SynthesisView": {
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Id"
+              },
+              "episode_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Episode Id"
+              },
+              "provider": {
+                "type": "string",
+                "enum": [
+                  "openrouter",
+                  "none"
+                ],
+                "title": "Provider"
+              },
+              "requested_model": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Requested Model"
+              },
+              "prompt_version": {
+                "type": "string",
+                "title": "Prompt Version"
+              },
+              "budget_reserved": {
+                "type": "boolean",
+                "title": "Budget Reserved"
+              },
+              "idempotency_key": {
+                "type": "string",
+                "title": "Idempotency Key"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "Created At"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "unresolved",
+                  "succeeded",
+                  "failed"
+                ],
+                "title": "Status"
+              },
+              "response_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Response Id"
+              },
+              "error_code": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Error Code"
+              },
+              "usage": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/SynthesisUsage"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "finished_at": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Finished At"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "id",
+              "episode_id",
+              "provider",
+              "requested_model",
+              "prompt_version",
+              "budget_reserved",
+              "idempotency_key",
+              "created_at",
+              "status",
+              "response_id",
+              "error_code",
+              "usage",
+              "finished_at"
+            ],
+            "title": "SynthesisView"
+          },
+          "SynthesisUsage": {
+            "properties": {
+              "request_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._:/-]{1,200}$",
+                "title": "Request Id"
+              },
+              "cost_usd": {
+                "type": "number",
+                "minimum": 0.0,
+                "title": "Cost Usd"
+              },
+              "input_tokens": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Input Tokens"
+              },
+              "output_tokens": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Output Tokens"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "request_id",
+              "cost_usd",
+              "input_tokens",
+              "output_tokens"
+            ],
+            "title": "SynthesisUsage"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "api_syntheses_list",
+      "description": "Retrouve mes tentatives de synthèse.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Domain"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain"
+            ]
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "integer",
+                "maximum": 100,
+                "minimum": 1,
+                "default": 20,
+                "title": "Limit"
+              },
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "After"
+              },
+              "episode_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Episode Id"
+              },
+              "idempotency_key": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 128
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Idempotency Key"
+              }
+            },
+            "additionalProperties": false,
+            "required": []
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SynthesisPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/SynthesisPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "$defs": {
+          "SynthesisPage": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/SynthesisView"
+                },
+                "type": "array",
+                "title": "Items"
+              },
+              "next_after": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Next After"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "items",
+              "next_after"
+            ],
+            "title": "SynthesisPage"
+          },
+          "SynthesisView": {
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Id"
+              },
+              "episode_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Episode Id"
+              },
+              "provider": {
+                "type": "string",
+                "enum": [
+                  "openrouter",
+                  "none"
+                ],
+                "title": "Provider"
+              },
+              "requested_model": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Requested Model"
+              },
+              "prompt_version": {
+                "type": "string",
+                "title": "Prompt Version"
+              },
+              "budget_reserved": {
+                "type": "boolean",
+                "title": "Budget Reserved"
+              },
+              "idempotency_key": {
+                "type": "string",
+                "title": "Idempotency Key"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "Created At"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "unresolved",
+                  "succeeded",
+                  "failed"
+                ],
+                "title": "Status"
+              },
+              "response_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Response Id"
+              },
+              "error_code": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Error Code"
+              },
+              "usage": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/SynthesisUsage"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "finished_at": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Finished At"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "id",
+              "episode_id",
+              "provider",
+              "requested_model",
+              "prompt_version",
+              "budget_reserved",
+              "idempotency_key",
+              "created_at",
+              "status",
+              "response_id",
+              "error_code",
+              "usage",
+              "finished_at"
+            ],
+            "title": "SynthesisView"
+          },
+          "SynthesisUsage": {
+            "properties": {
+              "request_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._:/-]{1,200}$",
+                "title": "Request Id"
+              },
+              "cost_usd": {
+                "type": "number",
+                "minimum": 0.0,
+                "title": "Cost Usd"
+              },
+              "input_tokens": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Input Tokens"
+              },
+              "output_tokens": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Output Tokens"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "request_id",
+              "cost_usd",
+              "input_tokens",
+              "output_tokens"
+            ],
+            "title": "SynthesisUsage"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
       "name": "api_models_attempts",
       "description": "Liste mes tentatives d'extraction et leurs résultats durables.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
       "inputSchema": {

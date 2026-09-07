@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     http_confirmation_mode: Literal["required", "trusted_host"] = "required"
     cors_origins: list[str] = Field(default_factory=list, max_length=20)
     mcp_public_url: str | None = None
+    synthesis_enabled: bool = False
     model_daily_attempt_limit: int = Field(default=100, ge=1, le=100000)
     local_model: str | None = None
     ollama_url: str = "http://127.0.0.1:11434"

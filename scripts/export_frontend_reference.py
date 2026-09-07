@@ -16,6 +16,7 @@ EFFECTS = {
     "rebuild": "Reconstruction de la projection publiée depuis le journal.",
     "episode": "Recherche avec création d'un épisode personnel.",
     "model": "Traitement par fournisseur configuré, potentiellement facturé.",
+    "synthesis": "Synthèse personnelle via OpenRouter, potentiellement facturée, sans publication de connaissance.",
     "local_model": "Traitement par modèle local configuré.",
 }
 

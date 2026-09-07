@@ -17,8 +17,12 @@ class ModelAttemptService:
         row = one(
             conn,
             """SELECT (now() AT TIME ZONE 'UTC')::date AS utc_day,count(*) AS reserved_attempts
-            FROM cf_model_attempts WHERE tenant_id=:tenant AND domain_id=:domain
-            AND created_at >= date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'""",
+            FROM (
+                SELECT created_at FROM cf_model_attempts WHERE tenant_id=:tenant AND domain_id=:domain
+                UNION ALL
+                SELECT created_at FROM cf_synthesis_attempts WHERE tenant_id=:tenant AND domain_id=:domain AND budget_reserved
+            ) reservations
+            WHERE created_at >= date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'""",
             **self.k.keys(p, domain),
         )
         return {
@@ -26,7 +30,7 @@ class ModelAttemptService:
             "daily_limit": self.daily_limit,
             "reserved_attempts": row["reserved_attempts"],
             "remaining_attempts": max(0, self.daily_limit - row["reserved_attempts"]),
-            "scope": "All model attempt reservations in this domain; not a monetary budget or provider invoice.",
+            "scope": "All extraction and paid synthesis reservations in this domain; not a monetary budget or provider invoice.",
         }
 
     def usage(self, p, domain):

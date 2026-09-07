@@ -192,6 +192,32 @@ La réponse est limitée à 500 000 octets sérialisés. Si la prochaine entrée
 
 La lecture n'appelle aucun modèle et ne crée ni signal ni événement. Le contrôle des preuves et l'assemblage sont protégés par la même frontière d'accès ; un propriétaire ne peut pas consulter la conversation personnelle d'un autre membre. Cette vue facilite le chat, pas un accès administratif global aux conversations.
 
+### Produire une synthèse IA côté backend
+
+La capacité `synthesize` dans `/v1/me` signale que la synthèse backend est configurée pour le domaine. La recherche JSON/SSE reste la première étape et fournit un `episode_id`. Si l’exploitant active `CORTEX_SYNTHESIS_ENABLED=true` et configure le modèle et la clé OpenRouter côté serveur, appeler ensuite `POST /v1/domains/{domain}/episodes/{episode_id}/syntheses` (`api_syntheses_create`) avec :
+
+```json
+{"processing_destination":"openrouter","idempotency_key":"synthesis-unique-001"}
+```
+
+La clé de synthèse est distincte de celle de la question. Ne pas renvoyer la question, des extraits arbitraires ou la clé fournisseur dans ce corps : le backend utilise l’épisode personnel et ses preuves. L’appel est synchrone, sans flux de tokens. La confirmation signée porte sur cette commande et cette destination ; les règles HTTP `required`/`trusted_host` et la confirmation MCP restent celles décrites plus haut. Désactivé, le service retourne `SYNTHESIS_DISABLED` (503), après les contrôles de transport applicables.
+
+**Lire `status`, même sur HTTP 200** :
+
+| État | Traitement frontend |
+|---|---|
+| `succeeded` | Lire `response_id` via `responses.read`, afficher le texte, les citations et la version de savoir ; invalider la timeline et les réponses de l’épisode |
+| `failed` | Afficher un échec explicite à partir du code sûr `error_code` ; une même clé ne relance pas le fournisseur |
+| `unresolved` | La tentative est en cours ou son résultat n’a pas été établi. Consulter son état ; ne pas relancer automatiquement avec une nouvelle clé |
+
+Après une perte de réponse, retrouver la tentative avec `GET /syntheses?episode_id=…&idempotency_key=…` ou reprendre exactement le même POST avec une nouvelle confirmation de transport. Une clé réutilisée pour un autre épisode donne `IDEMPOTENCY_CONFLICT` (409). Une tentative connue reste relisible si la configuration du modèle a changé ou a été désactivée, sous droits actuels. La lecture de la tentative et du reçu ne déclenche aucun modèle.
+
+Sans preuve, le backend conserve une abstention déterministe avec `provider=none`, `requested_model=null` et `budget_reserved=false` : aucun appel fournisseur. Sinon la réservation partage le plafond quotidien du domaine avec les extractions ; `MODEL_DAILY_LIMIT` (429) refuse une nouvelle réservation. `budget_reserved=true` signifie qu’une tentative potentiellement payante a été réservée, pas qu’elle a forcément été envoyée ou facturée. L’usage est celui déclaré et validé par le fournisseur, pas une facture ; il peut être nul après un échec.
+
+Un retrait d’accès avant l’envoi empêche l’appel ; un retrait pendant la génération empêche de conserver la réponse. Les données déjà envoyées ne peuvent pas être rappelées chez le fournisseur. Le jeton est recontrôlé avant envoi et résultat. Une interruption après l’envoi peut avoir été facturée : ne pas automatiser une nouvelle tentative, et ne pas déduire qu’un abandon du navigateur annule la génération. Une panne empêchant d’établir le résultat retourne `SYNTHESIS_STORAGE_UNCERTAIN` (503) ; consulter la clé existante.
+
+La réponse est personnelle, y compris vis-à-vis du propriétaire du domaine, et ne publie aucune connaissance. Les références sont vérifiées contre l’épisode ; la justesse sémantique du texte reste non certifiée. Pour boucler sur la qualité, transmettre les retours réels en ciblant `response_id`, selon les préférences de collecte.
+
 ## Parcours 2 — brief et mémoire
 
 Le brief propriétaire est obtenu à la demande par `domain.brief`. Les concepts/relations viennent de `concepts.list/read`, la connaissance servie de `domain.version`, les propositions de `proposals.list`, les sources/imports de leurs listes et le journal de `commits.list`.

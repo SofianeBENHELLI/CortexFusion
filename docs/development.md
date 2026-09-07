@@ -99,3 +99,7 @@ Migration 0014 adds nullable correction references to immutable personal issue d
 ## Source-to-proposal navigation
 
 proposals.list accepts optional source_id, matched against the proposal validation evidence-source set with a JSONB containment predicate. Migration 0015 adds its GIN expression index. The requested source and every candidate proposal retain their evidence ACL checks and writer-role requirement. This includes historical/link evidence, not only direct extraction origin. Pagination keeps the existing visible-item cursor; the number of candidate ACL checks is not a fixed work limit.
+
+## Durable backend synthesis
+
+Migration 0016 creates forced-RLS immutable personal attempts/outcomes. Explicit CORTEX_SYNTHESIS_ENABLED plus configured OpenRouter credentials enables synthesis; the default remains disabled. Calls share the extraction domain daily reservation limit, reserve before networking, never replay uncertain keys and store the response/outcome atomically. No-evidence episodes receive deterministic abstention without a paid reservation. HTTP/MCP sensitive-command confirmation applies; GET remains private and read-only. Use a fresh synthesis adapter per attempt and consult the French frontend guide for terminal/unresolved states. No token streaming or production semantic quality certification is included.

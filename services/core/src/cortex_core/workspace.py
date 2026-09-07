@@ -7,8 +7,9 @@ from .service import digest, encoded, one, run
 
 
 class WorkspaceService:
-    def __init__(self, knowledge, extraction_provider=None):
+    def __init__(self, knowledge, extraction_provider=None, synthesis_enabled=False):
         self.extraction_provider = extraction_provider
+        self.synthesis_enabled = synthesis_enabled
         self.k = knowledge
         self.db = knowledge.db
 
@@ -37,6 +38,8 @@ class WorkspaceService:
                     "feedback",
                     "personal_issues",
                 ]
+                if self.synthesis_enabled:
+                    capabilities.append("synthesize")
                 if d["role"] in ("owner", "corpus_manager", "agent", "contributor"):
                     capabilities += ["propose", "read_proposals"]
                 if d["role"] in ("owner", "corpus_manager"):

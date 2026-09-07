@@ -9,7 +9,7 @@ Start with the [development guide](development.md), [implementation status](impl
 | Document | Purpose |
 |---|---|
 | [Guide frontend en français](frontend-guide.fr.md) et [endpoints](frontend-api.fr.md) | Parcours, fonctions, paramètres, droits, états et intégration React/HTTP/MCP |
-| [Synthèse backend durable — conception](backend-synthesis-design.fr.md) | Contrat prévu, reprise, confidentialité et tests requis ; routes non encore livrées |
+| [Synthèse backend durable — conception](backend-synthesis-design.fr.md) | Contrat de réalisation, reprise, confidentialité et tests du premier incrément |
 | [Reference MCP companion](reference-companion.md) | Cited synthesis, resumable receipts, feedback and optional comment assessment |
 | [Evaluation](../evals/README.md) | Synthetic accounting and synthesis scenarios, live findings and limitations |
 | [Restore rehearsal](restore-rehearsal.md) | Local backup/restore evidence and bounded recovery procedure |
