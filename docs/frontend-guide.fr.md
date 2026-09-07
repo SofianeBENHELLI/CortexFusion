@@ -335,3 +335,15 @@ Les codes sont plus stables que les messages. Les traductions react-intl doivent
 3. **Pouce bas → traitement personnel → correction** : cibler le reçu de réponse, envoyer un vote explicite, lire le signalement, prendre en charge, créer une proposition séparée, puis résoudre ou classer avec raison. Vérifier qu'aucune inférence ne gonfle le nombre de votes.
 
 Ces scénarios peuvent guider Playwright côté frontend ; le backend maintient les tests HTTP/MCP et PostgreSQL correspondants avec données synthétiques. Les variantes SSE et JSON utilisent la même clé de question. Les futures vues agrégées ou la génération de tokens doivent être rattachées à leurs propres contrats livrés.
+
+## Tester la chaîne complète sans frontend ni clé fournisseur
+
+Après les migrations, avec `CORTEX_TEST_ADMIN_URL` et `CORTEX_TEST_DATABASE_URL` pointant vers une base dédiée dont le nom se termine par `_test` :
+
+```sh
+uv run python scripts/demo_backend_synthesis.py --output /tmp/cortex-backend-synthesis.json
+```
+
+Ce scénario crée un tenant, un domaine, deux identités éphémères et une procédure synthétique ; il conserve ces données dans la base de test. Il démarre un serveur HTTP loopback puis utilise le SDK MCP officiel pour vérifier readiness, capacités, conversation/question, confirmation obligatoire, synthèse, reprise avec la même clé, lecture du reçu, feedback négatif synthétique ciblé, timeline et refus après révocation. La préparation initiale du savoir utilise les services backend ; le parcours utilisateur s’effectue via MCP avec le rôle viewer.
+
+L’adaptateur fournisseur est remplacé explicitement par une simulation ; ce programme n’a pas d’option live et n’utilise aucune clé fournisseur réelle. Le rapport doit indiquer `status=passed`, `model_calls_simulated=1` et `paid_provider_calls=0`. Les contrôles vérifient l’intégration et les droits, pas la qualité sémantique d’un modèle réel ni une satisfaction utilisateur. Les clés privées de test restent en mémoire et ne sont pas envoyées au modèle ou aux outils MCP. Ce scénario est également exécuté en CI.

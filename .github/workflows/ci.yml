@@ -49,3 +49,5 @@ jobs:
         run: make test
       - name: Demonstrate approved knowledge and compensation
         run: make demo-core
+      - name: Demonstrate strict backend synthesis through real loopback MCP
+        run: uv run python scripts/demo_backend_synthesis.py --output "$RUNNER_TEMP/cortex-backend-synthesis.json"
