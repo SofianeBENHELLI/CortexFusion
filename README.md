@@ -74,3 +74,5 @@ The [companion feedback loop](docs/feedback-loop.md) separates deliberate votes,
 The [MCP onboarding guide](docs/mcp-onboarding.md) describes authenticated resources, workflow prompts and optional HTTPS protected-resource discovery for an external identity provider.
 
 [Model attempt history and limits](docs/model-attempts.md) make provider failures and interrupted calls inspectable and prevent silent same-key replays.
+
+[Companion response receipts](docs/companion-responses.md) connect feedback to a specific delivered LLM answer while preserving the original retrieval evidence and served version.

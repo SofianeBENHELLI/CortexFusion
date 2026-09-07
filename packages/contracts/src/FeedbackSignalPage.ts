@@ -4,6 +4,7 @@ export type Id = string;
 export type EpisodeId = string;
 export type ServedVersion = number;
 export type SourceIds = string[];
+export type CompanionResponseId = string | null;
 export type Origin = "explicit" | "observed" | "inferred";
 export type Kind =
   "thumbs_up" | "thumbs_down" | "comment" | "reformulation" | "correction" | "abandon" | "resolved" | "satisfaction";
@@ -30,6 +31,7 @@ export interface FeedbackSignalView {
   created_at: CreatedAt;
 }
 export interface FeedbackSignalInput {
+  companion_response_id?: CompanionResponseId;
   origin: Origin;
   kind: Kind;
   comment?: Comment;

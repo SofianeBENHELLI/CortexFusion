@@ -993,6 +993,914 @@
       }
     },
     {
+      "name": "api_responses_create",
+      "description": "Conserve la réponse de mon companion et ses références à cet épisode.\n\nChanges personal state or appends personal feedback/decision history.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Domain"
+              },
+              "episode_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Episode Id"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain",
+              "episode_id"
+            ]
+          },
+          "body": {
+            "$ref": "#/$defs/CompanionResponseInput"
+          }
+        },
+        "required": [
+          "path",
+          "body"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "CompanionResponseInput": {
+            "properties": {
+              "answer_text": {
+                "type": "string",
+                "maxLength": 12000,
+                "minLength": 1,
+                "title": "Answer Text"
+              },
+              "answer_kind": {
+                "type": "string",
+                "enum": [
+                  "answer",
+                  "abstention",
+                  "clarification"
+                ],
+                "title": "Answer Kind"
+              },
+              "citations": {
+                "items": {
+                  "$ref": "#/$defs/SourceRef"
+                },
+                "type": "array",
+                "maxItems": 50,
+                "title": "Citations"
+              },
+              "companion": {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1,
+                "title": "Companion"
+              },
+              "model": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Model"
+              },
+              "idempotency_key": {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 8,
+                "title": "Idempotency Key"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "answer_text",
+              "answer_kind",
+              "companion",
+              "idempotency_key"
+            ],
+            "title": "CompanionResponseInput"
+          },
+          "SourceRef": {
+            "properties": {
+              "source_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Source Id"
+              },
+              "start": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Start",
+                "description": "Zero-based Unicode code point offset, inclusive"
+              },
+              "end": {
+                "type": "integer",
+                "exclusiveMinimum": 0.0,
+                "title": "End",
+                "description": "Unicode code point offset, exclusive; not UTF-16 units"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "source_id",
+              "start",
+              "end"
+            ],
+            "title": "SourceRef"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "$ref": "#/$defs/CompanionResponseView"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "CompanionResponseView": {
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Id"
+              },
+              "episode_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Episode Id"
+              },
+              "served_version": {
+                "type": "integer",
+                "title": "Served Version"
+              },
+              "response": {
+                "$ref": "#/$defs/CompanionResponseInput"
+              },
+              "citations": {
+                "items": {
+                  "$ref": "#/$defs/Citation"
+                },
+                "type": "array",
+                "title": "Citations"
+              },
+              "reference_validation": {
+                "type": "string",
+                "enum": [
+                  "episode_references_checked",
+                  "no_references"
+                ],
+                "title": "Reference Validation"
+              },
+              "semantic_validation": {
+                "type": "string",
+                "const": "not_performed",
+                "title": "Semantic Validation",
+                "default": "not_performed"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "Created At"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "id",
+              "episode_id",
+              "served_version",
+              "response",
+              "citations",
+              "reference_validation",
+              "created_at"
+            ],
+            "title": "CompanionResponseView"
+          },
+          "CompanionResponseInput": {
+            "properties": {
+              "answer_text": {
+                "type": "string",
+                "maxLength": 12000,
+                "minLength": 1,
+                "title": "Answer Text"
+              },
+              "answer_kind": {
+                "type": "string",
+                "enum": [
+                  "answer",
+                  "abstention",
+                  "clarification"
+                ],
+                "title": "Answer Kind"
+              },
+              "citations": {
+                "items": {
+                  "$ref": "#/$defs/SourceRef"
+                },
+                "type": "array",
+                "maxItems": 50,
+                "title": "Citations"
+              },
+              "companion": {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1,
+                "title": "Companion"
+              },
+              "model": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Model"
+              },
+              "idempotency_key": {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 8,
+                "title": "Idempotency Key"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "answer_text",
+              "answer_kind",
+              "companion",
+              "idempotency_key"
+            ],
+            "title": "CompanionResponseInput"
+          },
+          "SourceRef": {
+            "properties": {
+              "source_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Source Id"
+              },
+              "start": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Start",
+                "description": "Zero-based Unicode code point offset, inclusive"
+              },
+              "end": {
+                "type": "integer",
+                "exclusiveMinimum": 0.0,
+                "title": "End",
+                "description": "Unicode code point offset, exclusive; not UTF-16 units"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "source_id",
+              "start",
+              "end"
+            ],
+            "title": "SourceRef"
+          },
+          "Citation": {
+            "properties": {
+              "source_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Source Id"
+              },
+              "title": {
+                "type": "string",
+                "title": "Title"
+              },
+              "location": {
+                "type": "string",
+                "title": "Location"
+              },
+              "content_hash": {
+                "type": "string",
+                "title": "Content Hash"
+              },
+              "start": {
+                "type": "integer",
+                "title": "Start"
+              },
+              "end": {
+                "type": "integer",
+                "title": "End"
+              },
+              "excerpt": {
+                "type": "string",
+                "title": "Excerpt"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "source_id",
+              "title",
+              "location",
+              "content_hash",
+              "start",
+              "end",
+              "excerpt"
+            ],
+            "title": "Citation"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "api_responses_read",
+      "description": "Montre cette réponse et les preuves de l'épisode associé.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Domain"
+              },
+              "response_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Response Id"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain",
+              "response_id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "$ref": "#/$defs/CompanionResponseView"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "CompanionResponseView": {
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Id"
+              },
+              "episode_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Episode Id"
+              },
+              "served_version": {
+                "type": "integer",
+                "title": "Served Version"
+              },
+              "response": {
+                "$ref": "#/$defs/CompanionResponseInput"
+              },
+              "citations": {
+                "items": {
+                  "$ref": "#/$defs/Citation"
+                },
+                "type": "array",
+                "title": "Citations"
+              },
+              "reference_validation": {
+                "type": "string",
+                "enum": [
+                  "episode_references_checked",
+                  "no_references"
+                ],
+                "title": "Reference Validation"
+              },
+              "semantic_validation": {
+                "type": "string",
+                "const": "not_performed",
+                "title": "Semantic Validation",
+                "default": "not_performed"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "Created At"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "id",
+              "episode_id",
+              "served_version",
+              "response",
+              "citations",
+              "reference_validation",
+              "created_at"
+            ],
+            "title": "CompanionResponseView"
+          },
+          "CompanionResponseInput": {
+            "properties": {
+              "answer_text": {
+                "type": "string",
+                "maxLength": 12000,
+                "minLength": 1,
+                "title": "Answer Text"
+              },
+              "answer_kind": {
+                "type": "string",
+                "enum": [
+                  "answer",
+                  "abstention",
+                  "clarification"
+                ],
+                "title": "Answer Kind"
+              },
+              "citations": {
+                "items": {
+                  "$ref": "#/$defs/SourceRef"
+                },
+                "type": "array",
+                "maxItems": 50,
+                "title": "Citations"
+              },
+              "companion": {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1,
+                "title": "Companion"
+              },
+              "model": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Model"
+              },
+              "idempotency_key": {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 8,
+                "title": "Idempotency Key"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "answer_text",
+              "answer_kind",
+              "companion",
+              "idempotency_key"
+            ],
+            "title": "CompanionResponseInput"
+          },
+          "SourceRef": {
+            "properties": {
+              "source_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Source Id"
+              },
+              "start": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Start",
+                "description": "Zero-based Unicode code point offset, inclusive"
+              },
+              "end": {
+                "type": "integer",
+                "exclusiveMinimum": 0.0,
+                "title": "End",
+                "description": "Unicode code point offset, exclusive; not UTF-16 units"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "source_id",
+              "start",
+              "end"
+            ],
+            "title": "SourceRef"
+          },
+          "Citation": {
+            "properties": {
+              "source_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Source Id"
+              },
+              "title": {
+                "type": "string",
+                "title": "Title"
+              },
+              "location": {
+                "type": "string",
+                "title": "Location"
+              },
+              "content_hash": {
+                "type": "string",
+                "title": "Content Hash"
+              },
+              "start": {
+                "type": "integer",
+                "title": "Start"
+              },
+              "end": {
+                "type": "integer",
+                "title": "End"
+              },
+              "excerpt": {
+                "type": "string",
+                "title": "Excerpt"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "source_id",
+              "title",
+              "location",
+              "content_hash",
+              "start",
+              "end",
+              "excerpt"
+            ],
+            "title": "Citation"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "api_responses_list",
+      "description": "Retrouve les réponses personnelles de mes companions.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Domain"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain"
+            ]
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "integer",
+                "maximum": 100,
+                "minimum": 1,
+                "default": 20,
+                "title": "Limit"
+              },
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "After"
+              },
+              "episode_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Episode Id"
+              }
+            },
+            "additionalProperties": false,
+            "required": []
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "$ref": "#/$defs/CompanionResponsePage"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "CompanionResponsePage": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/CompanionResponseView"
+                },
+                "type": "array",
+                "title": "Items"
+              },
+              "next_after": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Next After"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "items",
+              "next_after"
+            ],
+            "title": "CompanionResponsePage"
+          },
+          "CompanionResponseView": {
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Id"
+              },
+              "episode_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Episode Id"
+              },
+              "served_version": {
+                "type": "integer",
+                "title": "Served Version"
+              },
+              "response": {
+                "$ref": "#/$defs/CompanionResponseInput"
+              },
+              "citations": {
+                "items": {
+                  "$ref": "#/$defs/Citation"
+                },
+                "type": "array",
+                "title": "Citations"
+              },
+              "reference_validation": {
+                "type": "string",
+                "enum": [
+                  "episode_references_checked",
+                  "no_references"
+                ],
+                "title": "Reference Validation"
+              },
+              "semantic_validation": {
+                "type": "string",
+                "const": "not_performed",
+                "title": "Semantic Validation",
+                "default": "not_performed"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "Created At"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "id",
+              "episode_id",
+              "served_version",
+              "response",
+              "citations",
+              "reference_validation",
+              "created_at"
+            ],
+            "title": "CompanionResponseView"
+          },
+          "CompanionResponseInput": {
+            "properties": {
+              "answer_text": {
+                "type": "string",
+                "maxLength": 12000,
+                "minLength": 1,
+                "title": "Answer Text"
+              },
+              "answer_kind": {
+                "type": "string",
+                "enum": [
+                  "answer",
+                  "abstention",
+                  "clarification"
+                ],
+                "title": "Answer Kind"
+              },
+              "citations": {
+                "items": {
+                  "$ref": "#/$defs/SourceRef"
+                },
+                "type": "array",
+                "maxItems": 50,
+                "title": "Citations"
+              },
+              "companion": {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1,
+                "title": "Companion"
+              },
+              "model": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Model"
+              },
+              "idempotency_key": {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 8,
+                "title": "Idempotency Key"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "answer_text",
+              "answer_kind",
+              "companion",
+              "idempotency_key"
+            ],
+            "title": "CompanionResponseInput"
+          },
+          "SourceRef": {
+            "properties": {
+              "source_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Source Id"
+              },
+              "start": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Start",
+                "description": "Zero-based Unicode code point offset, inclusive"
+              },
+              "end": {
+                "type": "integer",
+                "exclusiveMinimum": 0.0,
+                "title": "End",
+                "description": "Unicode code point offset, exclusive; not UTF-16 units"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "source_id",
+              "start",
+              "end"
+            ],
+            "title": "SourceRef"
+          },
+          "Citation": {
+            "properties": {
+              "source_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Source Id"
+              },
+              "title": {
+                "type": "string",
+                "title": "Title"
+              },
+              "location": {
+                "type": "string",
+                "title": "Location"
+              },
+              "content_hash": {
+                "type": "string",
+                "title": "Content Hash"
+              },
+              "start": {
+                "type": "integer",
+                "title": "Start"
+              },
+              "end": {
+                "type": "integer",
+                "title": "End"
+              },
+              "excerpt": {
+                "type": "string",
+                "title": "Excerpt"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "source_id",
+              "title",
+              "location",
+              "content_hash",
+              "start",
+              "end",
+              "excerpt"
+            ],
+            "title": "Citation"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
       "name": "api_models_attempts",
       "description": "Liste mes tentatives d'extraction et leurs résultats durables.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
       "inputSchema": {
@@ -6630,6 +7538,18 @@
                   }
                 ],
                 "title": "Conversation Id"
+              },
+              "companion_response_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Companion Response Id"
               }
             },
             "additionalProperties": false,
@@ -6680,6 +7600,18 @@
                   }
                 ],
                 "title": "Conversation Id"
+              },
+              "companion_response_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Companion Response Id"
               },
               "signal_count": {
                 "type": "integer",
@@ -7070,6 +8002,18 @@
         "$defs": {
           "FeedbackSignalInput": {
             "properties": {
+              "companion_response_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Companion Response Id"
+              },
               "origin": {
                 "type": "string",
                 "enum": [
@@ -7229,6 +8173,18 @@
           },
           "FeedbackSignalInput": {
             "properties": {
+              "companion_response_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Companion Response Id"
+              },
               "origin": {
                 "type": "string",
                 "enum": [
@@ -7488,6 +8444,18 @@
           },
           "FeedbackSignalInput": {
             "properties": {
+              "companion_response_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Companion Response Id"
+              },
               "origin": {
                 "type": "string",
                 "enum": [

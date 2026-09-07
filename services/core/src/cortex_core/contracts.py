@@ -669,6 +669,7 @@ class FeedbackPreferencesInput(Contract):
 
 
 class FeedbackSignalInput(Contract):
+    companion_response_id: UUID | None = None
     origin: Literal["explicit", "observed", "inferred"]
     kind: Literal[
         "thumbs_up",
@@ -769,6 +770,7 @@ class FeedbackSummary(Contract):
     window_start: datetime
     window_end: datetime
     conversation_id: UUID | None
+    companion_response_id: UUID | None = None
     signal_count: int = Field(ge=0)
     episode_count: int = Field(ge=0)
     conflicting_explicit_episodes: int = Field(ge=0)
@@ -811,3 +813,42 @@ class ModelUsageView(Contract):
 
 
 CONTRACTS += [ModelAttemptView, ModelAttemptPage, ModelUsageView]
+
+
+class CompanionResponseInput(Contract):
+    answer_text: str = Field(min_length=1, max_length=12000)
+    answer_kind: Literal["answer", "abstention", "clarification"]
+    citations: list[SourceRef] = Field(default_factory=list, max_length=50)
+    companion: str = Field(min_length=1, max_length=100)
+    model: str | None = Field(default=None, min_length=1, max_length=200)
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+    @model_validator(mode="after")
+    def evidence_declaration(self):
+        if not self.answer_text.strip():
+            raise ValueError("Response text cannot be blank")
+        if self.answer_kind == "answer" and not self.citations:
+            raise ValueError("A corpus answer requires at least one episode citation")
+        refs = [(str(r.source_id), r.start, r.end) for r in self.citations]
+        if len(refs) != len(set(refs)):
+            raise ValueError("Response citations must be unique")
+        return self
+
+
+class CompanionResponseView(Contract):
+    id: UUID
+    episode_id: UUID
+    served_version: int
+    response: CompanionResponseInput
+    citations: list[Citation]
+    reference_validation: Literal["episode_references_checked", "no_references"]
+    semantic_validation: Literal["not_performed"] = "not_performed"
+    created_at: datetime
+
+
+class CompanionResponsePage(Contract):
+    items: list[CompanionResponseView]
+    next_after: UUID | None
+
+
+CONTRACTS += [CompanionResponseInput, CompanionResponseView, CompanionResponsePage]

@@ -23,10 +23,16 @@ def feedback_signals_router(service, principal):
         since: AwareDatetime | None = None,
         until: AwareDatetime | None = None,
         conversation_id: UUID | None = None,
+        companion_response_id: UUID | None = None,
         p=Depends(principal),
     ):
         return FeedbackMetricsService(service.k).summary(
-            p, str(domain), since, until, str(conversation_id) if conversation_id else None
+            p,
+            str(domain),
+            since,
+            until,
+            str(conversation_id) if conversation_id else None,
+            str(companion_response_id) if companion_response_id else None,
         )
 
     @router.get("/feedback-preferences", response_model=FeedbackPreferences)

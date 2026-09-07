@@ -16,6 +16,60 @@
       "operation_id": "system.mcp_discovery"
     },
     {
+      "action_id": "responses.create",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "personal",
+      "effect_description": "Changes personal state or appends personal feedback/decision history.",
+      "intent_example": "Conserve la réponse de mon companion et ses références à cet épisode.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/episodes/{episode_id}/companion-responses",
+      "operation_id": "responses.create"
+    },
+    {
+      "action_id": "responses.read",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre cette réponse et les preuves de l'épisode associé.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/companion-responses/{response_id}",
+      "operation_id": "responses.read"
+    },
+    {
+      "action_id": "responses.list",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Retrouve les réponses personnelles de mes companions.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/companion-responses",
+      "operation_id": "responses.list"
+    },
+    {
       "action_id": "models.attempts",
       "roles": [
         "owner"

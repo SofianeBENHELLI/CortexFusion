@@ -3,6 +3,7 @@
 from datetime import UTC, datetime, timedelta
 
 from .auth import CoreError
+from .companion_responses import CompanionResponseService
 from .service import encoded, run
 
 MAX_SIGNALS = 10000
@@ -17,7 +18,9 @@ class FeedbackMetricsService:
     def __init__(self, knowledge):
         self.k, self.db = knowledge, knowledge.db
 
-    def summary(self, p, domain, since=None, until=None, conversation_id=None):
+    def summary(
+        self, p, domain, since=None, until=None, conversation_id=None, companion_response_id=None
+    ):
         end = until or datetime.now(UTC)
         start = since or end - timedelta(days=30)
         if (
@@ -31,6 +34,8 @@ class FeedbackMetricsService:
         with self.db.transaction(p, domain) as conn:
             if conversation_id:
                 self.k._conversation(conn, p, domain, conversation_id)
+            if companion_response_id:
+                CompanionResponseService(self.k)._response(conn, p, domain, companion_response_id)
             # Filter before limiting so inaccessible evidence cannot affect the result or cap.
             # This is the same source reader predicate as KnowledgeService._source.
             rows = (
@@ -42,6 +47,7 @@ class FeedbackMetricsService:
                 WHERE s.tenant_id=:tenant AND s.domain_id=:domain
                 AND s.subject=:subject AND e.subject=:subject
                 AND s.created_at>=:start AND s.created_at<:end
+                AND (:response='' OR s.companion_response_id=:response)
                 AND (:conversation='' OR EXISTS (
                     SELECT 1 FROM cf_conversation_episodes m
                     WHERE m.tenant_id=s.tenant_id AND m.domain_id=s.domain_id
@@ -57,6 +63,7 @@ class FeedbackMetricsService:
                     start=start,
                     end=end,
                     conversation=conversation_id or "",
+                    response=companion_response_id or "",
                     readers=encoded([p.subject]),
                     cap=MAX_SIGNALS + 1,
                 )
@@ -91,6 +98,7 @@ class FeedbackMetricsService:
                 "window_start": start,
                 "window_end": end,
                 "conversation_id": conversation_id,
+                "companion_response_id": companion_response_id,
                 "signal_count": len(rows),
                 "episode_count": len(episodes),
                 "conflicting_explicit_episodes": len(up & down),

@@ -3,6 +3,7 @@
 from uuid import uuid4
 
 from .auth import CoreError
+from .companion_responses import CompanionResponseService
 from .service import digest, encoded, one, run
 from .workspace import WorkspaceService
 
@@ -67,7 +68,15 @@ class FeedbackSignalService:
         with self.db.transaction(p, domain) as conn:
             self.k._domain(conn, p, domain, lock=True)
             self.k._episode(conn, p, domain, episode_id)
-            fingerprint = digest({"episode_id": episode_id, **data.model_dump(mode="json")})
+            payload = data.model_dump(mode="json")
+            if data.companion_response_id:
+                CompanionResponseService(self.k)._response(
+                    conn, p, domain, str(data.companion_response_id), episode_id
+                )
+            else:
+                # Preserve the fingerprint of signals recorded before response receipts existed.
+                payload.pop("companion_response_id")
+            fingerprint = digest({"episode_id": episode_id, **payload})
             existing = one(
                 conn,
                 "SELECT * FROM cf_feedback_signals WHERE tenant_id=:tenant AND domain_id=:domain AND subject=:subject AND idempotency_key=:key",
@@ -88,15 +97,16 @@ class FeedbackSignalService:
                 )
             row = one(
                 conn,
-                """INSERT INTO cf_feedback_signals(tenant_id,domain_id,id,subject,episode_id,origin,kind,payload,idempotency_key,request_hash)
-                VALUES(:tenant,:domain,:id,:subject,:episode,:origin,:kind,CAST(:payload AS jsonb),:key,:hash) RETURNING *""",
+                """INSERT INTO cf_feedback_signals(tenant_id,domain_id,id,subject,episode_id,origin,kind,payload,idempotency_key,request_hash,companion_response_id)
+                VALUES(:tenant,:domain,:id,:subject,:episode,:origin,:kind,CAST(:payload AS jsonb),:key,:hash,:response) RETURNING *""",
                 **self.k.keys(p, domain),
                 id=str(uuid4()),
                 subject=p.subject,
                 episode=episode_id,
                 origin=data.origin,
                 kind=data.kind,
-                payload=encoded(data.model_dump(mode="json")),
+                payload=encoded(payload),
+                response=str(data.companion_response_id) if data.companion_response_id else None,
                 key=data.idempotency_key,
                 hash=fingerprint,
             )

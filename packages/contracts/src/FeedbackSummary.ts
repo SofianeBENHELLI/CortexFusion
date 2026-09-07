@@ -3,6 +3,7 @@
 export type WindowStart = string;
 export type WindowEnd = string;
 export type ConversationId = string | null;
+export type CompanionResponseId = string | null;
 export type SignalCount = number;
 export type EpisodeCount = number;
 export type ConflictingExplicitEpisodes = number;
@@ -26,6 +27,7 @@ export interface FeedbackSummary {
   window_start: WindowStart;
   window_end: WindowEnd;
   conversation_id: ConversationId;
+  companion_response_id?: CompanionResponseId;
   signal_count: SignalCount;
   episode_count: EpisodeCount;
   conflicting_explicit_episodes: ConflictingExplicitEpisodes;

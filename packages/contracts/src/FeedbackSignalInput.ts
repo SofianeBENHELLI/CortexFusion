@@ -1,5 +1,6 @@
 /* Generated from the checked-in wire schema. Do not edit. */
 
+export type CompanionResponseId = string | null;
 export type Origin = "explicit" | "observed" | "inferred";
 export type Kind =
   "thumbs_up" | "thumbs_down" | "comment" | "reformulation" | "correction" | "abandon" | "resolved" | "satisfaction";
@@ -11,6 +12,7 @@ export type IterationIndex = number | null;
 export type IdempotencyKey = string;
 
 export interface FeedbackSignalInput {
+  companion_response_id?: CompanionResponseId;
   origin: Origin;
   kind: Kind;
   comment?: Comment;

@@ -64,3 +64,5 @@ The response separates explicit votes/comments/resolution, observed reformulatio
 Membership, personal episode ownership and all current source readers are filtered before aggregation and before the 10,000-signal cap. Revoked evidence disappears from the summary. If an authorized window exceeds the cap, the server returns `413 SUMMARY_TOO_LARGE`; narrow the window or choose a conversation. It never returns an unlabeled partial total. Reading metrics does not opt into collection, create a signal or modify knowledge.
 
 The [synthetic evaluation scenarios](../evals/README.md) reproduce declarations of a useful first answer, repeated iterations, abandonment, negative feedback followed by resolution, contradictory inferred sentiment and silence. They verify backend accounting, not real answer quality.
+
+Signals may optionally include `companion_response_id` to target a [retained companion response](companion-responses.md) from the same personal episode. The summary accepts the same optional filter. Existing episode-only signal keys retain their original fingerprint.

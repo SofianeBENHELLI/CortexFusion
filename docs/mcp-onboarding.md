@@ -43,6 +43,7 @@ Metadata is built from server configuration, never from incoming Host or forward
 - Acquire and refresh tokens through the real issuer's client flow. This backend does not implement login, PKCE exchange, dynamic client registration, refresh tokens or token issuance.
 - Supply the selected tenant in `X-Tenant-ID`. Clients without configurable transport headers need a host adapter. This remains a compatibility constraint even when OAuth metadata discovery works.
 - Keep tokens and trusted-host confirmation signing keys outside model arguments. Follow [signed confirmation handling](mcp-exhaustive.md) for sensitive operations. A compatible host must collect the actual user decision before signing.
+- Optionally retain the delivered answer with [companion response receipts](companion-responses.md), then associate feedback with its returned ID.
 - Preserve idempotency keys, inspect state after uncertain outcomes, and display citations, served version and feedback origin faithfully.
 - Re-read personal collection preferences and honor opt-out. See [feedback loop](feedback-loop.md).
 

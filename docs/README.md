@@ -8,6 +8,7 @@ Start with the [development guide](development.md), [implementation status](impl
 
 | Document | Purpose |
 |---|---|
+| [Companion responses](companion-responses.md) | Personal delivered-answer receipts and precise feedback targets |
 | [Model attempts](model-attempts.md) | Durable outcomes, safe retries and shared daily call allowance |
 | [MCP onboarding](mcp-onboarding.md) | Authenticated discovery, prompts and configured issuer metadata |
 | [Companion feedback](feedback-loop.md) | Personal feedback provenance, opt-in collection and correction workflow |

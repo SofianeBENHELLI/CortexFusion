@@ -7,6 +7,9 @@ Every HTTP action has a stable operation ID, an example intent, role prerequisit
 | Action | HTTP | Roles | Effect | Example intent |
 |---|---|---|---|---|
 | `system.mcp_discovery` | `GET /.well-known/oauth-protected-resource` | public | none | Découvre le fournisseur d'identité configuré pour cette ressource MCP. |
+| `responses.create` | `POST /v1/domains/{domain}/episodes/{episode_id}/companion-responses` | owner, corpus_manager, contributor, agent, viewer | personal | Conserve la réponse de mon companion et ses références à cet épisode. |
+| `responses.read` | `GET /v1/domains/{domain}/companion-responses/{response_id}` | owner, corpus_manager, contributor, agent, viewer | none | Montre cette réponse et les preuves de l'épisode associé. |
+| `responses.list` | `GET /v1/domains/{domain}/companion-responses` | owner, corpus_manager, contributor, agent, viewer | none | Retrouve les réponses personnelles de mes companions. |
 | `models.attempts` | `GET /v1/domains/{domain}/model-attempts` | owner | none | Liste mes tentatives d'extraction et leurs résultats durables. |
 | `models.attempt` | `GET /v1/domains/{domain}/model-attempts/{attempt_id}` | owner | none | Inspecte cette tentative sans relancer le fournisseur. |
 | `models.usage` | `GET /v1/domains/{domain}/model-usage` | owner | none | Quel quota de tentatives IA reste disponible aujourd'hui dans ce domaine ? |
@@ -98,6 +101,9 @@ Every HTTP action has a stable operation ID, an example intent, role prerequisit
 | `list_issues` | read | List personal knowledge gaps or disputed answers with their current decision revisions. |
 | `decide_issue` | writes state | Apply the user's explicit decision to their own issue. Refresh stale revisions; resolution does not fix or certify knowledge. |
 | `api_system_mcp_discovery` | read | Découvre le fournisseur d'identité configuré pour cette ressource MCP.  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
+| `api_responses_create` | writes state | Conserve la réponse de mon companion et ses références à cet épisode.  Changes personal state or appends personal feedback/decision history.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
+| `api_responses_read` | read | Montre cette réponse et les preuves de l'épisode associé.  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
+| `api_responses_list` | read | Retrouve les réponses personnelles de mes companions.  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
 | `api_models_attempts` | read | Liste mes tentatives d'extraction et leurs résultats durables.  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
 | `api_models_attempt` | read | Inspecte cette tentative sans relancer le fournisseur.  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
 | `api_models_usage` | read | Quel quota de tentatives IA reste disponible aujourd'hui dans ce domaine ?  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |

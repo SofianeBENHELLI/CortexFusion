@@ -7,6 +7,9 @@ from fastapi.openapi.utils import get_openapi
 # method/path | stable action ID | role set | effect | example user intent
 # Placeholder names are normalized so wording changes do not change action IDs.
 DEFINITIONS = """
+POST /episodes/{}/companion-responses|responses.create|member|personal|Conserve la réponse de mon companion et ses références à cet épisode.
+GET /companion-responses|responses.list|member|none|Retrouve les réponses personnelles de mes companions.
+GET /companion-responses/{}|responses.read|member|none|Montre cette réponse et les preuves de l'épisode associé.
 GET /model-attempts|models.attempts|owner|none|Liste mes tentatives d'extraction et leurs résultats durables.
 GET /model-attempts/{}|models.attempt|owner|none|Inspecte cette tentative sans relancer le fournisseur.
 GET /model-usage|models.usage|owner|none|Quel quota de tentatives IA reste disponible aujourd'hui dans ce domaine ?

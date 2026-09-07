@@ -26,6 +26,8 @@ Personal [feedback summaries](feedback-loop.md) now separate explicit votes, obs
 
 [Durable model attempts](model-attempts.md) now reserve a shared per-domain daily allowance before calls and append sanitized terminal outcomes. Failed/unresolved keys cannot silently replay provider calls. Success outcomes commit atomically with extraction/proposal creation. The cap measures attempts, not money, and provider reconciliation remains open.
 
+Personal [companion response receipts](companion-responses.md) now preserve the final externally generated response separately from retrieval episodes. References must match the episode; semantic entailment is not certified. Feedback and summary filters can target a precise response while retaining compatibility with older episode-only signals.
+
 ## Relationship to the coding plan
 
 | Planned work | Current state |

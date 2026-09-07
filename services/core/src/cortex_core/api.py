@@ -7,6 +7,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import DBAPIError
 
 from .auth import Authenticator, CoreError
+from .companion_responses import CompanionResponseService
+from .companion_responses_api import companion_responses_router
 from .contracts import (
     AccessInput,
     AccessReceipt,
@@ -201,6 +203,7 @@ def create_app(settings: Settings | None = None):
         return auth.authenticate(authorization, x_tenant_id)
 
     app.include_router(discovery_router(settings))
+    app.include_router(companion_responses_router(CompanionResponseService(service), principal))
     app.include_router(model_attempts_router(extraction.attempts, principal))
     app.include_router(conversations_router(ConversationService(service), principal))
     app.include_router(governance_router(GovernanceService(service), principal))

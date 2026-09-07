@@ -137,6 +137,19 @@
       ],
       "title": "Conversation Id"
     },
+    "companion_response_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Companion Response Id"
+    },
     "signal_count": {
       "minimum": 0,
       "title": "Signal Count",
