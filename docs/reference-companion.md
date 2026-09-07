@@ -77,3 +77,9 @@ Use an explicit origin only for a user action actually captured by the host. Obs
 Before observed/inferred feedback, the client reads the caller's current preferences. If collection is disabled, it returns `status: not_collected, reason: consent_disabled`; the server rechecks consent when appending a signal. A concurrent opt-out producing `COLLECTION_DISABLED` is also reported as not collected. Other server failures remain errors. The client does not turn collection on or sign a consent confirmation. Explicit feedback remains available independently of automatic collection preferences.
 
 The response is reread before recording a signal, binding feedback to its actual episode with current access checks. Repeat the same signal request ID to reuse the server receipt rather than count a new signal. These commands and their Python helpers use the same MCP tools that another companion can call. Existing personal feedback summaries can filter by conversation or exact response.
+
+## Rejection diagnostics
+
+The private journal now records a fixed diagnostic stage for failed synthesis (`input`, `provider_request`, `usage`, `choice`, `finish_reason`, `json` or `references`). Reference diagnostics contain boolean checks only. Valid provider attribution and usage are preserved even when the generated answer is rejected, so a charged failure is not mistaken for a free request. Invalid/missing usage remains unknown. Diagnostics never retain internal reasoning or an invalid model answer; ordinary saved evidence remains in the private journal as documented above. Known failures stay non-replayable, and a crash or failed journal write can still leave an unresolved attempt.
+
+The evaluator includes these diagnostics when present. A targeted follow-up on conflicting retention rules passed without relaxing validation or changing the synthesis prompt. This does not identify the original rejection's cause or replace the first 4/6 evaluation baseline.

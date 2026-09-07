@@ -147,10 +147,13 @@ async def evaluate(scenarios, model, journal):
                 saved = locked.conn.execute(
                     "SELECT payload FROM runs WHERE id=?", (request_id,)
                 ).fetchone()
-                error = json.loads(saved[0]).get("error") if saved else None
+                saved_payload = json.loads(saved[0]) if saved else {}
+                error = saved_payload.get("error")
                 row.update(
                     status="failed_generation",
                     error=error or safe_error_code(exc),
+                    diagnostic=saved_payload.get("diagnostic"),
+                    usage=saved_payload.get("failed_usage"),
                     reused=bool(existing),
                 )
         row["elapsed_ms"] = round((time.monotonic() - started) * 1000)

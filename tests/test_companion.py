@@ -544,3 +544,42 @@ def test_invalid_provenance_never_calls_mcp():
                 kind="thumbs_up",
             )
         )
+
+
+def test_rejection_diagnostics_keep_valid_usage_without_private_model_text(monkeypatch, tmp_path):
+    model = OpenRouterSynthesis("synthetic/model", SecretStr("secret"))
+    result = provider_reply(answer_text="Private unsupported text [99].")
+    result["choices"][0]["message"]["reasoning"] = "Private internal reasoning"
+    monkeypatch.setattr(model, "_request", lambda _: result)
+    args = dict(
+        endpoint="http://localhost:8000/mcp/",
+        domain=str(uuid4()),
+        question="incident",
+        request_id=str(uuid4()),
+        model=model,
+    )
+    with Journal(tmp_path / "diagnostic.db", "0.05").locked() as journal:
+        with pytest.raises(CoreError):
+            asyncio.run(ask(Session(), journal=journal, **args))
+        saved = json.loads(journal.conn.execute("SELECT payload FROM runs").fetchone()[0])
+    assert saved["diagnostic"]["stage"] == "references"
+    assert saved["diagnostic"]["markers_match"] is False
+    assert saved["failed_usage"]["cost_usd"] == 0.001
+    assert "Private unsupported" not in json.dumps(saved)
+    assert "Private internal" not in json.dumps(saved)
+    assert "secret" not in json.dumps(saved)
+
+
+def test_diagnostic_usage_is_cleared_before_each_attempt(monkeypatch):
+    model = OpenRouterSynthesis("synthetic/model", SecretStr("secret"))
+    monkeypatch.setattr(model, "_request", lambda _: provider_reply())
+    model.synthesize("incident", episode())
+    assert model.last_usage["cost_usd"] == 0.001
+
+    def fail(_):
+        raise CoreError("MODEL_UNAVAILABLE", "private diagnostic")
+
+    monkeypatch.setattr(model, "_request", fail)
+    with pytest.raises(CoreError):
+        model.synthesize("incident", episode())
+    assert model.last_usage is None and model.last_diagnostic == {"stage": "provider_request"}

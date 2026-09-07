@@ -55,6 +55,7 @@ class OpenRouterSynthesis(OpenRouterPassageModel):
     """One generation at most; source and schema budgets include all model input."""
 
     def synthesize(self, question, episode):
+        self.last_diagnostic, self.last_usage = {"stage": "input"}, None
         evidence = [
             {"index": i, "excerpt": c["excerpt"]} for i, c in enumerate(episode["citations"], 1)
         ]
@@ -100,42 +101,65 @@ class OpenRouterSynthesis(OpenRouterPassageModel):
         }
         if len(json.dumps(payload).encode()) > 25000:
             raise CoreError("COMPANION_INPUT_LIMIT", "Evidence exceeds the synthesis budget", 422)
+        self.last_diagnostic = {"stage": "provider_request"}
         response = self._request(payload)
         try:
+            self.last_diagnostic = {"stage": "usage"}
+            usage = response.get("usage") or {}
+            cost = usage.get("cost")
+            if type(cost) not in (int, float) or not Decimal(str(cost)).is_finite() or cost < 0:
+                raise ValueError("unknown cost")
+            model, ident = response["model"], response["id"]
+            if any(
+                not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9._:/-]{1,200}", value)
+                for value in (model, ident)
+            ):
+                raise ValueError("missing attribution")
+            counts = [usage.get("prompt_tokens"), usage.get("completion_tokens")]
+            if any(type(v) is not int or v < 0 for v in counts):
+                raise ValueError("invalid usage")
+            self.last_usage = {
+                "request_id": ident,
+                "cost_usd": cost,
+                "input_tokens": counts[0],
+                "output_tokens": counts[1],
+            }
+            self.last_diagnostic = {"stage": "choice"}
             choice = response["choices"][0]
+            self.last_diagnostic = {"stage": "finish_reason"}
             if choice["finish_reason"] != "stop":
                 raise CoreError(
                     "SYNTHESIS_OUTPUT_INCOMPLETE",
                     "Model output did not complete the cited-answer contract",
                     422,
                 )
+            self.last_diagnostic = {"stage": "json"}
             draft = Draft.model_validate_json(choice["message"]["content"])
             indices = draft.citation_indices
             markers = {int(x) for x in re.findall(r"\[(\d+)\]", draft.answer_text)}
-            if (
-                not draft.answer_text.strip()
-                or len(indices) != len(set(indices))
-                or any(i < 1 or i > len(evidence) for i in indices)
-                or markers != set(indices)
-                or (draft.answer_kind == "answer" and not indices)
-            ):
+            checks = {
+                "nonblank": bool(draft.answer_text.strip()),
+                "unique": len(indices) == len(set(indices)),
+                "in_range": all(1 <= i <= len(evidence) for i in indices),
+                "markers_match": markers == set(indices),
+                "answer_has_evidence": draft.answer_kind != "answer" or bool(indices),
+            }
+            self.last_diagnostic = {
+                "stage": "references",
+                **checks,
+                "grouped_markers_present": bool(
+                    re.search(r"\[\d+(?:,\s*\d+)+\]", draft.answer_text)
+                ),
+            }
+            if not all(checks.values()):
                 raise ValueError("unsupported citations")
-            usage = response.get("usage") or {}
-            cost = usage.get("cost")
-            if type(cost) not in (int, float) or not Decimal(str(cost)).is_finite() or cost < 0:
-                raise ValueError("unknown cost")
-            model, ident = response["model"], response["id"]
-            if not isinstance(model, str) or not model or not isinstance(ident, str) or not ident:
-                raise ValueError("missing attribution")
-            counts = [usage.get("prompt_tokens"), usage.get("completion_tokens")]
-            if any(type(v) is not int or v < 0 for v in counts):
-                raise ValueError("invalid usage")
         except (ValueError, KeyError, IndexError, TypeError, AttributeError):
             raise CoreError(
                 "UNSUPPORTED_SYNTHESIS",
                 "Model output did not satisfy the cited-answer contract",
                 422,
             ) from None
+        self.last_diagnostic = {"stage": "validated"}
         refs = [
             {k: episode["citations"][i - 1][k] for k in ("source_id", "start", "end")}
             for i in indices
@@ -331,6 +355,8 @@ async def ask(
                 draft = await asyncio.to_thread(model.synthesize, question, episode)
             except CoreError as exc:
                 data["error"] = exc.code
+                data["diagnostic"] = getattr(model, "last_diagnostic", None)
+                data["failed_usage"] = getattr(model, "last_usage", None)
                 journal.save(request_id, "failed", data)
                 raise
         data["draft"] = draft
