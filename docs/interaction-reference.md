@@ -6,6 +6,7 @@ Every HTTP action has a stable operation ID, an example intent, role prerequisit
 
 | Action | HTTP | Roles | Effect | Example intent |
 |---|---|---|---|---|
+| `system.mcp_discovery` | `GET /.well-known/oauth-protected-resource` | public | none | Découvre le fournisseur d'identité configuré pour cette ressource MCP. |
 | `conversations.create` | `POST /v1/domains/{domain}/conversations` | owner, corpus_manager, contributor, agent, viewer | personal | Crée une conversation sur les incidents. |
 | `conversations.list` | `GET /v1/domains/{domain}/conversations` | owner, corpus_manager, contributor, agent, viewer | none | Retrouve mes conversations actives. |
 | `conversations.read` | `GET /v1/domains/{domain}/conversations/{ident}` | owner, corpus_manager, contributor, agent, viewer | none | Ouvre cette conversation. |
@@ -92,6 +93,7 @@ Every HTTP action has a stable operation ID, an example intent, role prerequisit
 | `conversation_messages` | read | Read the caller's authorized conversation messages in sequence order. |
 | `list_issues` | read | List personal knowledge gaps or disputed answers with their current decision revisions. |
 | `decide_issue` | writes state | Apply the user's explicit decision to their own issue. Refresh stale revisions; resolution does not fix or certify knowledge. |
+| `api_system_mcp_discovery` | read | Découvre le fournisseur d'identité configuré pour cette ressource MCP.  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
 | `api_conversations_create` | writes state | Crée une conversation sur les incidents.  Changes personal state or appends personal feedback/decision history.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
 | `api_conversations_list` | read | Retrouve mes conversations actives.  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
 | `api_conversations_read` | read | Ouvre cette conversation.  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
@@ -157,5 +159,17 @@ Every HTTP action has a stable operation ID, an example intent, role prerequisit
 | `api_episodes_feedback` | writes state | Signale que cette réponse ne m'aide pas.  Changes personal state or appends personal feedback/decision history.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
 | `api_domain_brief` | read | Résume les propositions en attente et mes signalements actifs.  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
 | `api_interactions_list` | read | Quelles actions puis-je préparer avec cette API ?  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
+
+## MCP discovery
+
+Resources, templates and prompt arguments are exported in `packages/contracts/mcp-discovery.json`. These are authenticated, read-only primitives; selecting a prompt does not execute its workflow.
+
+- Resource: `cortex://guide` — Read-only integration guide: evidence, feedback provenance and governed actions.
+- Resource: `cortex://workspace` — Current authenticated subject, authorized domains and capabilities; never cached across users.
+- Resource: `cortex://actions` — HTTP/MCP action inventory with effects and decision policies; metadata grants no access.
+- Template: `cortex://domains/{domain_id}/context` — Authorized domain versions and the caller's collection preferences. Contains no source text.
+- Prompt: `ask_cortex` — Prepare an evidence-based query workflow for an authorized domain; executes no query.
+- Prompt: `review_cortex_proposal` — Prepare inspection of an accessible proposal. Review prompt execution never approves or publishes.
+- Prompt: `report_cortex_feedback` — Prepare personal feedback reporting with explicit/observed/inferred provenance; records nothing.
 
 Tool hints and confirmation metadata guide the host. They are not authentication, an approval receipt or enforcement of a user confirmation. See `docs/ai-native.md` for the host interaction protocol and current limits.

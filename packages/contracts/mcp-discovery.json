@@ -1,0 +1,74 @@
+{
+  "resources": [
+    {
+      "name": "companion_guide",
+      "uri": "cortex://guide",
+      "description": "Read-only integration guide: evidence, feedback provenance and governed actions.",
+      "mimeType": "text/plain"
+    },
+    {
+      "name": "my_workspace",
+      "uri": "cortex://workspace",
+      "description": "Current authenticated subject, authorized domains and capabilities; never cached across users.",
+      "mimeType": "application/json"
+    },
+    {
+      "name": "action_catalog",
+      "uri": "cortex://actions",
+      "description": "HTTP/MCP action inventory with effects and decision policies; metadata grants no access.",
+      "mimeType": "application/json"
+    }
+  ],
+  "resource_templates": [
+    {
+      "name": "domain_context",
+      "uriTemplate": "cortex://domains/{domain_id}/context",
+      "description": "Authorized domain versions and the caller's collection preferences. Contains no source text.",
+      "mimeType": "application/json"
+    }
+  ],
+  "prompts": [
+    {
+      "name": "ask_cortex",
+      "description": "Prepare an evidence-based query workflow for an authorized domain; executes no query.",
+      "arguments": [
+        {
+          "name": "domain_id",
+          "required": true
+        },
+        {
+          "name": "question",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "review_cortex_proposal",
+      "description": "Prepare inspection of an accessible proposal. Review prompt execution never approves or publishes.",
+      "arguments": [
+        {
+          "name": "domain_id",
+          "required": true
+        },
+        {
+          "name": "proposal_id",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "report_cortex_feedback",
+      "description": "Prepare personal feedback reporting with explicit/observed/inferred provenance; records nothing.",
+      "arguments": [
+        {
+          "name": "domain_id",
+          "required": true
+        },
+        {
+          "name": "episode_id",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

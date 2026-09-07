@@ -731,3 +731,13 @@ CONTRACTS += [
     FeedbackSignalView,
     FeedbackSignalPage,
 ]
+
+
+class ProtectedResourceMetadata(Contract):
+    resource: str
+    authorization_servers: list[str]
+    bearer_methods_supported: list[Literal["header"]]
+    resource_name: str
+
+
+CONTRACTS += [ProtectedResourceMetadata]

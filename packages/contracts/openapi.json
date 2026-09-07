@@ -6,6 +6,40 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/.well-known/oauth-protected-resource": {
+      "get": {
+        "tags": [
+          "mcp-discovery"
+        ],
+        "summary": "Protected Resource",
+        "operationId": "system.mcp_discovery",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProtectedResourceMetadata"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Public MCP resource discovery is not configured."
+          }
+        },
+        "x-cortex-interaction": {
+          "action_id": "system.mcp_discovery",
+          "roles": [],
+          "effect": "none",
+          "effect_description": "Read only; no durable application change.",
+          "intent_example": "Découvre le fournisseur d'identité configuré pour cette ressource MCP.",
+          "confirmation_policy": "authorized_user_intent",
+          "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access."
+        },
+        "description": "Découvre le fournisseur d'identité configuré pour cette ressource MCP.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access."
+      }
+    },
     "/v1/domains/{domain}/conversations": {
       "post": {
         "tags": [
@@ -19627,6 +19661,42 @@
           "replaces_id"
         ],
         "title": "ProposalView"
+      },
+      "ProtectedResourceMetadata": {
+        "properties": {
+          "resource": {
+            "type": "string",
+            "title": "Resource"
+          },
+          "authorization_servers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Authorization Servers"
+          },
+          "bearer_methods_supported": {
+            "items": {
+              "type": "string",
+              "const": "header"
+            },
+            "type": "array",
+            "title": "Bearer Methods Supported"
+          },
+          "resource_name": {
+            "type": "string",
+            "title": "Resource Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "resource",
+          "authorization_servers",
+          "bearer_methods_supported",
+          "resource_name"
+        ],
+        "title": "ProtectedResourceMetadata"
       },
       "PublicationReceipt": {
         "properties": {

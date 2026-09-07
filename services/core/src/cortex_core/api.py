@@ -49,6 +49,7 @@ from .interactions import catalog, install_openapi
 from .issues import IssueService
 from .issues_api import issues_router
 from .local_model import LocalPassageModel
+from .mcp_discovery import challenge, discovery_router, transport_security
 from .openrouter_model import OpenRouterPassageModel
 from .service import KnowledgeService
 from .settings import Settings
@@ -59,8 +60,9 @@ from .workspace_api import workspace_router
 class BoundaryMiddleware:
     """Bound buffered request bodies and protect the MCP transport on every HTTP request."""
 
-    def __init__(self, app, auth, limit):
+    def __init__(self, app, auth, limit, authentication_challenge="Bearer"):
         self.app, self.auth, self.limit = app, auth, limit
+        self.authentication_challenge = authentication_challenge
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
@@ -71,7 +73,11 @@ class BoundaryMiddleware:
                 self.auth.authenticate(headers.get("authorization"), headers.get("x-tenant-id"))
             except CoreError as exc:
                 return await JSONResponse(
-                    {"error": exc.code, "message": exc.message}, status_code=exc.status
+                    {"error": exc.code, "message": exc.message},
+                    status_code=exc.status,
+                    headers={"WWW-Authenticate": self.authentication_challenge}
+                    if exc.status == 401
+                    else {},
                 )(scope, receive, send)
         chunks, size = [], 0
         while True:
@@ -122,6 +128,7 @@ def create_app(settings: Settings | None = None):
         auth,
         interaction_catalog=lambda: catalog(app.openapi()),
         extraction_provider=model_adapter.provider if model_adapter else None,
+        transport_security=transport_security(settings),
     )
     mcp_app = mcp.streamable_http_app()
 
@@ -141,7 +148,12 @@ def create_app(settings: Settings | None = None):
     app.state.mcp = mcp
     app.state.service = service
     app.state.db = db
-    app.add_middleware(BoundaryMiddleware, auth=auth, limit=settings.max_request_bytes)
+    app.add_middleware(
+        BoundaryMiddleware,
+        auth=auth,
+        limit=settings.max_request_bytes,
+        authentication_challenge=challenge(settings),
+    )
 
     @app.exception_handler(CoreError)
     async def core_error(request, exc):
@@ -187,6 +199,7 @@ def create_app(settings: Settings | None = None):
     ):
         return auth.authenticate(authorization, x_tenant_id)
 
+    app.include_router(discovery_router(settings))
     app.include_router(conversations_router(ConversationService(service), principal))
     app.include_router(governance_router(GovernanceService(service), principal))
     corpus = CorpusService(service)

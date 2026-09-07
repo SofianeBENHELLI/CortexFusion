@@ -21,6 +21,7 @@ app = create_app(
         model_provider="ollama",
         local_model=None,
         confirmation_public_key_file=None,
+        mcp_public_url=None,
     )
 )
 try:
@@ -30,6 +31,20 @@ try:
         tool.model_dump(mode="json", exclude_none=True)
         for tool in asyncio.run(app.state.mcp.list_tools())
     ]
+    discovery = {
+        "resources": [
+            item.model_dump(mode="json", exclude_none=True)
+            for item in asyncio.run(app.state.mcp.list_resources())
+        ],
+        "resource_templates": [
+            item.model_dump(mode="json", exclude_none=True)
+            for item in asyncio.run(app.state.mcp.list_resource_templates())
+        ],
+        "prompts": [
+            item.model_dump(mode="json", exclude_none=True)
+            for item in asyncio.run(app.state.mcp.list_prompts())
+        ],
+    }
 finally:
     app.state.db.dispose()
 
@@ -38,6 +53,8 @@ artifacts = {
     "packages/contracts/interactions.json": json.dumps(inventory, ensure_ascii=False, indent=2)
     + "\n",
     "packages/contracts/mcp-tools.json": json.dumps({"tools": tools}, ensure_ascii=False, indent=2)
+    + "\n",
+    "packages/contracts/mcp-discovery.json": json.dumps(discovery, ensure_ascii=False, indent=2)
     + "\n",
 }
 lines = [
@@ -61,6 +78,17 @@ for tool in tools:
         f"| `{tool['name']}` | {'read' if annotations.get('readOnlyHint') else 'writes state'} | {tool.get('description', '').replace(chr(10), ' ')} |"
     )
 lines += [
+    "",
+    "## MCP discovery",
+    "",
+    "Resources, templates and prompt arguments are exported in `packages/contracts/mcp-discovery.json`. These are authenticated, read-only primitives; selecting a prompt does not execute its workflow.",
+    "",
+    *[f"- Resource: `{item['uri']}` — {item['description']}" for item in discovery["resources"]],
+    *[
+        f"- Template: `{item['uriTemplate']}` — {item['description']}"
+        for item in discovery["resource_templates"]
+    ],
+    *[f"- Prompt: `{item['name']}` — {item['description']}" for item in discovery["prompts"]],
     "",
     "Tool hints and confirmation metadata guide the host. They are not authentication, an approval receipt or enforcement of a user confirmation. See `docs/ai-native.md` for the host interaction protocol and current limits.",
     "",

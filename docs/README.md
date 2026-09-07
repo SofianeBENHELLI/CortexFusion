@@ -8,6 +8,7 @@ Start with the [development guide](development.md), [implementation status](impl
 
 | Document | Purpose |
 |---|---|
+| [MCP onboarding](mcp-onboarding.md) | Authenticated discovery, prompts and configured issuer metadata |
 | [Companion feedback](feedback-loop.md) | Personal feedback provenance, opt-in collection and correction workflow |
 | [Prototype scope](product/prototype-scope.md) | Bounded first release and observable acceptance criteria |
 | [Roadmap](product/roadmap.md) | Implementation sequence and later milestones |

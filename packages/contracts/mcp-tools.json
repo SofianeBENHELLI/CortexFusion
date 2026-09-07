@@ -924,6 +924,75 @@
       }
     },
     {
+      "name": "api_system_mcp_discovery",
+      "description": "Découvre le fournisseur d'identité configuré pour cette ressource MCP.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "$ref": "#/$defs/ProtectedResourceMetadata"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "ProtectedResourceMetadata": {
+            "properties": {
+              "resource": {
+                "type": "string",
+                "title": "Resource"
+              },
+              "authorization_servers": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "title": "Authorization Servers"
+              },
+              "bearer_methods_supported": {
+                "items": {
+                  "type": "string",
+                  "const": "header"
+                },
+                "type": "array",
+                "title": "Bearer Methods Supported"
+              },
+              "resource_name": {
+                "type": "string",
+                "title": "Resource Name"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "resource",
+              "authorization_servers",
+              "bearer_methods_supported",
+              "resource_name"
+            ],
+            "title": "ProtectedResourceMetadata"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
       "name": "api_conversations_create",
       "description": "Crée une conversation sur les incidents.\n\nChanges personal state or appends personal feedback/decision history.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
       "inputSchema": {

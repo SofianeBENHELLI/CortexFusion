@@ -20,12 +20,20 @@ from .conversations import ConversationService
 from .corpus import CorpusService
 from .governance import GovernanceService
 from .issues import IssueService
+from .mcp_onboarding import GUIDE, install_onboarding
 from .workspace import WorkspaceService
 
 
-def create_mcp(service, auth, interaction_catalog=None, extraction_provider=None):
+def create_mcp(
+    service, auth, interaction_catalog=None, extraction_provider=None, transport_security=None
+):
     server = FastMCP(
-        "Cortex Fusion", stateless_http=True, json_response=True, streamable_http_path="/"
+        "Cortex Fusion",
+        instructions=GUIDE,
+        stateless_http=True,
+        json_response=True,
+        streamable_http_path="/",
+        transport_security=transport_security,
     )
 
     def caller(ctx):
@@ -195,4 +203,5 @@ def create_mcp(service, auth, interaction_catalog=None, extraction_provider=None
         """Apply the user's explicit decision to their own issue. Refresh stale revisions; resolution does not fix or certify knowledge."""
         return IssueService(service).decide(caller(ctx), str(domain_id), str(issue_id), decision)
 
+    install_onboarding(server, service, caller, interaction_catalog, extraction_provider)
     return server

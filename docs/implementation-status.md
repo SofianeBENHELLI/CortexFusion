@@ -20,6 +20,8 @@ The [interface-independent interaction protocol](ai-native.md) now documents eve
 
 The [companion feedback loop](feedback-loop.md) adds personal opt-in preferences and immutable explicit/observed/inferred signals, linked to episodes and rechecked source access. Explicit negative votes open personal issues atomically; estimates never become votes or trusted knowledge.
 
+Authenticated [MCP resources and workflow prompts](mcp-onboarding.md) now provide discovery and permission-checked preparation without mutations. Optional configured HTTPS protected-resource metadata advertises the external issuer and binds access-token audience to the resource URL. Actual external companion login remains unvalidated.
+
 ## Relationship to the coding plan
 
 | Planned work | Current state |

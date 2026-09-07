@@ -39,7 +39,7 @@ def test_all_routes_have_explicit_interaction_and_response_contracts(world):
                 if status.startswith("2"):
                     content = response["content"]
                     assert all(item["schema"] for item in content.values()), (method, path)
-            if path != "/health":
+            if op["x-cortex-interaction"]["roles"]:
                 assert op["security"] == [{"BearerAuth": []}]
                 assert next(p for p in op["parameters"] if p["name"] == "x-tenant-id")["required"]
                 assert "409" in op["responses"] and "503" in op["responses"]

@@ -4,6 +4,18 @@
   "authorization_notice": "This is an inventory, not an authorization grant. Use /v1/me for actual memberships; the server rechecks every operation.",
   "items": [
     {
+      "action_id": "system.mcp_discovery",
+      "roles": [],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Découvre le fournisseur d'identité configuré pour cette ressource MCP.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/.well-known/oauth-protected-resource",
+      "operation_id": "system.mcp_discovery"
+    },
+    {
       "action_id": "conversations.create",
       "roles": [
         "owner",

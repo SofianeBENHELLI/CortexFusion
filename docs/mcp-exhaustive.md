@@ -55,3 +55,5 @@ La confirmation lie les arguments exacts, y compris les préconditions de versio
 Les clients MCP qui ne peuvent pas injecter un en-tête de confirmation par appel peuvent utiliser les opérations ordinaires mais doivent être adaptés pour les opérations sensibles. Aucun contournement ni mode automatique non confirmé n'est fourni. Les routes HTTP directes conservent leur politique existante ; un hôte doit également éviter de donner au modèle un accès HTTP arbitraire avec les identifiants d'un propriétaire.
 
 La couverture des opérations est exhaustive ; la boucle de compréhension, planification et dialogue autonome du produit reste un chantier distinct. Aucun appel OpenRouter réel ni frontend n'a été ajouté dans cette étape.
+
+Les ressources, prompts et métadonnées OAuth configurables sont décrits dans [le guide de connexion](mcp-onboarding.md). Le changement des préférences personnelles de feedback est aussi une décision confirmée ; il est accessible au membre concerné sans rôle propriétaire.

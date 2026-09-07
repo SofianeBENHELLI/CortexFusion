@@ -70,3 +70,5 @@ See [OpenRouter configuration](docs/openrouter.md) for the preferred provider. S
 See [AI-native interaction protocol](docs/ai-native.md) and the [generated action reference](docs/interaction-reference.md). OpenAPI, the interaction inventory and MCP tool schemas are exported under `packages/contracts/` and checked by CI. The backend exposes all HTTP operations as generated MCP tools, plus 16 compatibility tools. Privileged commands require a single-use trusted-host signed confirmation as well as the same service permissions as HTTP. See [exhaustive MCP](docs/mcp-exhaustive.md) for setup and the transport contract. No product frontend or complete model orchestration loop is included.
 
 The [companion feedback loop](docs/feedback-loop.md) separates deliberate votes, observed interaction events and model estimates, with opt-in personal collection and immutable receipts.
+
+The [MCP onboarding guide](docs/mcp-onboarding.md) describes authenticated resources, workflow prompts and optional HTTPS protected-resource discovery for an external identity provider.
