@@ -1,6 +1,6 @@
 # Run the executable development core
 
-The current slice is an authenticated PostgreSQL-backed API with a local extractive answer mode. It imports Markdown/plain text through the source-content API, proposes verbatim knowledge, records owner approval, publishes it, returns citations, accepts feedback, and supports replay and compensating changes. No enterprise corpus or model credentials are bundled.
+The backend is an authenticated PostgreSQL-backed API with exhaustive MCP access. It supports private corpus ingestion, governed verbatim knowledge, cited extractive answers, personal conversations, companion response receipts, provenance-aware feedback and reversible publication. Optional OpenRouter/local passage extraction is configured separately. No enterprise corpus or model credentials are bundled.
 
 ## Prerequisites
 
@@ -53,16 +53,16 @@ Send `Authorization: Bearer <valid token>` and `X-Tenant-ID: <tenant UUID>` on p
 3. Owner: inspect `/proposals/{id}` and its source evidence, then `POST /proposals/{id}/approve` with the exact digest, base version, reason, and a new idempotency key.
 4. Owner: `POST /publish`. This applies accepted changes only; it does not approve new ones. A production worker for this step is not implemented yet.
 5. Domain member: `POST /query` with a question. The result is exact excerpt retrieval, explicitly `mode: extractive` and `processing: local_no_model`.
-6. Caller: submit feedback to their own `/episodes/{id}/feedback`. Owner: inspect `/brief` for authorized pending proposals and issues from their own episodes.
+6. Caller: optionally retain the delivered companion response, then submit provenance-aware feedback to `/episodes/{id}/signals`, with `companion_response_id` when applicable. Automatic observations/estimates require personal opt-in. The legacy `/episodes/{id}/feedback` remains compatible. Owner: inspect `/brief` for authorized pending proposals and issues from their own episodes.
 7. Owner: create a compensation proposal at `/commits/{sequence}/compensate`, review/approve it, and publish. Conflicting later changes require a revised proposal.
 
 Use `/version` to distinguish accepted and published positions. `POST /replay` rebuilds the current published projection transactionally from the journal. Repeated model execution is not involved. Source access updates at `/sources/{id}/access` immediately affect subsequent authorized reads, including historical episodes.
 
 ## MCP and the harness seam
 
-MCP Streamable HTTP is mounted at `/mcp/`. Clients send the same bearer and tenant headers. Exposed tools are `query`, `inspect_concept`, `propose`, and `feedback`; approval/publication are absent from the agent tool catalog.
+MCP Streamable HTTP is mounted at `/mcp/`. Clients send the same bearer and tenant headers. Every OpenAPI operation has a generated `api_*` tool, alongside 16 compatibility tools. Sensitive actions, including approval/publication, require both service permissions and a signed single-use trusted-host confirmation. See [the exhaustive contract](mcp-exhaustive.md).
 
-The initial transport uses the SDK's loopback host protection and a preconfigured issuer/token. OAuth discovery/dynamic client registration and a production remote MCP deployment are not implemented. Use the loopback development endpoint; do not disable host protection to make a public deployment appear to work.
+Authenticated resources/prompts guide companion onboarding. Optional HTTPS protected-resource metadata advertises the configured external issuer, with JWT audience bound to the resource URL and explicit transport host protection. Actual issuer login/client registration, an external companion product and public deployment remain unvalidated. See [MCP onboarding](mcp-onboarding.md); do not disable host protection to bypass configuration.
 
 The TypeScript `CoreClient` and Cordis plugin live under `apps/harness/src/`. Instantiate a per-identity/domain client with a token callback. It supports cancellation and rejects remote cleartext origins and credential-bearing URLs. The real Cordis package is exercised in Node tests. Registration into the complete DeepSeek tools/model loop and AG-UI remains a later integration step.
 
@@ -72,4 +72,4 @@ The TypeScript `CoreClient` and Cordis plugin live under `apps/harness/src/`. In
 
 Two upstream deprecation warnings currently arise from Starlette/httpx and AnyIO integration; they do not fail the tests. No warnings are suppressed by the test configuration.
 
-The core currently supports verbatim text only, conservative structural validation, lexical matching, and character-bounded context. PDF/DOCX parsing, semantic embeddings, LLM synthesis/fidelity evaluation, the full risk engine, durable workers, Keycloak login verification, and a product chat/review interface remain unfinished. Do not interpret this slice as an enterprise-ready deployment.
+The core includes bounded PDF/DOCX/text parsing, a recoverable file worker, optional model passage selection, durable call attempts and a shared daily attempt allowance. Answer retrieval remains lexical/extractive; companion output is stored as personal history without semantic certification. Semantic embeddings/synthesis evaluation, full risk policies, managed workflow deployment, real enterprise identity/companion validation and the product interface remain open. A local [restore rehearsal](restore-rehearsal.md) and [synthetic feedback evaluation](../evals/README.md) provide bounded evidence, not production readiness.

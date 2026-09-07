@@ -1,6 +1,6 @@
 # Corpus API: first text ingestion increment
 
-This API supplies persistent collection, source listing and import receipts for a future corpus-manager interface. It does not implement PDF/DOCX parsing, file storage, model extraction or a background workflow engine. Only synthetic fixtures have been exercised; no enterprise corpus has been imported.
+This API supplies persistent collection, source listing and import receipts for a future corpus-manager interface. For the subsequent binary file/parser worker and optional model extraction increments, see [workspace backend](backend-workspace.md) and [OpenRouter](openrouter.md). Managed workflow orchestration remains separate. Only synthetic fixtures have been exercised; no enterprise corpus has been imported.
 
 Run `make migrate` to apply migration 0002 to an existing installation. New installations apply both migrations. The nonprivileged application role remains unchanged. A domain membership may now use `corpus_manager`; the bootstrap CLI accepts `--member SUBJECT:corpus_manager`. This role can register sources, create collections/imports and propose knowledge. It cannot approve, publish, compensate, replay or change source ACLs. Existing owners retain corpus management rights.
 

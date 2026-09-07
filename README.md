@@ -2,24 +2,24 @@
 
 **Your company’s collective brain.**
 
-Cortex Fusion is building a shared, governed memory for people and AI agents. The first executable slice establishes how knowledge becomes trusted, how answers retain their sources, and how changes can be reversed.
+Cortex Fusion is building a governed memory for people and AI companions. Its executable backend makes knowledge changes reviewable, keeps answers tied to their evidence, and exposes application functions through interchangeable HTTP/MCP contracts.
 
 ## What works now
 
-- Independent Python/FastAPI service backed by PostgreSQL.
-- Signed RS256 identity validation and tenant/domain membership checks.
-- Versioned text sources with explicit reader permissions.
-- Verbatim knowledge proposals, owner-only approval, immutable journal, and atomic publication.
-- Structural relationship validation, deterministic replay, and compensating changes with conflict checks.
-- Local lexical retrieval with exact excerpts, citations, served versions, episodes, and feedback.
-- Exhaustive MCP operations with service permissions and signed confirmations for sensitive actions.
-- Generated JSON Schema/TypeScript contracts and a tested Cordis service adapter.
+- Python/FastAPI and PostgreSQL, with RS256 identity, domain roles and forced tenant RLS.
+- Private collections, text imports, bounded PDF/DOCX/text parsing and a recoverable file worker.
+- Verbatim proposals, owner review/approval, atomic publication, immutable journal, replay and compensation.
+- Lexical extractive answers with citations, served versions, personal conversations and issue resolution.
+- Exhaustive generated MCP tools, authenticated resources/prompts and signed confirmations for sensitive actions.
+- Personal companion response receipts and explicit/observed/inferred feedback, opt-in collection and bounded effort summaries.
+- Optional OpenRouter or local passage selection, durable model attempt outcomes and a shared daily call allowance.
+- Generated JSON Schema/TypeScript/OpenAPI/MCP artifacts, PostgreSQL tests and a tested Cordis service adapter.
 
-**This is a development core.** Answering is extractive. Private file parsing, a recoverable parser worker, review, conversations and membership APIs are implemented. An opt-in OpenRouter or local model can select an exact source passage for owner review. Semantic retrieval/synthesis, production orchestration, enterprise evaluation and the product interface remain unfinished. Original confidential specifications and enterprise corpora remain local.
+**This is a development backend.** Semantic retrieval/synthesis, enterprise evaluation, real external identity/companion validation and production orchestration remain open. No product frontend is included. Original confidential specifications and enterprise corpora remain local; no live OpenRouter validation is claimed.
 
 ## Run and verify
 
-Follow the [development guide](docs/development.md) to configure Python, Node, and an isolated PostgreSQL database. Then:
+Follow the [development guide](docs/development.md) to configure Python, Node and an isolated PostgreSQL database. Then:
 
 ```sh
 make setup
@@ -28,51 +28,37 @@ make test
 make demo-core
 ```
 
-The synthetic demo imports a source, demonstrates that an agent cannot approve it, records owner approval, publishes it, returns its cited passage, rebuilds the state, and compensates the change without erasing history.
+The synthetic demo registers a source, rejects agent approval, records owner approval, publishes a cited passage, rebuilds the state and compensates the change without erasing history. See also the [feedback evaluation](evals/README.md) and [local restore rehearsal](docs/restore-rehearsal.md).
 
-For a persistent API, configure your identity provider/public key and run `make serve`. Interactive API documentation is available at `/docs` on the loopback server.
+For a persistent API, configure identity verification and run `make serve`. Interactive developer API documentation is available at `/docs` on the loopback server.
 
 ## Project navigation
 
-- [Implementation status and next increment](docs/implementation-status.md)
-- [Architecture decision for the executable core](docs/architecture/decisions/0001-executable-core.md)
-- [Compatibility evidence](docs/architecture/compatibility-evidence.md)
-- [Prototype scope](docs/product/prototype-scope.md) and [roadmap](docs/product/roadmap.md)
-- [Documentation index](docs/README.md) and [contributing](CONTRIBUTING.md)
+| Guide | Purpose |
+|---|---|
+| [Implementation status](docs/implementation-status.md) | Delivered scope, evidence and remaining increments |
+| [AI-native protocol](docs/ai-native.md) and [action reference](docs/interaction-reference.md) | Stable operation IDs, effects, schemas and host behavior |
+| [Exhaustive MCP](docs/mcp-exhaustive.md) and [onboarding](docs/mcp-onboarding.md) | Tools, resources, prompts, identity discovery and confirmations |
+| [Corpus API](docs/corpus-api.md) and [workspace backend](docs/backend-workspace.md) | Corpus manager, review, files, conversations and membership |
+| [Companion responses](docs/companion-responses.md) and [feedback](docs/feedback-loop.md) | Delivered-answer receipts, provenance, opt-in collection and metrics |
+| [OpenRouter](docs/openrouter.md), [local extraction](docs/local-extraction.md), [model attempts](docs/model-attempts.md) | Provider configuration, evidence bounds, attempts and limits |
+| [Documentation index](docs/README.md) and [contributing](CONTRIBUTING.md) | Architecture, product scope and development conventions |
 
 ## Repository layout
 
 ```text
-services/core/       Executable Python knowledge core, API, MCP, migrations
-packages/contracts/ Wire schemas, shared examples, generated TypeScript
+services/core/       Python knowledge core, HTTP/MCP, migrations and worker
+packages/contracts/ Generated wire schemas, OpenAPI, interaction/MCP inventories
 apps/harness/        TypeScript client and Cordis service adapter
-scripts/             Contract generation, license metadata gate, synthetic demo
+scripts/             Contract generation, checks, synthetic demos/evaluation
 infra/               Local PostgreSQL profile
-tests/               PostgreSQL/API invariants and contract checks
+tests/               PostgreSQL/API/MCP invariants and contract checks
 apps/web/            Planned product interface
-services/workflows/  Planned durable ingestion and consolidation
-packages/agents/     Planned model-driven behavior
-evals/               Evaluation methodology; enterprise data stays private
+services/workflows/  Planned managed ingestion and consolidation
+packages/agents/     Planned full model orchestration
+evals/              Synthetic feedback scenarios and evaluation methodology
 ```
 
 ## Licensing
 
-The repository license has not been selected. The dependency policy does not grant a license to Cortex Fusion. Installed dependency metadata is checked separately; see the [architecture decision](docs/architecture/decisions/0001-executable-core.md).
-
-The [corpus API](docs/corpus-api.md) now provides private collections, source listing and resumable text import receipts, with a dedicated corpus-manager role.
-
-The [workspace backend](docs/backend-workspace.md) adds review decisions, private file parsing, recoverable workers, personal conversations and scoped membership administration.
-
-See [OpenRouter configuration](docs/openrouter.md) for the preferred provider. See [optional local extraction](docs/local-extraction.md) for configuration, source boundaries and the synthetic live-model demonstration.
-
-## Interface and agent contracts
-
-See [AI-native interaction protocol](docs/ai-native.md) and the [generated action reference](docs/interaction-reference.md). OpenAPI, the interaction inventory and MCP tool schemas are exported under `packages/contracts/` and checked by CI. The backend exposes all HTTP operations as generated MCP tools, plus 16 compatibility tools. Privileged commands require a single-use trusted-host signed confirmation as well as the same service permissions as HTTP. See [exhaustive MCP](docs/mcp-exhaustive.md) for setup and the transport contract. No product frontend or complete model orchestration loop is included.
-
-The [companion feedback loop](docs/feedback-loop.md) separates deliberate votes, observed interaction events and model estimates, with opt-in personal collection and immutable receipts.
-
-The [MCP onboarding guide](docs/mcp-onboarding.md) describes authenticated resources, workflow prompts and optional HTTPS protected-resource discovery for an external identity provider.
-
-[Model attempt history and limits](docs/model-attempts.md) make provider failures and interrupted calls inspectable and prevent silent same-key replays.
-
-[Companion response receipts](docs/companion-responses.md) connect feedback to a specific delivered LLM answer while preserving the original retrieval evidence and served version.
+The repository license has not been selected. The dependency policy does not grant a license to Cortex Fusion. Installed dependency metadata is checked separately; see the [executable-core decision](docs/architecture/decisions/0001-executable-core.md).

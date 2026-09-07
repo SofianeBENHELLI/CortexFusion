@@ -63,7 +63,7 @@ Membership events are immutable and available to authorized owners at `/membersh
 
 ## Remaining enterprise work
 
-Product UI and browser login/session handling; real enterprise corpus evaluation; canonical model synthesis; semantic/vector retrieval and integrated AGE projections; logical source revisions and semantic document segmentation; shared team issue triage; organization administration; retention/purge and recovery tooling; managed worker deployment and operational budgets. Local API tests and synthetic parsing evidence do not establish enterprise readiness.
+Product UI and browser login/session handling; real enterprise corpus evaluation; canonical model synthesis; semantic/vector retrieval and integrated AGE projections; logical source revisions and semantic document segmentation; shared team issue triage; organization administration; retention/purge and production recovery automation; managed worker deployment and monetary budgets. A local restore rehearsal and shared model attempt limits are documented separately. Local API tests and synthetic parsing evidence do not establish enterprise readiness.
 
 ## Source chunks and bounded extraction
 
