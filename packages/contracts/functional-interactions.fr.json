@@ -476,7 +476,7 @@
       "path": "/v1/domains/{domain}/syntheses/{ident}",
       "operation_id": "syntheses.read",
       "description_fr": "Lit l’état durable, le modèle demandé, l’usage déclaré et le lien vers la réponse de ma tentative de synthèse.",
-      "frontend_fr": "Lire response_id via responses.read ; la tentative ne contient pas le texte généré. failed et succeeded sont terminaux ; unresolved signifie en cours ou résultat non établi. budget_reserved ne prouve pas une facturation et usage n’est pas une facture.",
+      "frontend_fr": "Lire response_id via responses.read ; la tentative ne contient pas le texte généré. failed et succeeded sont terminaux ; unresolved signifie en cours ou résultat non établi. budget_reserved ne prouve pas une facturation et usage n’est pas une facture. succeeded atteste la conservation du reçu, pas son affichage, sa lecture ou la satisfaction de l’utilisateur.",
       "effect_fr": "Lecture sans modification métier durable.",
       "mcp_tool": "api_syntheses_read",
       "mcp_confirmation_required": false,

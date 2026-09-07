@@ -210,6 +210,8 @@ La clé de synthèse est distincte de celle de la question. Ne pas renvoyer la q
 | `failed` | Afficher un échec explicite à partir du code sûr `error_code` ; une même clé ne relance pas le fournisseur |
 | `unresolved` | La tentative est en cours ou son résultat n’a pas été établi. Consulter son état ; ne pas relancer automatiquement avec une nouvelle clé |
 
+`succeeded` atteste une conservation durable, pas que le texte a été affiché ou lu. Aucun accusé de lecture n’est actuellement enregistré. Ne pas fabriquer un feedback positif, un événement de satisfaction ou une résolution à partir de cet état. Si le jeton expire après conservation, le POST peut retourner 401 ; un jeton valide permet ensuite de récupérer le résultat existant sans génération supplémentaire.
+
 Après une perte de réponse, retrouver la tentative avec `GET /syntheses?episode_id=…&idempotency_key=…` ou reprendre exactement le même POST avec une nouvelle confirmation de transport. Une clé réutilisée pour un autre épisode donne `IDEMPOTENCY_CONFLICT` (409). Une tentative connue reste relisible si la configuration du modèle a changé ou a été désactivée, sous droits actuels. La lecture de la tentative et du reçu ne déclenche aucun modèle.
 
 Sans preuve, le backend conserve une abstention déterministe avec `provider=none`, `requested_model=null` et `budget_reserved=false` : aucun appel fournisseur. Sinon la réservation partage le plafond quotidien du domaine avec les extractions ; `MODEL_DAILY_LIMIT` (429) refuse une nouvelle réservation. `budget_reserved=true` signifie qu’une tentative potentiellement payante a été réservée, pas qu’elle a forcément été envoyée ou facturée. L’usage est celui déclaré et validé par le fournisseur, pas une facture ; il peut être nul après un échec.

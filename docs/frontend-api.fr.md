@@ -235,7 +235,7 @@ Génère une synthèse personnelle à partir de la question et des citations d�
 
 Lit l’état durable, le modèle demandé, l’usage déclaré et le lien vers la réponse de ma tentative de synthèse.
 
-**Utilisation frontend :** Lire response_id via responses.read ; la tentative ne contient pas le texte généré. failed et succeeded sont terminaux ; unresolved signifie en cours ou résultat non établi. budget_reserved ne prouve pas une facturation et usage n’est pas une facture.
+**Utilisation frontend :** Lire response_id via responses.read ; la tentative ne contient pas le texte généré. failed et succeeded sont terminaux ; unresolved signifie en cours ou résultat non établi. budget_reserved ne prouve pas une facturation et usage n’est pas une facture. succeeded atteste la conservation du reçu, pas son affichage, sa lecture ou la satisfaction de l’utilisateur.
 
 - HTTP : `GET /v1/domains/{domain}/syntheses/{ident}`.
 - MCP : `api_syntheses_read` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.

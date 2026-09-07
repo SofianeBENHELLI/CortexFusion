@@ -403,3 +403,106 @@ def test_synthesis_requires_explicit_activation_with_server_key(world, identity_
         me = client.get("/v1/me", headers=world.headers("bob")).json()
         assert "synthesize" in me["domains"][0]["capabilities"]
     app.state.db.dispose()
+
+
+def test_token_expiry_after_commit_preserves_recoverable_success(world, monkeypatch):
+    from cortex_core.synthesis import SynthesisService
+
+    episode, calls, _ = setup(world, monkeypatch)
+    data = SynthesisInput(**body())
+    count = 0
+
+    def authenticate():
+        nonlocal count
+        count += 1
+        if count == 4:
+            raise CoreError("TOKEN_EXPIRED", "Synthetic expiry after commit", 401)
+        return world.viewer
+
+    with pytest.raises(CoreError) as error:
+        world.app.state.synthesis.execute(world.viewer, world.domain, episode, data, authenticate)
+    assert error.value.status == 401
+    # A fresh service with no configured model must recover the committed result.
+    fresh = SynthesisService(world.service)
+    result = fresh.execute(world.viewer, world.domain, episode, data, lambda: world.viewer)
+    assert result["status"] == "succeeded" and result["response_id"]
+    assert len(calls) == 1
+    assert len(fresh.responses.listing(world.viewer, world.domain, 20, None)["items"]) == 1
+
+
+def test_http_lost_response_body_recovers_without_second_generation(world, monkeypatch):
+    import asyncio
+    import json
+
+    episode, calls, _ = setup(world, monkeypatch)
+    data = body()
+    path = world.prefix + f"/episodes/{episode}/syntheses"
+    committed = []
+
+    async def request():
+        headers = {**world.headers("bob"), "Content-Type": "application/json"}
+        scope = {
+            "type": "http",
+            "asgi": {"version": "3.0", "spec_version": "2.4"},
+            "http_version": "1.1",
+            "method": "POST",
+            "scheme": "http",
+            "path": path,
+            "raw_path": path.encode(),
+            "query_string": b"",
+            "root_path": "",
+            "headers": [(k.lower().encode(), v.encode()) for k, v in headers.items()],
+            "client": ("127.0.0.1", 1),
+            "server": ("localhost", 8000),
+        }
+        received = False
+
+        async def receive():
+            nonlocal received
+            if not received:
+                received = True
+                return {
+                    "type": "http.request",
+                    "body": json.dumps(data).encode(),
+                    "more_body": False,
+                }
+            return {"type": "http.disconnect"}
+
+        async def send(message):
+            if message["type"] == "http.response.body":
+                committed.append(json.loads(message["body"]))
+                raise OSError("Synthetic lost HTTP body")
+
+        await world.app(scope, receive, send)
+
+    with pytest.raises(OSError, match="Synthetic lost HTTP body"):
+        asyncio.run(request())
+    resumed = post(world, episode, data)
+    assert resumed.status_code == 200 and resumed.json() == committed[0]
+    assert resumed.json()["status"] == "succeeded" and len(calls) == 1
+
+
+def test_attempt_lookup_filters_keys_and_paginates_without_mutating(world, monkeypatch):
+    episode, calls, _ = setup(world, monkeypatch)
+    first_data, second_data = body(), body()
+    first, second = (
+        post(world, episode, first_data).json(),
+        post(world, episode, second_data).json(),
+    )
+    url = world.prefix + "/syntheses"
+    params = {"episode_id": episode, "limit": 1}
+    page = world.client.get(url, headers=world.headers("bob"), params=params).json()
+    rest = world.client.get(
+        url, headers=world.headers("bob"), params={**params, "after": page["next_after"]}
+    ).json()
+    assert {page["items"][0]["id"], rest["items"][0]["id"]} == {first["id"], second["id"]}
+    assert rest["next_after"] is None
+    assert (
+        world.client.get(
+            url,
+            headers=world.headers("alice"),
+            params={"idempotency_key": first_data["idempotency_key"]},
+        ).json()["items"]
+        == []
+    )
+    assert len(calls) == 2
