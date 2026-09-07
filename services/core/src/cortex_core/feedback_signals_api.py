@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import AwareDatetime
 
 from .contracts import (
     FeedbackPreferences,
@@ -8,11 +9,25 @@ from .contracts import (
     FeedbackSignalInput,
     FeedbackSignalPage,
     FeedbackSignalView,
+    FeedbackSummary,
 )
+from .feedback_metrics import FeedbackMetricsService
 
 
 def feedback_signals_router(service, principal):
     router = APIRouter(prefix="/v1/domains/{domain}", tags=["feedback-signals"])
+
+    @router.get("/feedback-summary", response_model=FeedbackSummary)
+    def summary(
+        domain: UUID,
+        since: AwareDatetime | None = None,
+        until: AwareDatetime | None = None,
+        conversation_id: UUID | None = None,
+        p=Depends(principal),
+    ):
+        return FeedbackMetricsService(service.k).summary(
+            p, str(domain), since, until, str(conversation_id) if conversation_id else None
+        )
 
     @router.get("/feedback-preferences", response_model=FeedbackPreferences)
     def preferences(domain: UUID, p=Depends(principal)):

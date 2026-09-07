@@ -22,6 +22,8 @@ The [companion feedback loop](feedback-loop.md) adds personal opt-in preferences
 
 Authenticated [MCP resources and workflow prompts](mcp-onboarding.md) now provide discovery and permission-checked preparation without mutations. Optional configured HTTPS protected-resource metadata advertises the external issuer and binds access-token audience to the resource URL. Actual external companion login remains unvalidated.
 
+Personal [feedback summaries](feedback-loop.md) now separate explicit votes, observed effort events and inferred sentiment over bounded windows, with optional conversation scope and current evidence filtering. Six reproducible [synthetic scenarios](../evals/README.md) validate accounting; they do not measure semantic answer quality.
+
 ## Relationship to the coding plan
 
 | Planned work | Current state |

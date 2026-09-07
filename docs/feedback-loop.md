@@ -52,3 +52,15 @@ Use the personal issue lifecycle to investigate, resolve or dismiss the problem.
 ## Verification
 
 PostgreSQL/API tests cover opt-in, opt-out, invalid provenance, confidence requirements, immutable storage, idempotency, source revocation, personal scope, and no automatic publication. MCP tests cover confirmed preference changes by a viewer and rejection of identity-mismatched confirmations. These tests use synthetic inputs and no model provider.
+
+## Personal effort summary
+
+`GET /v1/domains/{domain}/feedback-summary` and `api_feedback_summary` count accessible signal events in a time window. Optional `since` and `until` must have time zones; the interval includes `since` and excludes `until`, using the server's receipt time. The default is the preceding 30 days, and a requested window cannot exceed 31 days. Optional `conversation_id` restricts the summary to the caller's own conversation.
+
+The response separates explicit votes/comments/resolution, observed reformulations/corrections/abandonment/resolution, and inferred sentiment. It returns the number of distinct episodes with signals and episodes containing both explicit positive and negative votes within the window. These are event counts, not the latest vote per user, a satisfaction percentage, or proof that a correction worked. A negative vote followed by resolution remains present in history.
+
+`maximum_declared_iteration` is the highest companion-supplied index on observed events, and `iteration_index_samples` counts such declarations. The server does not turn missing indices into zero effort or infer an attempt count from the number of comments. No signal means no evidence of satisfaction. Legacy feedback from the older endpoint is explicitly excluded to avoid double-counting incompatible contracts.
+
+Membership, personal episode ownership and all current source readers are filtered before aggregation and before the 10,000-signal cap. Revoked evidence disappears from the summary. If an authorized window exceeds the cap, the server returns `413 SUMMARY_TOO_LARGE`; narrow the window or choose a conversation. It never returns an unlabeled partial total. Reading metrics does not opt into collection, create a signal or modify knowledge.
+
+The [synthetic evaluation scenarios](../evals/README.md) reproduce declarations of a useful first answer, repeated iterations, abandonment, negative feedback followed by resolution, contradictory inferred sentiment and silence. They verify backend accounting, not real answer quality.

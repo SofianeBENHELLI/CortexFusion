@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ExplicitFeedbackCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "thumbs_up": {
+          "minimum": 0,
+          "title": "Thumbs Up",
+          "type": "integer"
+        },
+        "thumbs_down": {
+          "minimum": 0,
+          "title": "Thumbs Down",
+          "type": "integer"
+        },
+        "comment": {
+          "minimum": 0,
+          "title": "Comment",
+          "type": "integer"
+        },
+        "resolved": {
+          "minimum": 0,
+          "title": "Resolved",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "thumbs_up",
+        "thumbs_down",
+        "comment",
+        "resolved"
+      ],
+      "title": "ExplicitFeedbackCounts",
+      "type": "object"
+    },
+    "InferredFeedbackCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "positive": {
+          "minimum": 0,
+          "title": "Positive",
+          "type": "integer"
+        },
+        "negative": {
+          "minimum": 0,
+          "title": "Negative",
+          "type": "integer"
+        },
+        "neutral": {
+          "minimum": 0,
+          "title": "Neutral",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "positive",
+        "negative",
+        "neutral"
+      ],
+      "title": "InferredFeedbackCounts",
+      "type": "object"
+    },
+    "ObservedFeedbackCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "reformulation": {
+          "minimum": 0,
+          "title": "Reformulation",
+          "type": "integer"
+        },
+        "correction": {
+          "minimum": 0,
+          "title": "Correction",
+          "type": "integer"
+        },
+        "abandon": {
+          "minimum": 0,
+          "title": "Abandon",
+          "type": "integer"
+        },
+        "resolved": {
+          "minimum": 0,
+          "title": "Resolved",
+          "type": "integer"
+        },
+        "iteration_index_samples": {
+          "minimum": 0,
+          "title": "Iteration Index Samples",
+          "type": "integer"
+        },
+        "maximum_declared_iteration": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Maximum Declared Iteration"
+        }
+      },
+      "required": [
+        "reformulation",
+        "correction",
+        "abandon",
+        "resolved",
+        "iteration_index_samples",
+        "maximum_declared_iteration"
+      ],
+      "title": "ObservedFeedbackCounts",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "window_start": {
+      "format": "date-time",
+      "title": "Window Start",
+      "type": "string"
+    },
+    "window_end": {
+      "format": "date-time",
+      "title": "Window End",
+      "type": "string"
+    },
+    "conversation_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Conversation Id"
+    },
+    "signal_count": {
+      "minimum": 0,
+      "title": "Signal Count",
+      "type": "integer"
+    },
+    "episode_count": {
+      "minimum": 0,
+      "title": "Episode Count",
+      "type": "integer"
+    },
+    "conflicting_explicit_episodes": {
+      "minimum": 0,
+      "title": "Conflicting Explicit Episodes",
+      "type": "integer"
+    },
+    "explicit": {
+      "$ref": "#/$defs/ExplicitFeedbackCounts"
+    },
+    "observed": {
+      "$ref": "#/$defs/ObservedFeedbackCounts"
+    },
+    "inferred": {
+      "$ref": "#/$defs/InferredFeedbackCounts"
+    },
+    "legacy_feedback_included": {
+      "const": false,
+      "default": false,
+      "title": "Legacy Feedback Included",
+      "type": "boolean"
+    },
+    "interpretation": {
+      "title": "Interpretation",
+      "type": "string"
+    }
+  },
+  "required": [
+    "window_start",
+    "window_end",
+    "conversation_id",
+    "signal_count",
+    "episode_count",
+    "conflicting_explicit_episodes",
+    "explicit",
+    "observed",
+    "inferred",
+    "interpretation"
+  ],
+  "title": "FeedbackSummary",
+  "type": "object"
+}

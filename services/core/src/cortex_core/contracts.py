@@ -741,3 +741,42 @@ class ProtectedResourceMetadata(Contract):
 
 
 CONTRACTS += [ProtectedResourceMetadata]
+
+
+class ExplicitFeedbackCounts(Contract):
+    thumbs_up: int = Field(ge=0)
+    thumbs_down: int = Field(ge=0)
+    comment: int = Field(ge=0)
+    resolved: int = Field(ge=0)
+
+
+class ObservedFeedbackCounts(Contract):
+    reformulation: int = Field(ge=0)
+    correction: int = Field(ge=0)
+    abandon: int = Field(ge=0)
+    resolved: int = Field(ge=0)
+    iteration_index_samples: int = Field(ge=0)
+    maximum_declared_iteration: int | None
+
+
+class InferredFeedbackCounts(Contract):
+    positive: int = Field(ge=0)
+    negative: int = Field(ge=0)
+    neutral: int = Field(ge=0)
+
+
+class FeedbackSummary(Contract):
+    window_start: datetime
+    window_end: datetime
+    conversation_id: UUID | None
+    signal_count: int = Field(ge=0)
+    episode_count: int = Field(ge=0)
+    conflicting_explicit_episodes: int = Field(ge=0)
+    explicit: ExplicitFeedbackCounts
+    observed: ObservedFeedbackCounts
+    inferred: InferredFeedbackCounts
+    legacy_feedback_included: Literal[False] = False
+    interpretation: str
+
+
+CONTRACTS += [FeedbackSummary]

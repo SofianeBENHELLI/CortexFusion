@@ -6059,6 +6059,285 @@
       }
     },
     {
+      "name": "api_feedback_summary",
+      "description": "Résume mes signaux accessibles en séparant votes, observations et estimations.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Domain"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain"
+            ]
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "since": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Since"
+              },
+              "until": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Until"
+              },
+              "conversation_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Conversation Id"
+              }
+            },
+            "additionalProperties": false,
+            "required": []
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "$ref": "#/$defs/FeedbackSummary"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "FeedbackSummary": {
+            "properties": {
+              "window_start": {
+                "type": "string",
+                "format": "date-time",
+                "title": "Window Start"
+              },
+              "window_end": {
+                "type": "string",
+                "format": "date-time",
+                "title": "Window End"
+              },
+              "conversation_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Conversation Id"
+              },
+              "signal_count": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Signal Count"
+              },
+              "episode_count": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Episode Count"
+              },
+              "conflicting_explicit_episodes": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Conflicting Explicit Episodes"
+              },
+              "explicit": {
+                "$ref": "#/$defs/ExplicitFeedbackCounts"
+              },
+              "observed": {
+                "$ref": "#/$defs/ObservedFeedbackCounts"
+              },
+              "inferred": {
+                "$ref": "#/$defs/InferredFeedbackCounts"
+              },
+              "legacy_feedback_included": {
+                "type": "boolean",
+                "const": false,
+                "title": "Legacy Feedback Included",
+                "default": false
+              },
+              "interpretation": {
+                "type": "string",
+                "title": "Interpretation"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "window_start",
+              "window_end",
+              "conversation_id",
+              "signal_count",
+              "episode_count",
+              "conflicting_explicit_episodes",
+              "explicit",
+              "observed",
+              "inferred",
+              "interpretation"
+            ],
+            "title": "FeedbackSummary"
+          },
+          "ExplicitFeedbackCounts": {
+            "properties": {
+              "thumbs_up": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Thumbs Up"
+              },
+              "thumbs_down": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Thumbs Down"
+              },
+              "comment": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Comment"
+              },
+              "resolved": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Resolved"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "thumbs_up",
+              "thumbs_down",
+              "comment",
+              "resolved"
+            ],
+            "title": "ExplicitFeedbackCounts"
+          },
+          "ObservedFeedbackCounts": {
+            "properties": {
+              "reformulation": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Reformulation"
+              },
+              "correction": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Correction"
+              },
+              "abandon": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Abandon"
+              },
+              "resolved": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Resolved"
+              },
+              "iteration_index_samples": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Iteration Index Samples"
+              },
+              "maximum_declared_iteration": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Maximum Declared Iteration"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "reformulation",
+              "correction",
+              "abandon",
+              "resolved",
+              "iteration_index_samples",
+              "maximum_declared_iteration"
+            ],
+            "title": "ObservedFeedbackCounts"
+          },
+          "InferredFeedbackCounts": {
+            "properties": {
+              "positive": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Positive"
+              },
+              "negative": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Negative"
+              },
+              "neutral": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Neutral"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "positive",
+              "negative",
+              "neutral"
+            ],
+            "title": "InferredFeedbackCounts"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
       "name": "api_feedback_preferences",
       "description": "Quelles remontées automatiques ai-je autorisées ?\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
       "inputSchema": {

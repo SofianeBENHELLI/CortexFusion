@@ -7,6 +7,7 @@ from fastapi.openapi.utils import get_openapi
 # method/path | stable action ID | role set | effect | example user intent
 # Placeholder names are normalized so wording changes do not change action IDs.
 DEFINITIONS = """
+GET /feedback-summary|feedback.summary|member|none|Résume mes signaux accessibles en séparant votes, observations et estimations.
 GET /.well-known/oauth-protected-resource|system.mcp_discovery|public|none|Découvre le fournisseur d'identité configuré pour cette ressource MCP.
 GET /feedback-preferences|feedback.preferences|member|none|Quelles remontées automatiques ai-je autorisées ?
 PUT /feedback-preferences|feedback.configure|member|personal|Modifie mes préférences de remontée automatique avec mon accord explicite.
