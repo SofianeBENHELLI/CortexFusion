@@ -878,3 +878,34 @@ class CompanionResponsePage(Contract):
 
 
 CONTRACTS += [CompanionResponseInput, CompanionResponseView, CompanionResponsePage]
+
+
+class TimelineResponse(Contract):
+    id: UUID
+    response: CompanionResponseInput
+    reference_validation: Literal["episode_references_checked", "no_references"]
+    semantic_validation: Literal["not_performed"] = "not_performed"
+    created_at: datetime
+
+
+class TimelineResponsePage(Contract):
+    items: list[TimelineResponse]
+    next_after: UUID | None
+
+
+class ConversationTurn(ConversationMessage):
+    responses: TimelineResponsePage
+    signals: FeedbackSignalPage
+    issues: IssuePage
+
+
+class ConversationTimeline(Contract):
+    conversation: ConversationView
+    items: list[ConversationTurn]
+    next_after: int | None
+    direction: Literal["forward", "backward"] = "forward"
+    scan_limited: bool = False
+    payload_limit_bytes: Literal[500000] = 500000
+
+
+CONTRACTS += [TimelineResponse, TimelineResponsePage, ConversationTurn, ConversationTimeline]

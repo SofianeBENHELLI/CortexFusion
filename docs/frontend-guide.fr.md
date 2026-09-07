@@ -170,6 +170,28 @@ Ce flux expose l'avancement et la réponse de la recherche extractive. La géné
 
 **Voix :** le backend actuel reçoit du texte, pas de l'audio. Le frontend peut préparer une transcription éditable, puis envoyer la même commande query. Il faut documenter la destination réelle du traitement vocal choisi ; l'usage de Web Speech API ne doit pas être présenté comme une garantie de traitement local. Aucun endpoint STT ni reçu vocal n'est encore fourni.
 
+### Charger une conversation avec ses réponses et retours
+
+`GET /v1/domains/{domain}/conversations/{ident}/timeline` (MCP `api_conversations_timeline`) retourne les métadonnées personnelles de la conversation et une page de tours. Chaque tour conserve sa séquence, la question, le résultat de recherche avec sa version et ses citations, puis trois sous-pages : `responses`, `signals` et `issues`. Les conversations archivées restent consultables par leur auteur.
+
+Pour ouvrir un chat sur ses tours récents, demander `direction=backward&limit=10`. Les tours sont alors renvoyés du plus récent au plus ancien ; les inverser pour un affichage chronologique local si nécessaire. Le mode par défaut `forward` parcourt de l'ancien vers le récent. Pour continuer, réutiliser `next_after` comme paramètre `after`, avec la même direction. En backward, cela signifie « poursuivre vers les séquences plus anciennes », pas « supérieur à ce nombre ». Ne pas utiliser un curseur d'une direction dans l'autre.
+
+Les bornes sont : limit 1–20 (défaut 10), responses_limit 1–5 (défaut 3), signals_limit 1–20 (défaut 5), issues_limit 1–10 (défaut 3). Les sous-pages sont triées par ID, indépendamment du sens des tours. Elles ne prétendent pas constituer une liste complète si leur next_after est non nul.
+
+| Sous-page incomplète | Appel pour poursuivre |
+|---|---|
+| responses | GET /companion-responses avec episode_id, after=responses.next_after |
+| signals | GET /feedback-signals avec episode_id, after=signals.next_after |
+| issues | GET /issues avec episode_id, after=issues.next_after |
+
+Ces chemins sont relatifs au domaine. Les réponses compactes contiennent leur ID, le contenu réellement délivré, ses références, sa date et les indicateurs de validation. Le texte des citations n'est pas dupliqué : retrouver les références dans `turn.result.citations`. L'endpoint de détail d'une réponse reste disponible pour son reçu complet. Les signaux gardent leur cible `companion_response_id`, éventuellement absente pour un signal ancien ou relatif à l'épisode.
+
+Une page examine au maximum 100 positions de conversation. Les tours dont les preuves ne sont plus accessibles sont omis. Une page peut donc être vide avec `scan_limited=true` et `next_after` non nul : continuer avec le curseur, sans conclure à la fin de l'historique. Aucun nombre global de messages masqués n'est retourné.
+
+La réponse est limitée à 500 000 octets sérialisés. Si la prochaine entrée dépasse le budget restant, la page s'arrête avec un curseur sans la perdre. Si une entrée seule est trop volumineuse, `TIMELINE_ITEM_TOO_LARGE` retourne 422 ; réduire les limites des sous-pages ou utiliser les messages et endpoints dédiés. Aucun texte n'est tronqué silencieusement.
+
+La lecture n'appelle aucun modèle et ne crée ni signal ni événement. Le contrôle des preuves et l'assemblage sont protégés par la même frontière d'accès ; un propriétaire ne peut pas consulter la conversation personnelle d'un autre membre. Cette vue facilite le chat, pas un accès administratif global aux conversations.
+
 ## Parcours 2 — brief et mémoire
 
 Le brief propriétaire est obtenu à la demande par `domain.brief`. Les concepts/relations viennent de `concepts.list/read`, la connaissance servie de `domain.version`, les propositions de `proposals.list`, les sources/imports de leurs listes et le journal de `commits.list`.

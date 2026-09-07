@@ -202,6 +202,24 @@
       "operation_id": "conversations.messages"
     },
     {
+      "action_id": "conversations.timeline",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Ouvre les questions, réponses délivrées et retours de ma conversation.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/conversations/{ident}/timeline",
+      "operation_id": "conversations.timeline"
+    },
+    {
       "action_id": "conversations.query",
       "roles": [
         "owner",

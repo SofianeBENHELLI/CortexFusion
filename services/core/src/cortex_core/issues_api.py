@@ -21,9 +21,17 @@ def issues_router(service, principal):
         limit: int = Query(20, ge=1, le=100),
         after: UUID | None = None,
         status: IssueStatus | None = None,
+        episode_id: UUID | None = None,
         p=Depends(principal),
     ):
-        return service.list(p, str(domain), limit, str(after) if after else None, status)
+        return service.list(
+            p,
+            str(domain),
+            limit,
+            str(after) if after else None,
+            status,
+            str(episode_id) if episode_id else None,
+        )
 
     @router.get("/{ident}", response_model=IssueView)
     def issue(domain: UUID, ident: UUID, p=Depends(principal)):

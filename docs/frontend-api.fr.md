@@ -4,7 +4,7 @@ Générée par `scripts/export_frontend_reference.py` depuis OpenAPI, le catalog
 
 Lire d'abord le [guide des parcours frontend](frontend-guide.fr.md). Cette référence décrit le comportement actuel, pas des fonctions futures. Le catalogue machine français est `packages/contracts/functional-interactions.fr.json`.
 
-Couverture : **73 opérations HTTP**, chacune liée à son outil MCP généré. Les outils de compatibilité et les ressources/prompts sont décrits dans le guide MCP.
+Couverture : **74 opérations HTTP**, chacune liée à son outil MCP généré. Les outils de compatibilité et les ressources/prompts sont décrits dans le guide MCP.
 
 ## Règles communes
 
@@ -31,6 +31,7 @@ Couverture : **73 opérations HTTP**, chacune liée à son outil MCP généré. 
 | [conversations.read](#action-conversations-read) | `GET /v1/domains/{domain}/conversations/{ident}` | Ouvre cette conversation. |
 | [conversations.update](#action-conversations-update) | `PUT /v1/domains/{domain}/conversations/{ident}` | Archive cette conversation. |
 | [conversations.messages](#action-conversations-messages) | `GET /v1/domains/{domain}/conversations/{ident}/messages` | Montre les messages précédents de cette conversation. |
+| [conversations.timeline](#action-conversations-timeline) | `GET /v1/domains/{domain}/conversations/{ident}/timeline` | Ouvre les questions, réponses délivrées et retours de ma conversation. |
 | [conversations.query](#action-conversations-query) | `POST /v1/domains/{domain}/conversations/{ident}/query` | Pose cette question dans ma conversation et cite les preuves. |
 | [members.list](#action-members-list) | `GET /v1/domains/{domain}/members` | Qui a accès à ce domaine ? |
 | [members.change](#action-members-change) | `POST /v1/domains/{domain}/members` | Prépare le changement de rôle de ce membre. |
@@ -416,6 +417,39 @@ Retourne une page de l'historique personnel de conversation à partir d'une posi
 
 - Aucun corps attendu.
 - Succès HTTP 200, `application/json` : [ConversationMessages](#schema-conversationmessages).
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+
+<a id="action-conversations-timeline"></a>
+## conversations.timeline
+
+Lit une page de conversation personnelle regroupant chaque question, son résultat sourcé, les réponses réellement délivrées, les signaux et les signalements associés. Les références des réponses utilisent les citations de l’épisode sans dupliquer leur texte.
+
+**Utilisation frontend :** Suivre le curseur de séquence et les curseurs propres aux réponses, signaux et signalements. Une page peut être vide avec next_after non nul après filtrage des droits. Le volume est limité à 500 000 octets ; réduire les limites ou lire les objets séparément si un seul tour est trop volumineux. Utiliser direction=backward pour ouvrir les tours récents, puis garder cette direction avec le curseur renvoyé.
+
+- HTTP : `GET /v1/domains/{domain}/conversations/{ident}/timeline`.
+- MCP : `api_conversations_timeline` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
+- Effet : Lecture sans modification métier durable.
+- Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
+
+### Paramètres
+
+| Emplacement | Nom | Requis | Type | Contraintes |
+|---|---|---|---|---|
+| path | `domain` | oui | texte | format : `"uuid"` |
+| path | `ident` | oui | texte | format : `"uuid"` |
+| query | `limit` | non | entier | minimum : `1`; maximum : `20`; défaut : `10` |
+| query | `after` | non | entier | minimum : `0`; défaut : `0` |
+| query | `responses_limit` | non | entier | minimum : `1`; maximum : `5`; défaut : `3` |
+| query | `signals_limit` | non | entier | minimum : `1`; maximum : `20`; défaut : `5` |
+| query | `issues_limit` | non | entier | minimum : `1`; maximum : `10`; défaut : `3` |
+| query | `direction` | non | `"forward"`, `"backward"` | défaut : `"forward"` |
+| header | `x-tenant-id` | oui | texte | format : `"uuid"` |
+
+### Corps et résultat
+
+- Aucun corps attendu.
+- Succès HTTP 200, `application/json` : [ConversationTimeline](#schema-conversationtimeline).
 - Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
 
 <a id="action-conversations-query"></a>
@@ -1249,7 +1283,7 @@ Liste les signaux personnels accessibles avec leur origine et leur cible.
 
 Liste les signalements personnels visibles, notamment les manques de connaissance et retours négatifs.
 
-**Utilisation frontend :** Permettre un suivi personnel ; aucune file de triage partagée de toute l'entreprise n'est fournie par cette route.
+**Utilisation frontend :** Permettre un suivi personnel ; aucune file de triage partagée de toute l'entreprise n'est fournie par cette route. Le filtre episode_id permet de compléter les signalements d’un tour de conversation précis.
 
 - HTTP : `GET /v1/domains/{domain}/issues`.
 - MCP : `api_issues_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
@@ -1265,6 +1299,7 @@ Liste les signalements personnels visibles, notamment les manques de connaissanc
 | query | `limit` | non | entier | minimum : `1`; maximum : `100`; défaut : `20` |
 | query | `after` | non | texte / null | — |
 | query | `status` | non | `"open"`, `"in_progress"`, `"resolved"`, `"dismissed"` / null | — |
+| query | `episode_id` | non | texte / null | — |
 | header | `x-tenant-id` | oui | texte | format : `"uuid"` |
 
 ### Corps et résultat
@@ -2353,6 +2388,35 @@ Champs non déclarés interdits.
 | `limit` | non | entier | minimum : `1.0`; maximum : `10.0`; défaut : `5` |
 | `idempotency_key` | oui | texte | longueur min. : `8`; longueur max. : `128` |
 
+<a id="schema-conversationtimeline"></a>
+### ConversationTimeline
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `conversation` | oui | [ConversationView](#schema-conversationview) | — |
+| `items` | oui | liste de [ConversationTurn](#schema-conversationturn) | — |
+| `next_after` | oui | entier / null | — |
+| `direction` | non | `"forward"`, `"backward"` | défaut : `"forward"` |
+| `scan_limited` | non | booléen | défaut : `false` |
+| `payload_limit_bytes` | non | `500000` | défaut : `500000` |
+
+<a id="schema-conversationturn"></a>
+### ConversationTurn
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `sequence` | oui | entier | — |
+| `question` | oui | texte | — |
+| `result` | oui | [QueryResult](#schema-queryresult) | — |
+| `created_at` | oui | texte | format : `"date-time"` |
+| `responses` | oui | [TimelineResponsePage](#schema-timelineresponsepage) | — |
+| `signals` | oui | [FeedbackSignalPage](#schema-feedbacksignalpage) | — |
+| `issues` | oui | [IssuePage](#schema-issuepage) | — |
+
 <a id="schema-conversationupdate"></a>
 ### ConversationUpdate
 
@@ -3244,6 +3308,29 @@ Champs non déclarés interdits.
 | `filename` | oui | texte | longueur min. : `1`; longueur max. : `200`; motif : `"^[^/\\\\\\x00-\\x1f]+$"` |
 | `content` | oui | texte | longueur min. : `1`; longueur max. : `30000`; motif : `"^[^\\x00]+$"` |
 | `allowed_subjects` | oui | liste de texte | éléments min. : `1`; éléments max. : `100` |
+
+<a id="schema-timelineresponse"></a>
+### TimelineResponse
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `id` | oui | texte | format : `"uuid"` |
+| `response` | oui | [CompanionResponseInput](#schema-companionresponseinput) | — |
+| `reference_validation` | oui | `"episode_references_checked"`, `"no_references"` | — |
+| `semantic_validation` | non | `"not_performed"` | défaut : `"not_performed"` |
+| `created_at` | oui | texte | format : `"date-time"` |
+
+<a id="schema-timelineresponsepage"></a>
+### TimelineResponsePage
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `items` | oui | liste de [TimelineResponse](#schema-timelineresponse) | — |
+| `next_after` | oui | texte / null | — |
 
 <a id="schema-validationerror"></a>
 ### ValidationError

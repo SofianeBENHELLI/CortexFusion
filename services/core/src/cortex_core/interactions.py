@@ -27,6 +27,7 @@ GET /conversations|conversations.list|member|none|Retrouve mes conversations act
 GET /conversations/{}|conversations.read|member|none|Ouvre cette conversation.
 PUT /conversations/{}|conversations.update|member|personal|Archive cette conversation.
 GET /conversations/{}/messages|conversations.messages|member|none|Montre les messages précédents de cette conversation.
+GET /conversations/{}/timeline|conversations.timeline|member|none|Ouvre les questions, réponses délivrées et retours de ma conversation.
 POST /conversations/{}/query|conversations.query|member|episode|Pose cette question dans ma conversation et cite les preuves.
 GET /members|members.list|owner|none|Qui a accès à ce domaine ?
 POST /members|members.change|owner|access|Prépare le changement de rôle de ce membre.

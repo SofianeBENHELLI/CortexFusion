@@ -32,8 +32,10 @@ class IssueService:
         with self.db.transaction(p, domain) as conn:
             return self._view(self._issue(conn, p, domain, ident), IssueView)
 
-    def list(self, p, domain, limit, after, status):
+    def list(self, p, domain, limit, after, status, episode_id=None):
         with self.db.transaction(p, domain) as conn:
+            if episode_id:
+                self.k._episode(conn, p, domain, episode_id)
             return WorkspaceService(self.k)._page(
                 conn,
                 p,
@@ -43,8 +45,8 @@ class IssueService:
                 after,
                 lambda row: self.k._episode(conn, p, domain, row["episode_id"]),
                 lambda row: self._view(row, IssueView),
-                "AND (:status='' OR status=:status)",
-                {"status": status or ""},
+                "AND (:status='' OR status=:status) AND (:episode='' OR episode_id=:episode)",
+                {"status": status or "", "episode": episode_id or ""},
             )
 
     def events(self, p, domain, ident, limit, after):

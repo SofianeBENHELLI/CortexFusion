@@ -1141,6 +1141,170 @@
       }
     },
     {
+      "action_id": "conversations.timeline",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Ouvre les questions, réponses délivrées et retours de ma conversation.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/conversations/{ident}/timeline",
+      "operation_id": "conversations.timeline",
+      "description_fr": "Lit une page de conversation personnelle regroupant chaque question, son résultat sourcé, les réponses réellement délivrées, les signaux et les signalements associés. Les références des réponses utilisent les citations de l’épisode sans dupliquer leur texte.",
+      "frontend_fr": "Suivre le curseur de séquence et les curseurs propres aux réponses, signaux et signalements. Une page peut être vide avec next_after non nul après filtrage des droits. Le volume est limité à 500 000 octets ; réduire les limites ou lire les objets séparément si un seul tour est trop volumineux. Utiliser direction=backward pour ouvrir les tours récents, puis garder cette direction avec le curseur renvoyé.",
+      "effect_fr": "Lecture sans modification métier durable.",
+      "mcp_tool": "api_conversations_timeline",
+      "mcp_confirmation_required": false,
+      "parameters": [
+        {
+          "name": "domain",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Domain"
+          }
+        },
+        {
+          "name": "ident",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Ident"
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "maximum": 20,
+            "minimum": 1,
+            "default": 10,
+            "title": "Limit"
+          }
+        },
+        {
+          "name": "after",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0,
+            "title": "After"
+          }
+        },
+        {
+          "name": "responses_limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "maximum": 5,
+            "minimum": 1,
+            "default": 3,
+            "title": "Responses Limit"
+          }
+        },
+        {
+          "name": "signals_limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "maximum": 20,
+            "minimum": 1,
+            "default": 5,
+            "title": "Signals Limit"
+          }
+        },
+        {
+          "name": "issues_limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "maximum": 10,
+            "minimum": 1,
+            "default": 3,
+            "title": "Issues Limit"
+          }
+        },
+        {
+          "name": "direction",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "enum": [
+              "forward",
+              "backward"
+            ],
+            "type": "string",
+            "default": "forward",
+            "title": "Direction"
+          }
+        },
+        {
+          "name": "x-tenant-id",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "request_body": null,
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConversationTimeline"
+              }
+            }
+          }
+        },
+        "422": {
+          "error_contract": "common_error"
+        },
+        "401": {
+          "error_contract": "common_error"
+        },
+        "403": {
+          "error_contract": "common_error"
+        },
+        "404": {
+          "error_contract": "common_error"
+        },
+        "409": {
+          "error_contract": "common_error"
+        },
+        "413": {
+          "error_contract": "common_error"
+        },
+        "429": {
+          "error_contract": "common_error"
+        },
+        "503": {
+          "error_contract": "common_error"
+        }
+      }
+    },
+    {
       "action_id": "conversations.query",
       "roles": [
         "owner",
@@ -4185,7 +4349,7 @@
       "path": "/v1/domains/{domain}/issues",
       "operation_id": "issues.list",
       "description_fr": "Liste les signalements personnels visibles, notamment les manques de connaissance et retours négatifs.",
-      "frontend_fr": "Permettre un suivi personnel ; aucune file de triage partagée de toute l'entreprise n'est fournie par cette route.",
+      "frontend_fr": "Permettre un suivi personnel ; aucune file de triage partagée de toute l'entreprise n'est fournie par cette route. Le filtre episode_id permet de compléter les signalements d’un tour de conversation précis.",
       "effect_fr": "Lecture sans modification métier durable.",
       "mcp_tool": "api_issues_list",
       "mcp_confirmation_required": false,
@@ -4249,6 +4413,23 @@
               }
             ],
             "title": "Status"
+          }
+        },
+        {
+          "name": "episode_id",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Episode Id"
           }
         },
         {
@@ -7928,6 +8109,100 @@
       ],
       "title": "ConversationQueryInput"
     },
+    "ConversationTimeline": {
+      "properties": {
+        "conversation": {
+          "$ref": "#/components/schemas/ConversationView"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/components/schemas/ConversationTurn"
+          },
+          "type": "array",
+          "title": "Items"
+        },
+        "next_after": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Next After"
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "forward",
+            "backward"
+          ],
+          "title": "Direction",
+          "default": "forward"
+        },
+        "scan_limited": {
+          "type": "boolean",
+          "title": "Scan Limited",
+          "default": false
+        },
+        "payload_limit_bytes": {
+          "type": "integer",
+          "const": 500000,
+          "title": "Payload Limit Bytes",
+          "default": 500000
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "conversation",
+        "items",
+        "next_after"
+      ],
+      "title": "ConversationTimeline"
+    },
+    "ConversationTurn": {
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "title": "Sequence"
+        },
+        "question": {
+          "type": "string",
+          "title": "Question"
+        },
+        "result": {
+          "$ref": "#/components/schemas/QueryResult"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Created At"
+        },
+        "responses": {
+          "$ref": "#/components/schemas/TimelineResponsePage"
+        },
+        "signals": {
+          "$ref": "#/components/schemas/FeedbackSignalPage"
+        },
+        "issues": {
+          "$ref": "#/components/schemas/IssuePage"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "sequence",
+        "question",
+        "result",
+        "created_at",
+        "responses",
+        "signals",
+        "issues"
+      ],
+      "title": "ConversationTurn"
+    },
     "ConversationUpdate": {
       "properties": {
         "title": {
@@ -10842,6 +11117,76 @@
         "allowed_subjects"
       ],
       "title": "TextImportItem"
+    },
+    "TimelineResponse": {
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Id"
+        },
+        "response": {
+          "$ref": "#/components/schemas/CompanionResponseInput"
+        },
+        "reference_validation": {
+          "type": "string",
+          "enum": [
+            "episode_references_checked",
+            "no_references"
+          ],
+          "title": "Reference Validation"
+        },
+        "semantic_validation": {
+          "type": "string",
+          "const": "not_performed",
+          "title": "Semantic Validation",
+          "default": "not_performed"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Created At"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "id",
+        "response",
+        "reference_validation",
+        "created_at"
+      ],
+      "title": "TimelineResponse"
+    },
+    "TimelineResponsePage": {
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/components/schemas/TimelineResponse"
+          },
+          "type": "array",
+          "title": "Items"
+        },
+        "next_after": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Next After"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "items",
+        "next_after"
+      ],
+      "title": "TimelineResponsePage"
     },
     "ValidationError": {
       "properties": {

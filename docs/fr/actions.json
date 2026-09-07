@@ -249,7 +249,7 @@
   },
   "issues.list": {
     "description": "Liste les signalements personnels visibles, notamment les manques de connaissance et retours négatifs.",
-    "frontend": "Permettre un suivi personnel ; aucune file de triage partagée de toute l'entreprise n'est fournie par cette route."
+    "frontend": "Permettre un suivi personnel ; aucune file de triage partagée de toute l'entreprise n'est fournie par cette route. Le filtre episode_id permet de compléter les signalements d’un tour de conversation précis."
   },
   "issues.read": {
     "description": "Lit un signalement personnel, son état et sa révision.",
@@ -290,5 +290,9 @@
   "domain.brief": {
     "description": "Retourne un résumé autorisé des propositions en attente et des signalements des épisodes du demandeur.",
     "frontend": "Construire une vue propriétaire bornée ; ce résumé n'est pas un tableau global des conversations et avis privés de l'entreprise."
+  },
+  "conversations.timeline": {
+    "description": "Lit une page de conversation personnelle regroupant chaque question, son résultat sourcé, les réponses réellement délivrées, les signaux et les signalements associés. Les références des réponses utilisent les citations de l’épisode sans dupliquer leur texte.",
+    "frontend": "Suivre le curseur de séquence et les curseurs propres aux réponses, signaux et signalements. Une page peut être vide avec next_after non nul après filtrage des droits. Le volume est limité à 500 000 octets ; réduire les limites ou lire les objets séparément si un seul tour est trop volumineux. Utiliser direction=backward pour ouvrir les tours récents, puis garder cette direction avec le curseur renvoyé."
   }
 }

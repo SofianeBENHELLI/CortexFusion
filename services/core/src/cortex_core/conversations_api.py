@@ -1,3 +1,4 @@
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -8,11 +9,13 @@ from .contracts import (
     ConversationMessages,
     ConversationPage,
     ConversationQueryInput,
+    ConversationTimeline,
     ConversationUpdate,
     ConversationView,
     QueryResult,
 )
 from .conversation_stream import SSE_CONTENT, stream_query, wants_stream
+from .conversation_timeline import ConversationTimelineService
 
 
 def conversations_router(service, principal):
@@ -49,6 +52,30 @@ def conversations_router(service, principal):
         p=Depends(principal),
     ):
         return service.messages(p, str(domain), str(ident), limit, after)
+
+    @router.get("/{ident}/timeline", response_model=ConversationTimeline)
+    def timeline(
+        domain: UUID,
+        ident: UUID,
+        limit: int = Query(10, ge=1, le=20),
+        after: int = Query(0, ge=0),
+        responses_limit: int = Query(3, ge=1, le=5),
+        signals_limit: int = Query(5, ge=1, le=20),
+        issues_limit: int = Query(3, ge=1, le=10),
+        direction: Literal["forward", "backward"] = "forward",
+        p=Depends(principal),
+    ):
+        return ConversationTimelineService(service.k).read(
+            p,
+            str(domain),
+            str(ident),
+            limit,
+            after,
+            responses_limit,
+            signals_limit,
+            issues_limit,
+            direction,
+        )
 
     @router.post(
         "/{ident}/query",
