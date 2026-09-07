@@ -148,8 +148,8 @@
     "frontend": "Recueillir la décision sur cette version puis envoyer la confirmation signée. Afficher accepté, pas publié."
   },
   "domain.publish": {
-    "description": "Applique les changements acceptés à la projection servie, atomiquement avec l'historique de publication.",
-    "frontend": "Après réussite, relire domain.version et actualiser les écrans dépendants. Après timeout, inspecter la version avant de demander une nouvelle publication."
+    "description": "Publie le prochain changement accepté du domaine, sans désigner une proposition dans la requête.",
+    "frontend": "Commande globale conservée pour les hôtes qui souhaitent publier le prochain changement en attente. Pour une fiche et une reprise ciblée, préférer proposals.publish. Après timeout, relire version et journal avant une nouvelle décision globale : une autre acceptation peut avoir eu lieu."
   },
   "domain.replay": {
     "description": "Reconstruit la projection publiée à partir du journal existant sans rejouer le modèle ni inventer de nouveaux changements.",
@@ -310,5 +310,9 @@
   "system.ready": {
     "description": "Vérifie la connexion à PostgreSQL, la révision de migration attendue, le rôle SQL restreint et les indicateurs de RLS forcée sur les tables applicatives.",
     "frontend": "Utiliser comme sonde de disponibilité backend : 200 ready ou 503 NOT_READY sans diagnostic sensible. /health reste une sonde de vie statique. Aucun test fournisseur IA, aucun appel payant, aucune certification du contenu ni du fonctionnement de toutes les routes."
+  },
+  "proposals.publish": {
+    "description": "Publie uniquement la proposition acceptée désignée, avec contrôle de la version publiée attendue et de ses preuves actuelles.",
+    "frontend": "Préférer cette action depuis une fiche. Fournir expected_published_version égal à la séquence d’acceptation moins un, avec la confirmation liée à la cible et au corps. Une cible déjà publiée retourne changed=false sans publier un autre changement en attente. target_version identifie sa publication historique ; published_version est la position actuelle du domaine."
   }
 }

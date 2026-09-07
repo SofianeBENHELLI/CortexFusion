@@ -19958,6 +19958,344 @@
         ]
       }
     },
+    "/v1/domains/{domain}/proposals/{proposal_id}/publish": {
+      "post": {
+        "summary": "Publish Proposal",
+        "operationId": "proposals.publish",
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Domain"
+            }
+          },
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Proposal Id"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TargetedPublicationInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetedPublicationReceipt"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameters, evidence, state or model output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role does not authorize this action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Absent or inaccessible object; do not infer its existence.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State/version/idempotency conflict; refresh before deciding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request exceeds body limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Configured domain model attempt limit reached; no new provider call started.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage or configured model unavailable; do not claim completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Strict HTTP mode requires a signed trusted-host confirmation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "confirmation_request"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "confirmation_request": {
+                      "type": "object",
+                      "required": [
+                        "action",
+                        "command_hash",
+                        "transport_header",
+                        "max_lifetime_seconds"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "command_hash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "transport_header": {
+                          "const": "X-Cortex-Confirmation"
+                        },
+                        "max_lifetime_seconds": {
+                          "const": 300
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-cortex-interaction": {
+          "action_id": "proposals.publish",
+          "roles": [
+            "owner"
+          ],
+          "effect": "trusted",
+          "effect_description": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
+          "intent_example": "Publie cette proposition acceptée avec la version attendue.",
+          "confirmation_policy": "explicit_user_decision",
+          "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access."
+        },
+        "description": "Publie cette proposition acceptée avec la version attendue.\n\nAccepts or publishes a trusted-knowledge change; approval and publication are separate.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/v1/domains/{domain}/publish": {
       "post": {
         "summary": "Publish",
@@ -26962,6 +27300,52 @@
           "finished_at"
         ],
         "title": "SynthesisView"
+      },
+      "TargetedPublicationInput": {
+        "properties": {
+          "expected_published_version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Published Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_published_version"
+        ],
+        "title": "TargetedPublicationInput"
+      },
+      "TargetedPublicationReceipt": {
+        "properties": {
+          "published_version": {
+            "type": "integer",
+            "title": "Published Version"
+          },
+          "changed": {
+            "type": "boolean",
+            "title": "Changed"
+          },
+          "proposal_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Proposal Id"
+          },
+          "target_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Target Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "published_version",
+          "changed",
+          "proposal_id",
+          "target_version"
+        ],
+        "title": "TargetedPublicationReceipt"
       },
       "TextImportInput": {
         "properties": {

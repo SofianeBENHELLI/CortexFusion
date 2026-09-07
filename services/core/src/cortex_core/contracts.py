@@ -963,3 +963,15 @@ class ReadinessView(Contract):
 
 
 CONTRACTS += [ReadinessView]
+
+
+class TargetedPublicationInput(Contract):
+    expected_published_version: int = Field(ge=0)
+
+
+class TargetedPublicationReceipt(PublicationReceipt):
+    proposal_id: UUID
+    target_version: int = Field(ge=1)
+
+
+CONTRACTS += [TargetedPublicationInput, TargetedPublicationReceipt]

@@ -76,6 +76,7 @@ PUT /sources/{}/access|sources.access|owner|access|Prépare la modification des 
 POST /sources/{}/propose|sources.propose|writer|proposal|Transforme cette source en proposition à relire.
 GET /proposals/{}|proposals.read|writer|none|Montre le contenu et l'état de cette proposition.
 POST /proposals/{}/approve|proposals.approve|owner|trusted|Prépare l'approbation de cette version précise de la proposition.
+POST /proposals/{}/publish|proposals.publish|owner|trusted|Publie cette proposition acceptée avec la version attendue.
 POST /publish|domain.publish|owner|trusted|Publie le changement accepté en attente.
 POST /replay|domain.replay|owner|rebuild|Reconstruis la projection depuis le journal publié.
 POST /commits/{}/compensate|commits.compensate|owner|proposal|Prépare une proposition compensant ce changement.

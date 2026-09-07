@@ -35,6 +35,8 @@ from .contracts import (
     SourceDetail,
     SourceInput,
     SourceSummary,
+    TargetedPublicationInput,
+    TargetedPublicationReceipt,
     VersionView,
 )
 from .conversations import ConversationService
@@ -322,6 +324,15 @@ def create_app(settings: Settings | None = None):
     )
     def approve(domain: UUID, proposal_id: UUID, data: ApprovalInput, p=Depends(principal)):
         return service.approve(p, str(domain), str(proposal_id), data)
+
+    @app.post(
+        "/v1/domains/{domain}/proposals/{proposal_id}/publish",
+        response_model=TargetedPublicationReceipt,
+    )
+    def publish_proposal(
+        domain: UUID, proposal_id: UUID, data: TargetedPublicationInput, p=Depends(principal)
+    ):
+        return service.publish_proposal(p, str(domain), str(proposal_id), data)
 
     @app.post("/v1/domains/{domain}/publish", response_model=PublicationReceipt)
     def publish(domain: UUID, p=Depends(principal)):

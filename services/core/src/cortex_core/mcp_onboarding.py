@@ -26,6 +26,7 @@ Reuse business idempotency keys on retries. Refresh after conflicts; do not clai
 Sensitive actions require the trusted host's signed confirmation of the exact command and the service's role checks.
 The model must not sign confirmations, receive private keys, invent approval, or enable its own automatic collection.
 Knowledge correction requires source-backed proposal, owner review and separate publication. Feedback never publishes.
+For a specific accepted proposal, prefer api_proposals_publish with its expected_published_version and signed exact arguments. Retrying an already published target never advances another pending proposal. api_domain_publish intentionally publishes the next accepted domain change.
 Resources and prompts are read-only guidance. Prompt selection does not execute a tool or authorize later mutations.
 """
 

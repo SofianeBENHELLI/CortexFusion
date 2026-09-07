@@ -4,7 +4,7 @@ Générée par `scripts/export_frontend_reference.py` depuis OpenAPI, le catalog
 
 Lire d'abord le [guide des parcours frontend](frontend-guide.fr.md). Cette référence décrit le comportement actuel, pas des fonctions futures. Le catalogue machine français est `packages/contracts/functional-interactions.fr.json`.
 
-Couverture : **78 opérations HTTP**, chacune liée à son outil MCP généré. Les outils de compatibilité et les ressources/prompts sont décrits dans le guide MCP.
+Couverture : **79 opérations HTTP**, chacune liée à son outil MCP généré. Les outils de compatibilité et les ressources/prompts sont décrits dans le guide MCP.
 
 ## Règles communes
 
@@ -87,6 +87,7 @@ Couverture : **78 opérations HTTP**, chacune liée à son outil MCP généré. 
 | [sources.propose](#action-sources-propose) | `POST /v1/domains/{domain}/sources/{source_id}/propose` | Transforme cette source en proposition à relire. |
 | [proposals.read](#action-proposals-read) | `GET /v1/domains/{domain}/proposals/{proposal_id}` | Montre le contenu et l'état de cette proposition. |
 | [proposals.approve](#action-proposals-approve) | `POST /v1/domains/{domain}/proposals/{proposal_id}/approve` | Prépare l'approbation de cette version précise de la proposition. |
+| [proposals.publish](#action-proposals-publish) | `POST /v1/domains/{domain}/proposals/{proposal_id}/publish` | Publie cette proposition acceptée avec la version attendue. |
 | [domain.publish](#action-domain-publish) | `POST /v1/domains/{domain}/publish` | Publie le changement accepté en attente. |
 | [domain.replay](#action-domain-replay) | `POST /v1/domains/{domain}/replay` | Reconstruis la projection depuis le journal publié. |
 | [commits.compensate](#action-commits-compensate) | `POST /v1/domains/{domain}/commits/{sequence}/compensate` | Prépare une proposition compensant ce changement. |
@@ -1960,12 +1961,39 @@ Accepte la proposition précise sous l'autorité du propriétaire, si digest, ve
 - Succès HTTP 200, `application/json` : [ApprovalReceipt](#schema-approvalreceipt).
 - Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503, 428.
 
+<a id="action-proposals-publish"></a>
+## proposals.publish
+
+Publie uniquement la proposition acceptée désignée, avec contrôle de la version publiée attendue et de ses preuves actuelles.
+
+**Utilisation frontend :** Préférer cette action depuis une fiche. Fournir expected_published_version égal à la séquence d’acceptation moins un, avec la confirmation liée à la cible et au corps. Une cible déjà publiée retourne changed=false sans publier un autre changement en attente. target_version identifie sa publication historique ; published_version est la position actuelle du domaine.
+
+- HTTP : `POST /v1/domains/{domain}/proposals/{proposal_id}/publish`.
+- MCP : `api_proposals_publish` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- Rôles préalables : owner.
+- Effet : Acceptation ou publication selon l'opération ; consulter le reçu.
+- Décision : accord explicite ; confirmation signée en MCP et HTTP strict.
+
+### Paramètres
+
+| Emplacement | Nom | Requis | Type | Contraintes |
+|---|---|---|---|---|
+| path | `domain` | oui | texte | format : `"uuid"` |
+| path | `proposal_id` | oui | texte | format : `"uuid"` |
+| header | `x-tenant-id` | oui | texte | format : `"uuid"` |
+
+### Corps et résultat
+
+- Corps requis `application/json` : [TargetedPublicationInput](#schema-targetedpublicationinput).
+- Succès HTTP 200, `application/json` : [TargetedPublicationReceipt](#schema-targetedpublicationreceipt).
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503, 428.
+
 <a id="action-domain-publish"></a>
 ## domain.publish
 
-Applique les changements acceptés à la projection servie, atomiquement avec l'historique de publication.
+Publie le prochain changement accepté du domaine, sans désigner une proposition dans la requête.
 
-**Utilisation frontend :** Après réussite, relire domain.version et actualiser les écrans dépendants. Après timeout, inspecter la version avant de demander une nouvelle publication.
+**Utilisation frontend :** Commande globale conservée pour les hôtes qui souhaitent publier le prochain changement en attente. Pour une fiche et une reprise ciblée, préférer proposals.publish. Après timeout, relire version et journal avant une nouvelle décision globale : une autre acceptation peut avoir eu lieu.
 
 - HTTP : `POST /v1/domains/{domain}/publish`.
 - MCP : `api_domain_publish` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
@@ -3466,6 +3494,27 @@ Champs non déclarés interdits.
 | `error_code` | oui | texte / null | — |
 | `usage` | oui | [SynthesisUsage](#schema-synthesisusage) / null | — |
 | `finished_at` | oui | texte / null | — |
+
+<a id="schema-targetedpublicationinput"></a>
+### TargetedPublicationInput
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `expected_published_version` | oui | entier | minimum : `0.0` |
+
+<a id="schema-targetedpublicationreceipt"></a>
+### TargetedPublicationReceipt
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `published_version` | oui | entier | — |
+| `changed` | oui | booléen | — |
+| `proposal_id` | oui | texte | format : `"uuid"` |
+| `target_version` | oui | entier | minimum : `1.0` |
 
 <a id="schema-textimportinput"></a>
 ### TextImportInput

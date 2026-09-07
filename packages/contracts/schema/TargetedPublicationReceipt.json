@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "published_version": {
+      "title": "Published Version",
+      "type": "integer"
+    },
+    "changed": {
+      "title": "Changed",
+      "type": "boolean"
+    },
+    "proposal_id": {
+      "format": "uuid",
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "target_version": {
+      "minimum": 1,
+      "title": "Target Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "published_version",
+    "changed",
+    "proposal_id",
+    "target_version"
+  ],
+  "title": "TargetedPublicationReceipt",
+  "type": "object"
+}

@@ -238,9 +238,21 @@ Les conversations archivées sont un état de classement de l'historique personn
 
 Lire la proposition et `proposals.diff`, puis les revues. Une décision de revue utilise `reject`, `defer`, `request_changes` ou `reopen`, avec raison, digest, révision attendue et clé. Ces valeurs techniques doivent être traduites en libellés français dans react-intl.
 
-Une approbation utilise le digest et les versions attendues réellement relus. Après approbation, annoncer « accepté ». Appeler ensuite la publication distincte ; après succès, annoncer la version publiée retournée. La publication est transactionnelle : pas de pseudo-progression de 0 à 100 % calculée côté UI.
+Une approbation utilise le digest et les versions attendues réellement relus. Après approbation, annoncer « accepté ». Depuis la fiche, utiliser ensuite `proposals.publish` (`POST /v1/domains/{domain}/proposals/{proposal_id}/publish`, outil `api_proposals_publish`) :
 
-Après un timeout d'approbation, relire la proposition et réutiliser sa clé lorsque le contrat le permet. Après un timeout de publication, lire la version et le journal avant une nouvelle décision. Après conflit de révision, présenter à nouveau les changements actualisés ; ne pas approuver automatiquement un contenu différent.
+```json
+{"expected_published_version": 0}
+```
+
+La valeur doit correspondre à la séquence du reçu d’acceptation moins un : pour publier le changement accepté de séquence 1, envoyer 0. La cible est le véritable `proposal_id` accepté. La confirmation signée lie ce chemin et ce corps précis ; le propriétaire et son accès actuel à toutes les preuves sont vérifiés à nouveau.
+
+Le reçu contient `proposal_id`, `target_version`, `published_version` et `changed`. Si la cible est déjà publiée, `changed=false` : aucune autre proposition en attente n’est publiée par cette reprise, même si le domaine a avancé. `target_version` reste la publication historique de cette proposition ; `published_version` peut être supérieur. Cela ne certifie pas que ses effets sont encore en vigueur après des changements ultérieurs ou une compensation.
+
+Une proposition non acceptée donne `PUBLICATION_NOT_ACCEPTED` (409), une version incompatible `STALE_PUBLICATION` (409), un accès perdu 404 et un rôle insuffisant 403. Après une perte de réponse, reprendre la même cible et le même corps avec une nouvelle confirmation de transport ; cette opération ne demande pas de clé d’idempotence métier supplémentaire. Relire la version et la proposition après conflit. La publication reste transactionnelle : pas de pseudo-progression de 0 à 100 % calculée côté UI.
+
+La commande historique `domain.publish` (`POST /publish`) conserve son sens global : publier le prochain changement accepté. Elle ne lie pas une proposition au corps de la requête. La réserver aux hôtes qui veulent explicitement cette action globale, et préférer la publication ciblée pour une fiche frontend ou un companion qui reprend une action précise.
+
+Après un timeout d'approbation, relire la proposition et réutiliser sa clé lorsque le contrat le permet. Après un timeout de publication globale, lire la version et le journal avant une nouvelle décision. Après conflit de révision, présenter à nouveau les changements actualisés ; ne pas approuver automatiquement un contenu différent.
 
 ## Parcours 4 — corriger un concept et ses relations
 

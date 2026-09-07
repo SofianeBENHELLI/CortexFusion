@@ -6777,6 +6777,105 @@
       }
     },
     {
+      "action_id": "proposals.publish",
+      "roles": [
+        "owner"
+      ],
+      "effect": "trusted",
+      "effect_description": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
+      "intent_example": "Publie cette proposition acceptée avec la version attendue.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/proposals/{proposal_id}/publish",
+      "operation_id": "proposals.publish",
+      "description_fr": "Publie uniquement la proposition acceptée désignée, avec contrôle de la version publiée attendue et de ses preuves actuelles.",
+      "frontend_fr": "Préférer cette action depuis une fiche. Fournir expected_published_version égal à la séquence d’acceptation moins un, avec la confirmation liée à la cible et au corps. Une cible déjà publiée retourne changed=false sans publier un autre changement en attente. target_version identifie sa publication historique ; published_version est la position actuelle du domaine.",
+      "effect_fr": "Acceptation ou publication selon l'opération ; consulter le reçu.",
+      "mcp_tool": "api_proposals_publish",
+      "mcp_confirmation_required": true,
+      "parameters": [
+        {
+          "name": "domain",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Domain"
+          }
+        },
+        {
+          "name": "proposal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Proposal Id"
+          }
+        },
+        {
+          "name": "x-tenant-id",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "request_body": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/TargetedPublicationInput"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TargetedPublicationReceipt"
+              }
+            }
+          }
+        },
+        "422": {
+          "error_contract": "common_error"
+        },
+        "401": {
+          "error_contract": "common_error"
+        },
+        "403": {
+          "error_contract": "common_error"
+        },
+        "404": {
+          "error_contract": "common_error"
+        },
+        "409": {
+          "error_contract": "common_error"
+        },
+        "413": {
+          "error_contract": "common_error"
+        },
+        "429": {
+          "error_contract": "common_error"
+        },
+        "503": {
+          "error_contract": "common_error"
+        },
+        "428": {
+          "error_contract": "common_error"
+        }
+      }
+    },
+    {
       "action_id": "domain.publish",
       "roles": [
         "owner"
@@ -6789,8 +6888,8 @@
       "method": "POST",
       "path": "/v1/domains/{domain}/publish",
       "operation_id": "domain.publish",
-      "description_fr": "Applique les changements acceptés à la projection servie, atomiquement avec l'historique de publication.",
-      "frontend_fr": "Après réussite, relire domain.version et actualiser les écrans dépendants. Après timeout, inspecter la version avant de demander une nouvelle publication.",
+      "description_fr": "Publie le prochain changement accepté du domaine, sans désigner une proposition dans la requête.",
+      "frontend_fr": "Commande globale conservée pour les hôtes qui souhaitent publier le prochain changement en attente. Pour une fiche et une reprise ciblée, préférer proposals.publish. Après timeout, relire version et journal avant une nouvelle décision globale : une autre acceptation peut avoir eu lieu.",
       "effect_fr": "Acceptation ou publication selon l'opération ; consulter le reçu.",
       "mcp_tool": "api_domain_publish",
       "mcp_confirmation_required": true,
@@ -11718,6 +11817,52 @@
         "finished_at"
       ],
       "title": "SynthesisView"
+    },
+    "TargetedPublicationInput": {
+      "properties": {
+        "expected_published_version": {
+          "type": "integer",
+          "minimum": 0.0,
+          "title": "Expected Published Version"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "expected_published_version"
+      ],
+      "title": "TargetedPublicationInput"
+    },
+    "TargetedPublicationReceipt": {
+      "properties": {
+        "published_version": {
+          "type": "integer",
+          "title": "Published Version"
+        },
+        "changed": {
+          "type": "boolean",
+          "title": "Changed"
+        },
+        "proposal_id": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Proposal Id"
+        },
+        "target_version": {
+          "type": "integer",
+          "minimum": 1.0,
+          "title": "Target Version"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "published_version",
+        "changed",
+        "proposal_id",
+        "target_version"
+      ],
+      "title": "TargetedPublicationReceipt"
     },
     "TextImportInput": {
       "properties": {

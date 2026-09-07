@@ -20479,6 +20479,216 @@
       }
     },
     {
+      "name": "api_proposals_publish",
+      "description": "Publie cette proposition acceptée avec la version attendue.\n\nAccepts or publishes a trusted-knowledge change; approval and publication are separate.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. Requires a trusted-host signed confirmation header bound to these exact arguments.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Domain"
+              },
+              "proposal_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Proposal Id"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain",
+              "proposal_id"
+            ]
+          },
+          "body": {
+            "$ref": "#/$defs/TargetedPublicationInput"
+          }
+        },
+        "required": [
+          "path",
+          "body"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "TargetedPublicationInput": {
+            "properties": {
+              "expected_published_version": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Expected Published Version"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "expected_published_version"
+            ],
+            "title": "TargetedPublicationInput"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/TargetedPublicationReceipt"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          },
+          "confirmation_request": {
+            "$ref": "#/$defs/MCPConfirmationRequest"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/TargetedPublicationReceipt"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "confirmation_request"
+              ]
+            },
+            "then": {
+              "properties": {
+                "http_status": {
+                  "const": 428
+                }
+              }
+            }
+          }
+        ],
+        "$defs": {
+          "TargetedPublicationReceipt": {
+            "properties": {
+              "published_version": {
+                "type": "integer",
+                "title": "Published Version"
+              },
+              "changed": {
+                "type": "boolean",
+                "title": "Changed"
+              },
+              "proposal_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Proposal Id"
+              },
+              "target_version": {
+                "type": "integer",
+                "minimum": 1.0,
+                "title": "Target Version"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "published_version",
+              "changed",
+              "proposal_id",
+              "target_version"
+            ],
+            "title": "TargetedPublicationReceipt"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          "MCPConfirmationRequest": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "command_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "transport_header": {
+                "const": "X-Cortex-Confirmation"
+              },
+              "max_lifetime_seconds": {
+                "const": 300
+              }
+            },
+            "required": [
+              "action",
+              "command_hash",
+              "transport_header",
+              "max_lifetime_seconds"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
       "name": "api_domain_publish",
       "description": "Publie le changement accepté en attente.\n\nAccepts or publishes a trusted-knowledge change; approval and publication are separate.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. Requires a trusted-host signed confirmation header bound to these exact arguments.",
       "inputSchema": {

@@ -115,3 +115,7 @@ Run `uv run python scripts/demo_backend_synthesis.py --output /tmp/cortex-backen
 ## Personal issue query scope
 
 Migration 0017 indexes personal episodes and episode-to-issue lookup. Issue listing selects only episodes owned by the authenticated subject in SQL before checking current evidence access. It keeps the existing visible-item UUID cursor and status/episode filters. This reduces application checks across other users’ activity; it does not impose a fixed scan budget for the caller’s own revoked-evidence history.
+
+## Targeted publication
+
+POST proposals/{proposal_id}/publish binds the chosen accepted proposal and expected_published_version. The target sequence must equal expected_published_version + 1. A target already at or below the published position returns changed=false without advancing another accepted proposal. Current owner membership and proposal evidence ACLs are checked under the domain lock. Both targeted and global publication share _publish and its atomic projection/outbox transaction. The existing POST /publish retains its explicit next-accepted-change meaning. No migration is required for targeted publication.

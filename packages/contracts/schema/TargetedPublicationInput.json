@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "expected_published_version": {
+      "minimum": 0,
+      "title": "Expected Published Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "expected_published_version"
+  ],
+  "title": "TargetedPublicationInput",
+  "type": "object"
+}

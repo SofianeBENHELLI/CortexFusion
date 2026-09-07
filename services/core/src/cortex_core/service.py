@@ -494,35 +494,82 @@ class KnowledgeService:
     def publish(self, p, domain):
         with self.db.transaction(p, domain, owner=True) as conn:
             d = self._domain(conn, p, domain, lock=True)
-            if d["published_version"] == d["accepted_version"]:
-                return {"published_version": d["published_version"], "changed": False}
-            seq = d["published_version"] + 1
+            return self._publish(conn, p, domain, d)
+
+    def _publish(self, conn, p, domain, d):
+        """Apply the next accepted commit inside the caller's locked transaction."""
+        if d["published_version"] == d["accepted_version"]:
+            return {"published_version": d["published_version"], "changed": False}
+        seq = d["published_version"] + 1
+        commit = one(
+            conn,
+            "SELECT * FROM cf_commits WHERE tenant_id=:tenant AND domain_id=:domain AND sequence=:seq",
+            **self.keys(p, domain),
+            seq=seq,
+        )
+        self._apply(conn, p, domain, seq, commit["changes"])
+        run(
+            conn,
+            "UPDATE cf_outbox SET status='done',attempts=attempts+1 WHERE tenant_id=:tenant AND domain_id=:domain AND sequence=:seq",
+            **self.keys(p, domain),
+            seq=seq,
+        )
+        run(
+            conn,
+            "UPDATE cf_proposals SET status='published' WHERE tenant_id=:tenant AND id=:id",
+            tenant=p.tenant_id,
+            id=commit["proposal_id"],
+        )
+        run(
+            conn,
+            "UPDATE cf_domains SET published_version=:seq WHERE tenant_id=:tenant AND id=:domain",
+            **self.keys(p, domain),
+            seq=seq,
+        )
+        return {"published_version": seq, "changed": True}
+
+    def publish_proposal(self, p, domain, ident, data):
+        with self.db.transaction(p, domain, owner=True, isolation="READ COMMITTED") as conn:
+            d = self._domain(conn, p, domain, lock=True)
+            membership = one(
+                conn,
+                "SELECT role FROM cf_memberships WHERE tenant_id=:tenant AND domain_id=:domain AND subject=:subject",
+                **self.keys(p, domain),
+                subject=p.subject,
+            )
+            if not membership or membership["role"] != "owner":
+                raise CoreError("NOT_AUTHORIZED", "Domain owner required", 403)
+            proposal = one(
+                conn,
+                "SELECT * FROM cf_proposals WHERE tenant_id=:tenant AND domain_id=:domain AND id=:id",
+                **self.keys(p, domain),
+                id=ident,
+            )
+            if not proposal:
+                raise CoreError("NOT_FOUND", "Proposal not found", 404)
+            self._check_proposal_access(conn, p, domain, proposal)
             commit = one(
                 conn,
-                "SELECT * FROM cf_commits WHERE tenant_id=:tenant AND domain_id=:domain AND sequence=:seq",
+                "SELECT sequence FROM cf_commits WHERE tenant_id=:tenant AND domain_id=:domain AND proposal_id=:id",
                 **self.keys(p, domain),
-                seq=seq,
+                id=ident,
             )
-            self._apply(conn, p, domain, seq, commit["changes"])
-            run(
-                conn,
-                "UPDATE cf_outbox SET status='done',attempts=attempts+1 WHERE tenant_id=:tenant AND domain_id=:domain AND sequence=:seq",
-                **self.keys(p, domain),
-                seq=seq,
-            )
-            run(
-                conn,
-                "UPDATE cf_proposals SET status='published' WHERE tenant_id=:tenant AND id=:id",
-                tenant=p.tenant_id,
-                id=commit["proposal_id"],
-            )
-            run(
-                conn,
-                "UPDATE cf_domains SET published_version=:seq WHERE tenant_id=:tenant AND id=:domain",
-                **self.keys(p, domain),
-                seq=seq,
-            )
-            return {"published_version": seq, "changed": True}
+            if proposal["status"] not in ("approved", "published") or not commit:
+                raise CoreError(
+                    "PUBLICATION_NOT_ACCEPTED", "Accept the target proposal before publication"
+                )
+            sequence = commit["sequence"]
+            if sequence != data.expected_published_version + 1:
+                raise CoreError(
+                    "STALE_PUBLICATION", "Expected version does not identify this accepted change"
+                )
+            if sequence <= d["published_version"]:
+                result = {"published_version": d["published_version"], "changed": False}
+            else:
+                if d["published_version"] != data.expected_published_version:
+                    raise CoreError("STALE_PUBLICATION", "Refresh the target and published version")
+                result = self._publish(conn, p, domain, d)
+            return {"proposal_id": ident, "target_version": sequence, **result}
 
     def replay(self, p, domain):
         with self.db.transaction(p, domain, owner=True) as conn:

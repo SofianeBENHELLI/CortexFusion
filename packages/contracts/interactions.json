@@ -1121,6 +1121,20 @@
       "operation_id": "proposals.approve"
     },
     {
+      "action_id": "proposals.publish",
+      "roles": [
+        "owner"
+      ],
+      "effect": "trusted",
+      "effect_description": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
+      "intent_example": "Publie cette proposition acceptée avec la version attendue.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/proposals/{proposal_id}/publish",
+      "operation_id": "proposals.publish"
+    },
+    {
       "action_id": "domain.publish",
       "roles": [
         "owner"
