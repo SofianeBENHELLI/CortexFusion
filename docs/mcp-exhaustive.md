@@ -31,14 +31,14 @@ Le résultat MCP contient `structuredContent: {http_status, data}` et sa représ
 
 ## Confirmation des opérations sensibles
 
-Appliquer la migration `0009` et configurer `CORTEX_CONFIRMATION_PUBLIC_KEY_FILE` avec la clé publique RS256 de l'hôte de confiance. La clé privée doit rester dans le service de décision de cet hôte, hors du modèle et hors des outils d'exécution accessibles à l'agent. Utiliser une paire distincte des clés d'authentification utilisateur. Le serveur Cortex ne crée ni ne conserve la clé privée de signature.
+Appliquer les migrations jusqu’à la tête (`alembic upgrade head` ; garde introduite en `0009`) et configurer `CORTEX_CONFIRMATION_PUBLIC_KEY_FILE` avec la clé publique RS256 de l'hôte de confiance. La clé privée doit rester dans le service de décision de cet hôte, hors du modèle et hors des outils d'exécution accessibles à l'agent. Utiliser une paire distincte des clés d'authentification utilisateur. Le serveur Cortex ne crée ni ne conserve la clé privée de signature.
 
-Les changements d'accès/membres, revues, approbations, publications, reconstructions, propositions de compensation et extractions IA exigent une confirmation. Ils restent listés et typés lorsque la confirmation n'est pas configurée, mais leur exécution échoue avec `CONFIRMATION_REQUIRED` (428). Les autres commandes conservent les exigences de rôle et d'intention utilisateur existantes.
+Les changements d'accès/membres, revues, approbations, publications, reconstructions, propositions de compensation et extractions IA exigent une confirmation. Le changement des préférences personnelles de collecte est également confirmé. Ils restent listés et typés lorsque la confirmation n'est pas configurée, mais leur exécution échoue avec `CONFIRMATION_REQUIRED` (428). Les autres commandes conservent les exigences de rôle et d'intention utilisateur existantes.
 
 1. L'hôte prépare une commande exacte et affiche son action, ses cibles, ses effets et tous ses paramètres. Pour l'IA, afficher aussi la destination et le passage transmis.
 2. L'hôte recueille la décision explicite de l'utilisateur. Il signe ensuite une attestation liée au sujet authentifié, au tenant, à l'identifiant d'action et à l'empreinte canonique de l'ensemble des arguments. Les clés, révisions et digests ne doivent plus être modifiés après cette confirmation.
 3. Le jeton, valable au plus cinq minutes, est injecté dans `X-Cortex-Confirmation` pour cet appel précis. Il n'entre pas dans le prompt ni dans les arguments.
-4. Le backend vérifie le rôle propriétaire, la signature, l'audience, l'émetteur, l'expiration et toutes les liaisons. Il consomme son identifiant unique dans PostgreSQL avant d'invoquer la route métier, laquelle recontrôle les droits et les préconditions.
+4. Le backend vérifie le rôle requis par l’action, la signature, l'audience, l'émetteur, l'expiration et toutes les liaisons. Il consomme son identifiant unique dans PostgreSQL avant d'invoquer la route métier, laquelle recontrôle les droits et les préconditions.
 
 Un premier appel sans attestation renvoie une demande contenant l'action, son empreinte et le nom de l'en-tête attendu. Il ne délivre pas de jeton de confirmation. Les erreurs `CONFIRMATION_INVALID` (403) et `CONFIRMATION_USED` (409) distinguent les attestations invalides et déjà consommées.
 

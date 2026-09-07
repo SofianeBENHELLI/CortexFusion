@@ -64,11 +64,15 @@ Une requête de question enregistre un épisode : même si l'action semble être
 | Résultat | Comportement de l'hôte |
 |---|---|
 | 401 | Rétablir l'authentification ; ne pas demander un secret dans la conversation avec le modèle |
-| 403 | Expliquer que le rôle ne permet pas cette action ; ne pas essayer une autre identité |
+| 403 | Identifier le refus de rôle, de collecte ou de confirmation à partir du code ; ne pas contourner avec une autre identité |
 | 404 | Objet absent ou inaccessible ; ne pas révéler son existence à partir d'une autre session |
-| 409 | Relire la version/révision et distinguer conflit de clé, décision périmée et concurrence |
-| 413 / 422 | Corriger le volume ou les paramètres ; pour une source longue, choisir un passage borné |
+| 409 | Relire l’état ; distinguer conflit de clé, décision périmée, concurrence et tentative IA déjà enregistrée |
+| 413 / 422 | Réduire le volume ou la fenêtre de métriques, ou corriger les paramètres ; choisir un passage borné pour une source longue |
+| 428 | Présenter la commande exacte à l’hôte de confiance pour une décision explicite ; le modèle ne signe pas sa propre confirmation |
+| 429 | Plafond journalier de tentatives atteint ; ne pas contourner par d’autres clés ou identités |
 | 503 | Déclarer l'indisponibilité ; ne pas affirmer que l'action a été terminée |
+
+Après `MODEL_ATTEMPT_RECORDED`, inspecter [la tentative IA](model-attempts.md). La même clé ne relance pas le fournisseur ; une nouvelle commande peut être facturée et nécessite une nouvelle décision, même si l’ancienne tentative n’a pas de résultat durable.
 
 Conserver le code d'erreur, l'action, le reçu et les versions nécessaires à la reprise. Ne pas journaliser par défaut les jetons, clés fournisseur, documents complets ou toutes les conversations. Les règles de conservation d'une organisation restent à définir. Les objets personnels restent soumis aux droits actuels : une source révoquée peut rendre un ancien message ou reçu inaccessible.
 

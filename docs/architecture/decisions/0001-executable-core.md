@@ -3,6 +3,8 @@
 Date: 2026-09-06
 Status: accepted for the first development slice
 
+This record describes the initial slice on 2026-09-06. Later implemented increments and current operational limits are tracked in [implementation status](../../implementation-status.md).
+
 The repository needs an executable approval and publication boundary before introducing model-generated knowledge. This slice uses an independent Python service, a PostgreSQL journal and transactionally maintained JSON projections, HTTP/MCP adapters, and an isolated TypeScript/Cordis client.
 
 ## Decisions
