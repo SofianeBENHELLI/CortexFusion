@@ -560,3 +560,97 @@ class IssueEventPage(Contract):
 
 
 CONTRACTS += [IssueView, IssuePage, IssueDecisionInput, IssueEvent, IssueEventPage]
+
+
+class SourceDetail(SourceSummary):
+    content: str
+
+
+class VersionView(Contract):
+    domain_id: UUID
+    accepted_version: int
+    published_version: int
+
+
+class AccessReceipt(Contract):
+    source_id: UUID
+    allowed_subjects: list[str]
+
+
+class ApprovalReceipt(Contract):
+    sequence: int
+    proposal_id: UUID
+    accepted: Literal[True]
+
+
+class PublicationReceipt(Contract):
+    published_version: int
+    changed: bool
+
+
+class ReplayReceipt(Contract):
+    published_version: int
+    concept_count: int
+    state_hash: str
+
+
+class FeedbackReceipt(Contract):
+    feedback_id: UUID
+
+
+class BriefIssue(Contract):
+    id: UUID
+    kind: Literal["knowledge_gap", "disputed_answer"]
+    reason: str
+    episode_id: UUID
+
+
+class BriefView(Contract):
+    accepted_version: int
+    published_version: int
+    pending_proposals: list[ProposalView]
+    issues: list[BriefIssue]
+    processing: Literal["local_no_model"]
+    model_calls: Literal[0]
+
+
+class HealthView(Contract):
+    status: Literal["ok"]
+    version: str
+    mode: Literal["extractive"]
+
+
+CONTRACTS += [
+    SourceDetail,
+    VersionView,
+    AccessReceipt,
+    ApprovalReceipt,
+    PublicationReceipt,
+    ReplayReceipt,
+    FeedbackReceipt,
+    BriefView,
+    HealthView,
+]
+
+
+class InteractionView(Contract):
+    action_id: str
+    operation_id: str
+    method: str
+    path: str
+    roles: list[str]
+    effect: str
+    effect_description: str
+    intent_example: str
+    confirmation_policy: str
+    object_authorization: str
+
+
+class InteractionCatalog(Contract):
+    version: str
+    openapi_url: str
+    authorization_notice: str
+    items: list[InteractionView]
+
+
+CONTRACTS += [InteractionCatalog]

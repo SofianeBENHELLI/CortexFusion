@@ -9,16 +9,29 @@ from sqlalchemy.exc import DBAPIError
 from .auth import Authenticator, CoreError
 from .contracts import (
     AccessInput,
+    AccessReceipt,
     ApprovalInput,
+    ApprovalReceipt,
+    BriefView,
+    Concept,
     ExtractionInput,
     FeedbackInput,
+    FeedbackReceipt,
+    HealthView,
+    InteractionCatalog,
     LocalExtractionInput,
     LocalExtractionView,
     ProposalInput,
+    ProposalView,
+    PublicationReceipt,
     QueryInput,
     QueryResult,
+    ReplayReceipt,
     RollbackInput,
+    SourceDetail,
     SourceInput,
+    SourceSummary,
+    VersionView,
 )
 from .conversations import ConversationService
 from .conversations_api import conversations_router
@@ -30,6 +43,7 @@ from .files import FileService
 from .files_api import files_router
 from .governance import GovernanceService
 from .governance_api import governance_router
+from .interactions import catalog, install_openapi
 from .issues import IssueService
 from .issues_api import issues_router
 from .local_model import LocalPassageModel
@@ -101,7 +115,12 @@ def create_app(settings: Settings | None = None):
     extraction = ExtractionService(service, model_adapter)
     from .mcp_adapter import create_mcp
 
-    mcp = create_mcp(service, auth)
+    mcp = create_mcp(
+        service,
+        auth,
+        interaction_catalog=lambda: catalog(app.openapi()),
+        extraction_provider=model_adapter.provider if model_adapter else None,
+    )
     mcp_app = mcp.streamable_http_app()
 
     @asynccontextmanager
@@ -115,8 +134,9 @@ def create_app(settings: Settings | None = None):
         title="Cortex Fusion Knowledge Core",
         version="0.1.0",
         lifespan=lifespan,
-        description="Extractive answering with optional local passage selection. Owner approval is required before publication.",
+        description="Interface-independent knowledge workflows with optional OpenRouter/local passage selection. Owner approval is required before publication.",
     )
+    app.state.mcp = mcp
     app.state.service = service
     app.state.db = db
     app.add_middleware(BoundaryMiddleware, auth=auth, limit=settings.max_request_bytes)
@@ -204,27 +224,27 @@ def create_app(settings: Settings | None = None):
     def extraction_receipt(domain: UUID, ident: UUID, p=Depends(principal)):
         return extraction.receipt(p, str(domain), str(ident))
 
-    @app.get("/health")
+    @app.get("/health", response_model=HealthView)
     def health():
         return {"status": "ok", "version": "0.1.0", "mode": "extractive"}
 
-    @app.get("/v1/domains/{domain}/version")
+    @app.get("/v1/domains/{domain}/version", response_model=VersionView)
     def version(domain: UUID, p=Depends(principal)):
         return service.version(p, str(domain))
 
-    @app.post("/v1/domains/{domain}/sources", status_code=201)
+    @app.post("/v1/domains/{domain}/sources", response_model=SourceSummary, status_code=201)
     def source_create(domain: UUID, data: SourceInput, p=Depends(principal)):
         return service.create_source(p, str(domain), data)
 
-    @app.get("/v1/domains/{domain}/sources/{source_id}")
+    @app.get("/v1/domains/{domain}/sources/{source_id}", response_model=SourceDetail)
     def source_read(domain: UUID, source_id: UUID, p=Depends(principal)):
         return service.source(p, str(domain), str(source_id))
 
-    @app.put("/v1/domains/{domain}/sources/{source_id}/access")
+    @app.put("/v1/domains/{domain}/sources/{source_id}/access", response_model=AccessReceipt)
     def source_access(domain: UUID, source_id: UUID, data: AccessInput, p=Depends(principal)):
         return service.set_access(p, str(domain), str(source_id), data)
 
-    @app.post("/v1/domains/{domain}/sources/{source_id}/propose")
+    @app.post("/v1/domains/{domain}/sources/{source_id}/propose", response_model=ProposalView)
     def source_propose(
         domain: UUID,
         source_id: UUID,
@@ -233,37 +253,39 @@ def create_app(settings: Settings | None = None):
     ):
         return service.ingest_source(p, str(domain), str(source_id), idempotency_key)
 
-    @app.post("/v1/domains/{domain}/proposals", status_code=201)
+    @app.post("/v1/domains/{domain}/proposals", response_model=ProposalView, status_code=201)
     def propose(domain: UUID, data: ProposalInput, p=Depends(principal)):
         return service.propose(p, str(domain), data)
 
-    @app.get("/v1/domains/{domain}/proposals/{proposal_id}")
+    @app.get("/v1/domains/{domain}/proposals/{proposal_id}", response_model=ProposalView)
     def proposal(domain: UUID, proposal_id: UUID, p=Depends(principal)):
         return service.proposal(p, str(domain), str(proposal_id))
 
-    @app.post("/v1/domains/{domain}/proposals/{proposal_id}/approve")
+    @app.post(
+        "/v1/domains/{domain}/proposals/{proposal_id}/approve", response_model=ApprovalReceipt
+    )
     def approve(domain: UUID, proposal_id: UUID, data: ApprovalInput, p=Depends(principal)):
         return service.approve(p, str(domain), str(proposal_id), data)
 
-    @app.post("/v1/domains/{domain}/publish")
+    @app.post("/v1/domains/{domain}/publish", response_model=PublicationReceipt)
     def publish(domain: UUID, p=Depends(principal)):
         return service.publish(p, str(domain))
 
-    @app.post("/v1/domains/{domain}/replay")
+    @app.post("/v1/domains/{domain}/replay", response_model=ReplayReceipt)
     def replay(domain: UUID, p=Depends(principal)):
         return service.replay(p, str(domain))
 
-    @app.post("/v1/domains/{domain}/commits/{sequence}/compensate")
+    @app.post("/v1/domains/{domain}/commits/{sequence}/compensate", response_model=ProposalView)
     def compensate(domain: UUID, sequence: int, data: RollbackInput, p=Depends(principal)):
         if sequence < 1:
             raise CoreError("NOT_FOUND", "Published change not found", 404)
         return service.rollback_proposal(p, str(domain), sequence, data)
 
-    @app.get("/v1/domains/{domain}/concepts")
+    @app.get("/v1/domains/{domain}/concepts", response_model=list[Concept])
     def concepts(domain: UUID, p=Depends(principal)):
         return service.concepts(p, str(domain))
 
-    @app.get("/v1/domains/{domain}/concepts/{concept_id}")
+    @app.get("/v1/domains/{domain}/concepts/{concept_id}", response_model=Concept)
     def concept(domain: UUID, concept_id: UUID, p=Depends(principal)):
         return service.concept(p, str(domain), str(concept_id))
 
@@ -271,17 +293,22 @@ def create_app(settings: Settings | None = None):
     def query(domain: UUID, data: QueryInput, p=Depends(principal)):
         return service.query(p, str(domain), data)
 
-    @app.get("/v1/domains/{domain}/episodes/{episode_id}")
+    @app.get("/v1/domains/{domain}/episodes/{episode_id}", response_model=QueryResult)
     def episode(domain: UUID, episode_id: UUID, p=Depends(principal)):
         return service.episode(p, str(domain), str(episode_id))
 
-    @app.post("/v1/domains/{domain}/episodes/{episode_id}/feedback")
+    @app.post("/v1/domains/{domain}/episodes/{episode_id}/feedback", response_model=FeedbackReceipt)
     def feedback(domain: UUID, episode_id: UUID, data: FeedbackInput, p=Depends(principal)):
         return service.feedback(p, str(domain), str(episode_id), data)
 
-    @app.get("/v1/domains/{domain}/brief")
+    @app.get("/v1/domains/{domain}/brief", response_model=BriefView)
     def brief(domain: UUID, p=Depends(principal)):
         return service.brief(p, str(domain))
 
+    @app.get("/v1/interactions", response_model=InteractionCatalog)
+    def interactions(p=Depends(principal)):
+        return catalog(app.openapi())
+
+    install_openapi(app)
     app.mount("/mcp", mcp_app)
     return app

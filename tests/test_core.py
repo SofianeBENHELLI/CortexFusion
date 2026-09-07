@@ -435,7 +435,26 @@ def test_mcp_requires_identity_and_has_no_approval_tool(world):
     )
     assert r.status_code == 200, r.text
     tools = r.json()["result"]["tools"]
-    assert {t["name"] for t in tools} == {"query", "inspect_concept", "propose", "feedback"}
+    names = {t["name"] for t in tools}
+    assert {
+        "query",
+        "inspect_concept",
+        "propose",
+        "feedback",
+        "my_workspace",
+        "describe_actions",
+        "read_source_chunks",
+        "conversation_query",
+    } <= names
+    assert not names & {
+        "approve",
+        "publish",
+        "replay",
+        "compensate",
+        "source_access",
+        "membership",
+        "extract_source",
+    }
 
 
 def test_mcp_query_uses_authenticated_caller(world):

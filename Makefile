@@ -18,6 +18,7 @@ lint:
 	$(PNPM) typecheck
 
 contracts:
+	$(UV) run python scripts/export_interactions.py --check
 	$(UV) run python scripts/export_contracts.py --check
 	$(PNPM) contracts:check
 

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "published_version": {
+      "title": "Published Version",
+      "type": "integer"
+    },
+    "concept_count": {
+      "title": "Concept Count",
+      "type": "integer"
+    },
+    "state_hash": {
+      "title": "State Hash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "published_version",
+    "concept_count",
+    "state_hash"
+  ],
+  "title": "ReplayReceipt",
+  "type": "object"
+}

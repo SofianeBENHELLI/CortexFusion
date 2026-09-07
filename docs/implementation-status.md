@@ -16,6 +16,8 @@ An opt-in, owner-only [OpenRouter adapter](openrouter.md) or [local passage sele
 
 Registered sources now have deterministic Unicode/UTF-8 bounded chunk pages and extraction can target one span while retaining original-source citations. Personal issue resolution/reopening has revision checks and immutable decision receipts. Shared team triage remains separate.
 
+The [interface-independent interaction protocol](ai-native.md) now documents every HTTP operation, with generated OpenAPI/interaction/MCP artifacts checked in CI. Sixteen MCP tools share the HTTP service layer for discovery, evidence, proposals and personal workflows. This is not yet an autonomous conversational orchestration loop.
+
 ## Relationship to the coding plan
 
 | Planned work | Current state |

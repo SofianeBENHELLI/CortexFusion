@@ -64,3 +64,7 @@ The [corpus API](docs/corpus-api.md) now provides private collections, source li
 The [workspace backend](docs/backend-workspace.md) adds review decisions, private file parsing, recoverable workers, personal conversations and scoped membership administration.
 
 See [OpenRouter configuration](docs/openrouter.md) for the preferred provider. See [optional local extraction](docs/local-extraction.md) for configuration, source boundaries and the synthetic live-model demonstration.
+
+## Interface and agent contracts
+
+See [AI-native interaction protocol](docs/ai-native.md) and the [generated action reference](docs/interaction-reference.md). OpenAPI, the interaction inventory and MCP tool schemas are exported under `packages/contracts/` and checked by CI. The backend exposes 16 MCP tools for discovery, evidence, proposals and personal workflows, with the same service permissions as HTTP. No product frontend or complete model orchestration loop is included.

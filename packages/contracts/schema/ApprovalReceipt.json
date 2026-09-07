@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "sequence": {
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "proposal_id": {
+      "format": "uuid",
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "accepted": {
+      "const": true,
+      "title": "Accepted",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "sequence",
+    "proposal_id",
+    "accepted"
+  ],
+  "title": "ApprovalReceipt",
+  "type": "object"
+}

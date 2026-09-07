@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "source_id": {
+      "format": "uuid",
+      "title": "Source Id",
+      "type": "string"
+    },
+    "allowed_subjects": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed Subjects",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_id",
+    "allowed_subjects"
+  ],
+  "title": "AccessReceipt",
+  "type": "object"
+}

@@ -26,7 +26,17 @@ def files_router(service, principal):
     def detail(domain: UUID, ident: UUID, p=Depends(principal)):
         return service.detail(p, str(domain), str(ident))
 
-    @router.get("/files/{ident}/download")
+    @router.get(
+        "/files/{ident}/download",
+        response_class=Response,
+        responses={
+            200: {
+                "content": {
+                    "application/octet-stream": {"schema": {"type": "string", "format": "binary"}}
+                }
+            }
+        },
+    )
     def download(domain: UUID, ident: UUID, p=Depends(principal)):
         return Response(
             service.download(p, str(domain), str(ident)),
