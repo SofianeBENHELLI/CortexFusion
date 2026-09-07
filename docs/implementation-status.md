@@ -32,6 +32,8 @@ A [reference MCP companion](reference-companion.md) now performs permission-chec
 
 Live synthetic DeepSeek V4 Flash passage selection, cited synthesis and inferred feedback have succeeded. The [synthesis evaluation](../evals/README.md) first met 4/6 lexical scenarios; a versioned v2 prompt met 2/2 separate targeted cases. An ambiguous-comment assessment exceeded its predeclared confidence threshold. These are bounded observations, not a semantic quality or calibrated satisfaction claim.
 
+Sensitive direct HTTP actions now require the same signed trusted-host confirmation as MCP by default. The in-process bridge carries a non-network proof after verification, avoiding double consumption; replay across transports is rejected. An explicit trusted_host HTTP compatibility mode is reserved for controlled hosts and the synthetic invariant fixtures. See the [French frontend guide](frontend-guide.fr.md).
+
 ## Relationship to the coding plan
 
 | Planned work | Current state |

@@ -120,7 +120,7 @@ for line in DEFINITIONS.strip().splitlines():
         "intent_example": intent,
         "confirmation_policy": "explicit_user_decision"
         if effect in {"access", "trusted", "rebuild", "model", "local_model", "review"}
-        or ident == "feedback.configure"
+        or ident in {"feedback.configure", "commits.compensate"}
         else "authorized_user_intent",
         "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
     }
@@ -133,6 +133,7 @@ def install_openapi(app):
         spec = get_openapi(
             title=app.title, version=app.version, description=app.description, routes=app.routes
         )
+        spec["x-cortex-http-confirmation-mode"] = app.state.confirmation_guard.mode
         spec.setdefault("components", {}).setdefault("securitySchemes", {})["BearerAuth"] = {
             "type": "http",
             "scheme": "bearer",
@@ -189,6 +190,42 @@ def install_openapi(app):
                                             "details": {
                                                 "type": "array",
                                                 "items": {"type": "object"},
+                                            },
+                                        },
+                                    }
+                                }
+                            },
+                        }
+                    if meta["confirmation_policy"] == "explicit_user_decision":
+                        operation["responses"]["428"] = {
+                            "description": "Strict HTTP mode requires a signed trusted-host confirmation.",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "required": ["error", "confirmation_request"],
+                                        "properties": {
+                                            "error": {"type": "string"},
+                                            "message": {"type": "string"},
+                                            "confirmation_request": {
+                                                "type": "object",
+                                                "required": [
+                                                    "action",
+                                                    "command_hash",
+                                                    "transport_header",
+                                                    "max_lifetime_seconds",
+                                                ],
+                                                "properties": {
+                                                    "action": {"type": "string"},
+                                                    "command_hash": {
+                                                        "type": "string",
+                                                        "pattern": "^[a-f0-9]{64}$",
+                                                    },
+                                                    "transport_header": {
+                                                        "const": "X-Cortex-Confirmation"
+                                                    },
+                                                    "max_lifetime_seconds": {"const": 300},
+                                                },
                                             },
                                         },
                                     }

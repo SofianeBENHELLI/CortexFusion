@@ -63,6 +63,9 @@ def world(admin, identity_keys):
                 )
     private, public_path = identity_keys
     settings = Settings(
+        # These domain-invariant tests exercise an explicitly trusted HTTP host.
+        # Strict HTTP confirmation behavior has its own signed transport tests.
+        http_confirmation_mode="trusted_host",
         database_url=url,
         jwt_issuer="https://identity.test",
         jwt_audience="cortex-core",

@@ -4179,6 +4179,52 @@
                 }
               }
             }
+          },
+          "428": {
+            "description": "Strict HTTP mode requires a signed trusted-host confirmation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "confirmation_request"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "confirmation_request": {
+                      "type": "object",
+                      "required": [
+                        "action",
+                        "command_hash",
+                        "transport_header",
+                        "max_lifetime_seconds"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "command_hash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "transport_header": {
+                          "const": "X-Cortex-Confirmation"
+                        },
+                        "max_lifetime_seconds": {
+                          "const": 300
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "x-cortex-interaction": {
@@ -11613,6 +11659,52 @@
                 }
               }
             }
+          },
+          "428": {
+            "description": "Strict HTTP mode requires a signed trusted-host confirmation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "confirmation_request"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "confirmation_request": {
+                      "type": "object",
+                      "required": [
+                        "action",
+                        "command_hash",
+                        "transport_header",
+                        "max_lifetime_seconds"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "command_hash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "transport_header": {
+                          "const": "X-Cortex-Confirmation"
+                        },
+                        "max_lifetime_seconds": {
+                          "const": 300
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "x-cortex-interaction": {
@@ -14964,6 +15056,52 @@
                 }
               }
             }
+          },
+          "428": {
+            "description": "Strict HTTP mode requires a signed trusted-host confirmation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "confirmation_request"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "confirmation_request": {
+                      "type": "object",
+                      "required": [
+                        "action",
+                        "command_hash",
+                        "transport_header",
+                        "max_lifetime_seconds"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "command_hash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "transport_header": {
+                          "const": "X-Cortex-Confirmation"
+                        },
+                        "max_lifetime_seconds": {
+                          "const": 300
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "x-cortex-interaction": {
@@ -15869,6 +16007,52 @@
                 }
               }
             }
+          },
+          "428": {
+            "description": "Strict HTTP mode requires a signed trusted-host confirmation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "confirmation_request"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "confirmation_request": {
+                      "type": "object",
+                      "required": [
+                        "action",
+                        "command_hash",
+                        "transport_header",
+                        "max_lifetime_seconds"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "command_hash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "transport_header": {
+                          "const": "X-Cortex-Confirmation"
+                        },
+                        "max_lifetime_seconds": {
+                          "const": 300
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "x-cortex-interaction": {
@@ -16155,6 +16339,52 @@
                       "type": "array",
                       "items": {
                         "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Strict HTTP mode requires a signed trusted-host confirmation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "confirmation_request"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "confirmation_request": {
+                      "type": "object",
+                      "required": [
+                        "action",
+                        "command_hash",
+                        "transport_header",
+                        "max_lifetime_seconds"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "command_hash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "transport_header": {
+                          "const": "X-Cortex-Confirmation"
+                        },
+                        "max_lifetime_seconds": {
+                          "const": 300
+                        }
                       }
                     }
                   }
@@ -17325,6 +17555,52 @@
                 }
               }
             }
+          },
+          "428": {
+            "description": "Strict HTTP mode requires a signed trusted-host confirmation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "confirmation_request"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "confirmation_request": {
+                      "type": "object",
+                      "required": [
+                        "action",
+                        "command_hash",
+                        "transport_header",
+                        "max_lifetime_seconds"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "command_hash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "transport_header": {
+                          "const": "X-Cortex-Confirmation"
+                        },
+                        "max_lifetime_seconds": {
+                          "const": 300
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "x-cortex-interaction": {
@@ -18198,6 +18474,52 @@
                 }
               }
             }
+          },
+          "428": {
+            "description": "Strict HTTP mode requires a signed trusted-host confirmation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "confirmation_request"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "confirmation_request": {
+                      "type": "object",
+                      "required": [
+                        "action",
+                        "command_hash",
+                        "transport_header",
+                        "max_lifetime_seconds"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "command_hash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "transport_header": {
+                          "const": "X-Cortex-Confirmation"
+                        },
+                        "max_lifetime_seconds": {
+                          "const": 300
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "x-cortex-interaction": {
@@ -18470,6 +18792,52 @@
                 }
               }
             }
+          },
+          "428": {
+            "description": "Strict HTTP mode requires a signed trusted-host confirmation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "confirmation_request"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "confirmation_request": {
+                      "type": "object",
+                      "required": [
+                        "action",
+                        "command_hash",
+                        "transport_header",
+                        "max_lifetime_seconds"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "command_hash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "transport_header": {
+                          "const": "X-Cortex-Confirmation"
+                        },
+                        "max_lifetime_seconds": {
+                          "const": 300
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "x-cortex-interaction": {
@@ -18736,6 +19104,52 @@
                       "type": "array",
                       "items": {
                         "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Strict HTTP mode requires a signed trusted-host confirmation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "confirmation_request"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "confirmation_request": {
+                      "type": "object",
+                      "required": [
+                        "action",
+                        "command_hash",
+                        "transport_header",
+                        "max_lifetime_seconds"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "command_hash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "transport_header": {
+                          "const": "X-Cortex-Confirmation"
+                        },
+                        "max_lifetime_seconds": {
+                          "const": 300
+                        }
                       }
                     }
                   }
@@ -19033,6 +19447,52 @@
                 }
               }
             }
+          },
+          "428": {
+            "description": "Strict HTTP mode requires a signed trusted-host confirmation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "confirmation_request"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "confirmation_request": {
+                      "type": "object",
+                      "required": [
+                        "action",
+                        "command_hash",
+                        "transport_header",
+                        "max_lifetime_seconds"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "command_hash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "transport_header": {
+                          "const": "X-Cortex-Confirmation"
+                        },
+                        "max_lifetime_seconds": {
+                          "const": 300
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "x-cortex-interaction": {
@@ -19043,7 +19503,7 @@
           "effect": "proposal",
           "effect_description": "Creates or revises a proposal; does not publish trusted knowledge.",
           "intent_example": "Prépare une proposition compensant ce changement.",
-          "confirmation_policy": "authorized_user_intent",
+          "confirmation_policy": "explicit_user_decision",
           "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access."
         },
         "description": "Prépare une proposition compensant ce changement.\n\nCreates or revises a proposal; does not publish trusted knowledge.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
@@ -24851,5 +25311,6 @@
         "bearerFormat": "JWT"
       }
     }
-  }
+  },
+  "x-cortex-http-confirmation-mode": "required"
 }

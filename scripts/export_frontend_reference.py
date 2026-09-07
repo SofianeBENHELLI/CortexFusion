@@ -118,7 +118,16 @@ def build(spec, inventory, translations, mcp):
         "version": "1",
         "notice": "Catalogue documentaire ; aucune autorisation individuelle n'est accordée.",
         "items": result,
-        "common_error": {"required": ["error"], "optional": ["message", "details"]},
+        "http_confirmation_mode": spec["x-cortex-http-confirmation-mode"],
+        "common_error": {
+            "required": ["error"],
+            "optional": ["message", "details", "confirmation_request"],
+            "confirmation_request": {
+                "required": ["action", "command_hash", "transport_header", "max_lifetime_seconds"],
+                "transport_header": "X-Cortex-Confirmation",
+                "max_lifetime_seconds": 300,
+            },
+        },
         "schemas": spec.get("components", {}).get("schemas", {}),
     }
 
@@ -145,10 +154,10 @@ def render(document):
         "propriété des objets personnels restent contrôlés par le serveur.",
         "- Sur les routes protégées, envoyer `Authorization: Bearer …` et `X-Tenant-ID`. "
         "Le jeton provient de l'hôte authentifié, jamais d'un modèle.",
-        "- Dans MCP, les actions sensibles requièrent `X-Cortex-Confirmation` émis par l'hôte "
-        "signataire pour la commande exacte. Les routes HTTP métier directes contrôlent les rôles "
-        "et préconditions mais ne vérifient pas actuellement cette attestation MCP. Le serveur "
-        "du frontend doit recueillir les décisions explicites ; voir le guide d'intégration.",
+        "- Les actions sensibles requièrent `X-Cortex-Confirmation` en MCP et en HTTP direct "
+        "par défaut (`CORTEX_HTTP_CONFIRMATION_MODE=required`). Le mode HTTP `trusted_host` "
+        "est une compatibilité explicite réservée à un hôte qui recueille les décisions ; "
+        "il ne désactive jamais les confirmations MCP.",
         "- Pour une reprise, conserver la clé d'idempotence uniquement si le schéma ou les "
         "paramètres la prévoient. Sans clé, ne pas répéter aveuglément une écriture.",
         "- Les réponses d'erreur sont `{error, message?, details?}`. Les statuts ci-dessous "
@@ -180,13 +189,13 @@ def render(document):
             "",
             f"- HTTP : `{item['method']} {item['path']}`.",
             f"- MCP : `{item['mcp_tool']}` ; arguments structurés `path`, `query`, "
-            "`body` et éventuellement `headers` selon `mcp-tools.json`. "
+            "`body` et éventuellement `header` selon `mcp-tools.json`. "
             "Authentification et confirmation sont ajoutées par le transport de l'hôte.",
             f"- Rôles préalables : {', '.join(item['roles']) or 'public'}.",
             f"- Effet : {item['effect_fr']}",
             "- Décision : "
             + (
-                "accord explicite ; confirmation signée imposée par le pont MCP."
+                "accord explicite ; confirmation signée en MCP et HTTP strict."
                 if item["mcp_confirmation_required"]
                 else "intention utilisateur autorisée ; aucune élévation de rôle implicite."
             ),

@@ -50,6 +50,7 @@ def main():
             )
         )
         settings = Settings(
+            http_confirmation_mode="trusted_host",  # Synthetic controlled-host demonstration.
             database_url=app_url,
             jwt_issuer="https://demo.cortex.invalid",
             jwt_audience="cortex-core",

@@ -1423,6 +1423,9 @@
         },
         "503": {
           "error_contract": "common_error"
+        },
+        "428": {
+          "error_contract": "common_error"
         }
       }
     },
@@ -3915,6 +3918,9 @@
         },
         "503": {
           "error_contract": "common_error"
+        },
+        "428": {
+          "error_contract": "common_error"
         }
       }
     },
@@ -5085,6 +5091,9 @@
         },
         "503": {
           "error_contract": "common_error"
+        },
+        "428": {
+          "error_contract": "common_error"
         }
       }
     },
@@ -5399,6 +5408,9 @@
         },
         "503": {
           "error_contract": "common_error"
+        },
+        "428": {
+          "error_contract": "common_error"
         }
       }
     },
@@ -5494,6 +5506,9 @@
           "error_contract": "common_error"
         },
         "503": {
+          "error_contract": "common_error"
+        },
+        "428": {
           "error_contract": "common_error"
         }
       }
@@ -5881,6 +5896,9 @@
         },
         "503": {
           "error_contract": "common_error"
+        },
+        "428": {
+          "error_contract": "common_error"
         }
       }
     },
@@ -6168,6 +6186,9 @@
         },
         "503": {
           "error_contract": "common_error"
+        },
+        "428": {
+          "error_contract": "common_error"
         }
       }
     },
@@ -6244,6 +6265,9 @@
           "error_contract": "common_error"
         },
         "503": {
+          "error_contract": "common_error"
+        },
+        "428": {
           "error_contract": "common_error"
         }
       }
@@ -6322,6 +6346,9 @@
         },
         "503": {
           "error_contract": "common_error"
+        },
+        "428": {
+          "error_contract": "common_error"
         }
       }
     },
@@ -6333,7 +6360,7 @@
       "effect": "proposal",
       "effect_description": "Creates or revises a proposal; does not publish trusted knowledge.",
       "intent_example": "Prépare une proposition compensant ce changement.",
-      "confirmation_policy": "authorized_user_intent",
+      "confirmation_policy": "explicit_user_decision",
       "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
       "method": "POST",
       "path": "/v1/domains/{domain}/commits/{sequence}/compensate",
@@ -6416,6 +6443,9 @@
           "error_contract": "common_error"
         },
         "503": {
+          "error_contract": "common_error"
+        },
+        "428": {
           "error_contract": "common_error"
         }
       }
@@ -7026,14 +7056,26 @@
       }
     }
   ],
+  "http_confirmation_mode": "required",
   "common_error": {
     "required": [
       "error"
     ],
     "optional": [
       "message",
-      "details"
-    ]
+      "details",
+      "confirmation_request"
+    ],
+    "confirmation_request": {
+      "required": [
+        "action",
+        "command_hash",
+        "transport_header",
+        "max_lifetime_seconds"
+      ],
+      "transport_header": "X-Cortex-Confirmation",
+      "max_lifetime_seconds": 300
+    }
   },
   "schemas": {
     "AccessInput": {

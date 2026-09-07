@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 from cortex_core.api import create_app
 from cortex_core.auth import CoreError
+from cortex_core.confirmations import sign_confirmed_action
 from cortex_core.openrouter_model import OpenRouterPassageModel
 from cortex_core.settings import Settings
 from fastapi.testclient import TestClient
@@ -132,25 +133,46 @@ def test_api_destination_and_receipt(world, identity_keys, monkeypatch):
         jwt_public_key_file=identity_keys[1],
         openrouter_model="synthetic/model",
         openrouter_api_key=SecretStr("synthetic-secret"),
+        confirmation_public_key_file=identity_keys[1],
     )
     source = world.source(content="Exact passage.")
+
+    def confirmed(action, body):
+        arguments = {"path": {"domain": world.domain, "source_id": source["id"]}, "body": body}
+        return {
+            **world.headers(),
+            "X-Cortex-Confirmation": sign_confirmed_action(
+                identity_keys[0], "alice", world.tenant, action, arguments
+            ),
+        }
+
     with TestClient(create_app(settings)) as client:
         path = world.prefix + f"/sources/{source['id']}"
+        local_body = {"allow_local_processing": True, "idempotency_key": str(uuid4())}
         assert (
             client.post(
                 path + "/extract-local",
-                headers=world.headers(),
-                json={"allow_local_processing": True, "idempotency_key": str(uuid4())},
+                headers=confirmed("sources.extract_local", local_body),
+                json=local_body,
             ).status_code
             == 422
         )
         assert calls == []
         body = {"processing_destination": "openrouter", "idempotency_key": str(uuid4())}
-        first = client.post(path + "/extract", headers=world.headers(), json=body)
+        assert client.post(path + "/extract", headers=world.headers(), json=body).status_code == 428
+        assert calls == []
+        first = client.post(
+            path + "/extract", headers=confirmed("sources.extract", body), json=body
+        )
         assert first.status_code == 201, first.text
         receipt = first.json()
         assert receipt["provider"] == "openrouter" and receipt["input_tokens"] is None
-        assert client.post(path + "/extract", headers=world.headers(), json=body).json() == receipt
+        assert (
+            client.post(
+                path + "/extract", headers=confirmed("sources.extract", body), json=body
+            ).json()
+            == receipt
+        )
         assert len(calls) == 1
         assert (
             client.get(

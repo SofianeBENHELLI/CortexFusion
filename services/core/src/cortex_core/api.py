@@ -47,6 +47,7 @@ from .files import FileService
 from .files_api import files_router
 from .governance import GovernanceService
 from .governance_api import governance_router
+from .http_confirmations import HTTPConfirmationGuard
 from .interactions import catalog, install_openapi
 from .issues import IssueService
 from .issues_api import issues_router
@@ -111,6 +112,7 @@ def create_app(settings: Settings | None = None):
     settings = settings or Settings()
     db = Database(settings.database_url)
     auth = Authenticator(settings)
+    confirmation_guard = HTTPConfirmationGuard(settings, auth, db)
     service = KnowledgeService(db)
     model_adapter = None
     if (
@@ -146,11 +148,13 @@ def create_app(settings: Settings | None = None):
         title="Cortex Fusion Knowledge Core",
         version="0.1.0",
         lifespan=lifespan,
+        dependencies=[Depends(confirmation_guard)],
         description="Interface-independent knowledge workflows with optional OpenRouter/local passage selection. Owner approval is required before publication.",
     )
     app.state.mcp = mcp
     app.state.service = service
     app.state.db = db
+    app.state.confirmation_guard = confirmation_guard
     app.add_middleware(
         BoundaryMiddleware,
         auth=auth,
@@ -161,7 +165,15 @@ def create_app(settings: Settings | None = None):
     @app.exception_handler(CoreError)
     async def core_error(request, exc):
         return JSONResponse(
-            {"error": exc.code, "message": exc.message},
+            {
+                "error": exc.code,
+                "message": exc.message,
+                **(
+                    {"confirmation_request": exc.confirmation_request}
+                    if hasattr(exc, "confirmation_request")
+                    else {}
+                ),
+            },
             status_code=exc.status,
             headers={"WWW-Authenticate": "Bearer"} if exc.status == 401 else {},
         )

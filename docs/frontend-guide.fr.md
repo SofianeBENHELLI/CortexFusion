@@ -52,9 +52,30 @@ La matrice précise est celle de chaque endpoint, pas une hiérarchie implicite 
 
 Chaque appel protégé comporte `Authorization: Bearer <jeton>` et `X-Tenant-ID: <uuid>`. Le domaine est dans le chemin. Appeler `GET /v1/me` après connexion ; choisir un domaine parmi ceux retournés. Un lien partagé vers une proposition ne donne aucun accès supplémentaire.
 
-**Distinction actuelle à intégrer :** le pont MCP exige une attestation `X-Cortex-Confirmation` pour les actions sensibles, liée à la commande exacte, au sujet et au tenant, valide au maximum cinq minutes et à usage unique. Les routes HTTP métier directes appliquent les rôles et préconditions mais ne consomment pas actuellement cette attestation MCP. Un serveur d'interface qui utilise HTTP doit recueillir lui-même la décision explicite ; il ne faut pas documenter ce contrôle comme déjà imposé aux routes directes. Cette différence est un point d'audit backend prioritaire.
+**Contrôle des décisions sensibles :** MCP et les routes HTTP directes exigent par défaut une attestation `X-Cortex-Confirmation`, liée à la commande exacte, au sujet et au tenant, valide au maximum cinq minutes et à usage unique. Configurer `CORTEX_CONFIRMATION_PUBLIC_KEY_FILE` et conserver `CORTEX_HTTP_CONFIRMATION_MODE=required`. Sans clé de vérification ou sans attestation, une commande sensible autorisée par le rôle reçoit 428 ; les consultations restent utilisables.
 
-La clé privée de confirmation, les clés OpenRouter et les secrets d'IdP restent côté serveur. Ils ne doivent jamais être inclus dans les variables publiques de build Vite, le navigateur ou les arguments d'un modèle. L'hôte de confiance prépare la confirmation MCP après avoir recueilli le choix sur les paramètres exacts.
+Le mode explicite `CORTEX_HTTP_CONFIRMATION_MODE=trusted_host` préserve l'ancien fonctionnement HTTP pour un serveur de confiance qui recueille lui-même la décision. Il ne convient pas à une API directement exposée aux commandes d'un modèle ou d'un navigateur privilégié. Il ne désactive jamais les confirmations MCP. Les fixtures métier et démonstrations synthétiques l'utilisent explicitement ; les tests de transport vérifient le mode strict. Le mode effectif est publié dans `x-cortex-http-confirmation-mode` de l'OpenAPI.
+
+Le pont MCP transmet une preuve en mémoire après vérification pour éviter une seconde consommation au passage HTTP interne. Aucun en-tête de contournement n'est accepté depuis le réseau. Une confirmation utilisée reste consommée même si une précondition métier échoue ensuite : relire l'état avant une nouvelle décision, conserver la clé métier si l'intention est la même.
+
+La clé privée de confirmation, les clés OpenRouter et les secrets d'IdP restent côté serveur. Ils ne doivent jamais être inclus dans les variables publiques de build Vite, le navigateur ou les arguments d'un modèle. L'hôte de confiance prépare la confirmation HTTP/MCP après avoir recueilli le choix sur les paramètres exacts.
+
+### Préparer une confirmation depuis le serveur de l'interface
+
+Pour HTTP direct, la forme signée est celle de l'outil MCP généré : `path`, corps JSON `body` si présent et en-têtes métier `header` si déclarés. Ne pas inclure les jetons de transport ni ajouter les valeurs par défaut absentes du corps envoyé. Les paramètres non déclarés sont refusés en mode strict.
+
+Exemple de commande de publication :
+
+```json
+{
+  "action": "domain.publish",
+  "arguments": {"path": {"domain": "UUID_DU_DOMAINE"}}
+}
+```
+
+L'hôte recueille la décision sur cette commande, puis utilise le helper serveur `sign_confirmed_action` de `cortex_core.confirmations` ou reproduit le contrat documenté dans [les confirmations MCP](mcp-exhaustive.md). Le hash utilise SHA-256 du JSON UTF-8, clés triées récursivement, séparateurs sans espaces et Unicode non échappé. La première réponse 428 fournit aussi `confirmation_request.command_hash`, sans le texte privé de la commande. Un champ `confirmed: true` n'est jamais une autorisation suffisante.
+
+La réponse de préparation ne signe rien. Le navigateur ne doit pas posséder la clé privée. Une intégration JavaScript côté serveur doit vérifier sa sérialisation contre le helper et éviter de changer les nombres ou les champs après la décision.
 
 ## Intégration React, TanStack Query et navigation
 
@@ -169,7 +190,7 @@ L'historique de membership, les revues, le journal canonique et les événements
 | 409 | Relire l'objet ; distinguer révision périmée, clé réutilisée avec autre contenu, état incompatible ou tentative IA déjà réservée |
 | 413 | Réduire la taille ; vérifier octets et taille base64 avant nouvel envoi |
 | 422 | Corriger les paramètres ou traiter une preuve/sortie invalide ; conserver les codes pour diagnostic |
-| 428 dans MCP | Préparer la confirmation exacte côté hôte, puis recueillir la décision |
+| 428 | Préparer la confirmation exacte côté hôte, puis recueillir la décision |
 | 429 | Attendre la remise à disposition du quota ; ne pas contourner avec de nouvelles clés |
 | 503 / réseau interrompu | État incertain ; relire le reçu/version, ne pas afficher réussite ou relancer une génération aveuglément |
 

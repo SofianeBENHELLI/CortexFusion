@@ -72,6 +72,7 @@ async def run(args, public_key, private_key):
             )
     engine.dispose()
     settings = Settings(
+        http_confirmation_mode="trusted_host",  # Ephemeral synthetic owner bootstrap only.
         database_url=app_url,
         jwt_issuer="https://companion-demo.invalid",
         jwt_public_key_file=public_key,

@@ -10,7 +10,7 @@ Couverture : **73 opérations HTTP**, chacune liée à son outil MCP généré. 
 
 - Les rôles listés sont des prérequis ; tenant, domaine, droits sur les preuves et propriété des objets personnels restent contrôlés par le serveur.
 - Sur les routes protégées, envoyer `Authorization: Bearer …` et `X-Tenant-ID`. Le jeton provient de l'hôte authentifié, jamais d'un modèle.
-- Dans MCP, les actions sensibles requièrent `X-Cortex-Confirmation` émis par l'hôte signataire pour la commande exacte. Les routes HTTP métier directes contrôlent les rôles et préconditions mais ne vérifient pas actuellement cette attestation MCP. Le serveur du frontend doit recueillir les décisions explicites ; voir le guide d'intégration.
+- Les actions sensibles requièrent `X-Cortex-Confirmation` en MCP et en HTTP direct par défaut (`CORTEX_HTTP_CONFIRMATION_MODE=required`). Le mode HTTP `trusted_host` est une compatibilité explicite réservée à un hôte qui recueille les décisions ; il ne désactive jamais les confirmations MCP.
 - Pour une reprise, conserver la clé d'idempotence uniquement si le schéma ou les paramètres la prévoient. Sans clé, ne pas répéter aveuglément une écriture.
 - Les réponses d'erreur sont `{error, message?, details?}`. Les statuts ci-dessous sont le contrat déclaré commun, pas la preuve que chaque erreur est atteignable sur chaque route.
 - Les champs absents et `null` sont distincts. Les bornes et champs requis sont repris du schéma ; des règles métier supplémentaires sont contrôlées à l'exécution.
@@ -101,7 +101,7 @@ Retourne les métadonnées de la ressource protégée MCP et le fournisseur d'id
 **Utilisation frontend :** Préparer l'authentification du compagnon ; cette route ne connecte pas l'utilisateur et ne délivre aucun jeton.
 
 - HTTP : `GET /.well-known/oauth-protected-resource`.
-- MCP : `api_system_mcp_discovery` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_system_mcp_discovery` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : public.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -124,7 +124,7 @@ Conserve la réponse finale délivrée par un compagnon, séparément de la rép
 **Utilisation frontend :** N'envoyer que la réponse réellement délivrée et ses références contrôlables ; le serveur ne certifie pas l'implication sémantique de chaque phrase.
 
 - HTTP : `POST /v1/domains/{domain}/episodes/{episode_id}/companion-responses`.
-- MCP : `api_responses_create` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_responses_create` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Écriture personnelle ou ajout à un historique personnel.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -151,7 +151,7 @@ Relit une réponse de compagnon et son rattachement à l'épisode, avec contrôl
 **Utilisation frontend :** Utiliser le response_id pour un vote ou commentaire précis ; ne pas confondre plusieurs réponses produites pour un même épisode.
 
 - HTTP : `GET /v1/domains/{domain}/companion-responses/{response_id}`.
-- MCP : `api_responses_read` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_responses_read` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -178,7 +178,7 @@ Liste les réponses personnelles conservées des companions selon les filtres du
 **Utilisation frontend :** Utiliser pour retrouver la formulation réellement lue par l'utilisateur, distincte du résultat brut de recherche.
 
 - HTTP : `GET /v1/domains/{domain}/companion-responses`.
-- MCP : `api_responses_list` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_responses_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -207,7 +207,7 @@ Liste les tentatives d'extraction du demandeur avec réservations et résultats 
 **Utilisation frontend :** Diagnostiquer une incertitude sans appeler de nouveau le fournisseur ; ce registre ne couvre pas automatiquement tous les appels d'un compagnon externe.
 
 - HTTP : `GET /v1/domains/{domain}/model-attempts`.
-- MCP : `api_models_attempts` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_models_attempts` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -235,7 +235,7 @@ Lit une tentative d'extraction précise et son état enregistré.
 **Utilisation frontend :** Une tentative sans résultat durable peut être inconnue, pas gratuite ni forcément non exécutée.
 
 - HTTP : `GET /v1/domains/{domain}/model-attempts/{attempt_id}`.
-- MCP : `api_models_attempt` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_models_attempt` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -262,7 +262,7 @@ Retourne l'usage du quota journalier de tentatives partagé par le domaine.
 **Utilisation frontend :** Présenter un nombre de tentatives, pas un montant facturé. Le budget privé du compagnon et la limite de clé fournisseur sont des mécanismes distincts.
 
 - HTTP : `GET /v1/domains/{domain}/model-usage`.
-- MCP : `api_models_usage` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_models_usage` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -288,7 +288,7 @@ Crée une conversation personnelle dans un domaine avec une clé d'idempotence.
 **Utilisation frontend :** Conserver son ID pour les questions suivantes ; une conversation n'est pas partagée automatiquement avec les administrateurs.
 
 - HTTP : `POST /v1/domains/{domain}/conversations`.
-- MCP : `api_conversations_create` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_conversations_create` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Écriture personnelle ou ajout à un historique personnel.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -314,7 +314,7 @@ Liste les conversations personnelles selon leur état et la pagination demandée
 **Utilisation frontend :** Utiliser pour la navigation dans l'historique ; ne pas partager le cache entre identités ou tenants.
 
 - HTTP : `GET /v1/domains/{domain}/conversations`.
-- MCP : `api_conversations_list` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_conversations_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -343,7 +343,7 @@ Lit les métadonnées actuelles d'une conversation personnelle.
 **Utilisation frontend :** Vérifier son état avant une modification ou une nouvelle question.
 
 - HTTP : `GET /v1/domains/{domain}/conversations/{ident}`.
-- MCP : `api_conversations_read` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_conversations_read` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -370,7 +370,7 @@ Met à jour les propriétés autorisées de la conversation, notamment son titre
 **Utilisation frontend :** En cas de conflit, relire la conversation avant de proposer une nouvelle modification. Archiver ne supprime pas l'historique.
 
 - HTTP : `PUT /v1/domains/{domain}/conversations/{ident}`.
-- MCP : `api_conversations_update` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_conversations_update` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Écriture personnelle ou ajout à un historique personnel.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -397,7 +397,7 @@ Retourne une page de l'historique personnel de conversation à partir d'une posi
 **Utilisation frontend :** Respecter l'ordre et le curseur renvoyés. Les réponses de compagnon peuvent nécessiter leur lecture dédiée ; ce n'est pas une mémoire automatiquement envoyée au modèle.
 
 - HTTP : `GET /v1/domains/{domain}/conversations/{ident}/messages`.
-- MCP : `api_conversations_messages` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_conversations_messages` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -426,7 +426,7 @@ Pose une question dans une conversation et crée son épisode avec une clé de r
 **Utilisation frontend :** Conserver la même clé après timeout. Le résultat reste une recherche extractive ; la synthèse citée est aujourd'hui un parcours compagnon séparé.
 
 - HTTP : `POST /v1/domains/{domain}/conversations/{ident}/query`.
-- MCP : `api_conversations_query` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_conversations_query` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Recherche avec création d'un épisode personnel.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -453,7 +453,7 @@ Liste les membres et rôles d'un domaine sous l'autorité de son propriétaire.
 **Utilisation frontend :** Utiliser pour l'administration du domaine ; cette API n'est pas un annuaire d'entreprise global.
 
 - HTTP : `GET /v1/domains/{domain}/members`.
-- MCP : `api_members_list` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_members_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -481,10 +481,10 @@ Ajoute, modifie ou retire un membre selon les opérations et contraintes du cont
 **Utilisation frontend :** Présenter l'identité et le rôle exacts, recueillir une confirmation signée. La révocation bloque les appels ultérieurs sans supprimer l'historique.
 
 - HTTP : `POST /v1/domains/{domain}/members`.
-- MCP : `api_members_change` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_members_change` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Modification des accès ; révocation potentiellement immédiate.
-- Décision : accord explicite ; confirmation signée imposée par le pont MCP.
+- Décision : accord explicite ; confirmation signée en MCP et HTTP strict.
 
 ### Paramètres
 
@@ -497,7 +497,7 @@ Ajoute, modifie ou retire un membre selon les opérations et contraintes du cont
 
 - Corps requis `application/json` : [MembershipInput](#schema-membershipinput).
 - Succès HTTP 201, `application/json` : [MembershipReceipt](#schema-membershipreceipt).
-- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503, 428.
 
 <a id="action-members-history"></a>
 ## members.history
@@ -507,7 +507,7 @@ Liste les événements de modification d'appartenance au domaine.
 **Utilisation frontend :** Utiliser pour l'audit administratif ; ne pas transformer l'historique en droit actuel.
 
 - HTTP : `GET /v1/domains/{domain}/membership-events`.
-- MCP : `api_members_history` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_members_history` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -535,7 +535,7 @@ Liste le journal des changements accepté par le domaine selon le périmètre de
 **Utilisation frontend :** Distinguer la position du journal de la position effectivement publiée avec domain.version.
 
 - HTTP : `GET /v1/domains/{domain}/commits`.
-- MCP : `api_commits_list` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_commits_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -563,7 +563,7 @@ Compare les changements proposés à la projection publiée disponible.
 **Utilisation frontend :** Présenter ajouts, modifications et suppressions proposés avec les preuves ; une différence affichée n'est pas un changement publié.
 
 - HTTP : `GET /v1/domains/{domain}/proposals/{ident}/diff`.
-- MCP : `api_proposals_diff` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_proposals_diff` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -590,7 +590,7 @@ Retourne des passages déterministes bornés d'une source avec leurs positions d
 **Utilisation frontend :** Utiliser les offsets renvoyés pour les preuves. Les positions comptent les points de code Unicode, pas les unités UTF-16 JavaScript.
 
 - HTTP : `GET /v1/domains/{domain}/sources/{source_id}/chunks`.
-- MCP : `api_sources_chunks` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_sources_chunks` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -619,7 +619,7 @@ Crée une collection privée de sources avec ses lecteurs autorisés. Elle organ
 **Utilisation frontend :** Recueillir le nom et les lecteurs, garder l'identifiant retourné pour les imports texte et fichiers.
 
 - HTTP : `POST /v1/domains/{domain}/collections`.
-- MCP : `api_collections_create` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_collections_create` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager.
 - Effet : Enregistrement ou traitement de corpus ; aucune publication automatique.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -645,7 +645,7 @@ Liste les collections visibles dans le domaine selon les droits actuels du deman
 **Utilisation frontend :** Utiliser les paramètres de pagination déclarés ; ne pas reconstruire une liste globale depuis des caches d'autres utilisateurs.
 
 - HTTP : `GET /v1/domains/{domain}/collections`.
-- MCP : `api_collections_list` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_collections_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -674,7 +674,7 @@ Retourne les propriétés d'une collection accessible. Les collections sont immu
 **Utilisation frontend :** Afficher la portée et les lecteurs ; aucune route de renommage, partage dynamique ou suppression de collection n'est actuellement proposée.
 
 - HTTP : `GET /v1/domains/{domain}/collections/{collection_id}`.
-- MCP : `api_collections_read` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_collections_read` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -701,7 +701,7 @@ Recherche et liste les sources accessibles, avec les filtres et curseurs du cont
 **Utilisation frontend :** Utiliser pour le corpus manager ou la sélection de preuves. Une page vide peut être normale après filtrage par droits.
 
 - HTTP : `GET /v1/domains/{domain}/sources`.
-- MCP : `api_sources_list` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_sources_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -731,7 +731,7 @@ Enregistre une source textuelle immuable avec provenance et lecteurs. Une source
 **Utilisation frontend :** Conserver l'identifiant et l'empreinte ; proposer ensuite un passage via sources.propose ou une proposition typée.
 
 - HTTP : `POST /v1/domains/{domain}/sources`.
-- MCP : `api_sources_create` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_sources_create` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager.
 - Effet : Enregistrement ou traitement de corpus ; aucune publication automatique.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -757,7 +757,7 @@ Enregistre un lot persistant de textes dans une collection. Le reçu décrit les
 **Utilisation frontend :** Conserver la clé et le reçu. Les éléments texte/Markdown et les fichiers binaires utilisent des parcours distincts.
 
 - HTTP : `POST /v1/domains/{domain}/collections/{collection_id}/imports`.
-- MCP : `api_imports_create` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_imports_create` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager.
 - Effet : Enregistrement ou traitement de corpus ; aucune publication automatique.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -784,7 +784,7 @@ Liste les lots d'import visibles et leurs états synthétiques.
 **Utilisation frontend :** Présenter les lots du périmètre accessible et poursuivre la pagination avec les curseurs fournis.
 
 - HTTP : `GET /v1/domains/{domain}/imports`.
-- MCP : `api_imports_list` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_imports_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -812,7 +812,7 @@ Retourne le reçu du lot et les résultats de ses éléments : état, source cr�
 **Utilisation frontend :** Examiner chaque élément : partial peut contenir encore du travail en attente et n'est pas toujours un état terminal.
 
 - HTTP : `GET /v1/domains/{domain}/imports/{import_id}`.
-- MCP : `api_imports_read` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_imports_read` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -839,7 +839,7 @@ Traite un nombre borné d'éléments en attente. L'enregistrement d'une source e
 **Utilisation frontend :** Faire progresser explicitement le lot tant qu'il reste du travail. Fermer le navigateur n'exécute pas les éléments restants en arrière-plan.
 
 - HTTP : `POST /v1/domains/{domain}/imports/{import_id}/process`.
-- MCP : `api_imports_process` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_imports_process` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager.
 - Effet : Enregistrement ou traitement de corpus ; aucune publication automatique.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -867,7 +867,7 @@ Annule les éléments encore en attente sans supprimer les sources déjà créé
 **Utilisation frontend :** Relire le reçu et afficher séparément réussites conservées et éléments annulés.
 
 - HTTP : `POST /v1/domains/{domain}/imports/{import_id}/cancel`.
-- MCP : `api_imports_cancel` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_imports_cancel` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager.
 - Effet : Enregistrement ou traitement de corpus ; aucune publication automatique.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -894,7 +894,7 @@ Replace les éléments en échec dans la file du même lot ; les sources déjà 
 **Utilisation frontend :** Une relance ne corrige pas le contenu ou le format. Pour des données corrigées, créer un nouveau lot avec une nouvelle clé.
 
 - HTTP : `POST /v1/domains/{domain}/imports/{import_id}/retry`.
-- MCP : `api_imports_retry` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_imports_retry` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager.
 - Effet : Enregistrement ou traitement de corpus ; aucune publication automatique.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -921,7 +921,7 @@ Dépose un fichier binaire encodé en base64 dans un corps JSON, avec métadonn�
 **Utilisation frontend :** Ne pas envoyer de multipart sur cette route. Respecter les tailles du contrat et lire le reçu avant de lancer ou suivre le traitement.
 
 - HTTP : `POST /v1/domains/{domain}/collections/{collection}/files`.
-- MCP : `api_files_upload` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_files_upload` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager.
 - Effet : Enregistrement ou traitement de corpus ; aucune publication automatique.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -948,7 +948,7 @@ Liste les fichiers visibles, éventuellement ceux à traiter selon le filtre dem
 **Utilisation frontend :** Utiliser pour une file corpus ; un filtre pending n'accorde aucun droit supplémentaire.
 
 - HTTP : `GET /v1/domains/{domain}/files`.
-- MCP : `api_files_list` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_files_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -977,7 +977,7 @@ Lit le reçu de traitement d'un fichier, son état, les erreurs éventuelles et 
 **Utilisation frontend :** Faire un suivi borné avec temporisation ; distinguer réception, analyse, source enregistrée puis proposition/publication.
 
 - HTTP : `GET /v1/domains/{domain}/files/{ident}`.
-- MCP : `api_files_read` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_files_read` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1004,7 +1004,7 @@ Retourne les octets du fichier original après contrôle d'accès, avec une rép
 **Utilisation frontend :** Utiliser fetch authentifié puis un Blob. Ce n'est pas une réponse JSON ; libérer l'URL temporaire du Blob après usage.
 
 - HTTP : `GET /v1/domains/{domain}/files/{ident}/download`.
-- MCP : `api_files_download` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_files_download` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1031,7 +1031,7 @@ Déclenche l'analyse bornée du fichier autorisé et enregistre le texte extrait
 **Utilisation frontend :** Inspecter le reçu ; PDF/DOCX/textes bornés seulement, pas de promesse OCR ou fidélité complète de mise en page.
 
 - HTTP : `POST /v1/domains/{domain}/files/{ident}/process`.
-- MCP : `api_files_process` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_files_process` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager.
 - Effet : Enregistrement ou traitement de corpus ; aucune publication automatique.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1058,7 +1058,7 @@ Reprogramme un traitement de fichier en échec lorsque son état autorise une re
 **Utilisation frontend :** Relire l'état après la commande ; corriger un fichier nécessite un nouveau dépôt, pas une modification silencieuse de l'original.
 
 - HTTP : `POST /v1/domains/{domain}/files/{ident}/retry`.
-- MCP : `api_files_retry` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_files_retry` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager.
 - Effet : Enregistrement ou traitement de corpus ; aucune publication automatique.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1085,7 +1085,7 @@ Demande l'annulation selon l'état de traitement autorisé, sans effacer les ré
 **Utilisation frontend :** Gérer un conflit si l'état a changé pendant la décision et afficher le reçu réel.
 
 - HTTP : `POST /v1/domains/{domain}/files/{ident}/cancel`.
-- MCP : `api_files_cancel` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_files_cancel` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager.
 - Effet : Enregistrement ou traitement de corpus ; aucune publication automatique.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1112,7 +1112,7 @@ Agrège les signaux personnels dans une fenêtre bornée, éventuellement limit�
 **Utilisation frontend :** Afficher séparément votes, effort observé et sentiment inféré. L'absence de signal n'est pas une preuve de satisfaction ; respecter les limites de fenêtre.
 
 - HTTP : `GET /v1/domains/{domain}/feedback-summary`.
-- MCP : `api_feedback_summary` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_feedback_summary` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1142,7 +1142,7 @@ Lit le consentement personnel aux événements observés et inférés, désactiv
 **Utilisation frontend :** Vérifier avant de collecter automatiquement des itérations, abandons ou estimations de satisfaction.
 
 - HTTP : `GET /v1/domains/{domain}/feedback-preferences`.
-- MCP : `api_feedback_preferences` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_feedback_preferences` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1168,10 +1168,10 @@ Modifie les préférences personnelles de collecte après décision explicite, s
 **Utilisation frontend :** Expliquer séparément observation et inférence. Un refus désactive les nouvelles remontées ; ce n'est pas une suppression de l'historique déjà enregistré.
 
 - HTTP : `PUT /v1/domains/{domain}/feedback-preferences`.
-- MCP : `api_feedback_configure` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_feedback_configure` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Écriture personnelle ou ajout à un historique personnel.
-- Décision : accord explicite ; confirmation signée imposée par le pont MCP.
+- Décision : accord explicite ; confirmation signée en MCP et HTTP strict.
 
 ### Paramètres
 
@@ -1184,7 +1184,7 @@ Modifie les préférences personnelles de collecte après décision explicite, s
 
 - Corps requis `application/json` : [FeedbackPreferencesInput](#schema-feedbackpreferencesinput).
 - Succès HTTP 200, `application/json` : [FeedbackPreferences](#schema-feedbackpreferences).
-- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503, 428.
 
 <a id="action-feedback-record_signal"></a>
 ## feedback.record_signal
@@ -1194,7 +1194,7 @@ Ajoute un signal immuable à un épisode et éventuellement à la réponse exact
 **Utilisation frontend :** Renseigner l'origine réelle. Un pouce bas explicite peut ouvrir un signalement personnel ; une estimation ne devient jamais un vote ni une modification canonique.
 
 - HTTP : `POST /v1/domains/{domain}/episodes/{episode_id}/signals`.
-- MCP : `api_feedback_record_signal` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_feedback_record_signal` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Écriture personnelle ou ajout à un historique personnel.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1221,7 +1221,7 @@ Liste les signaux personnels accessibles avec leur origine et leur cible.
 **Utilisation frontend :** Conserver la distinction entre ce que l'utilisateur a dit, ce que l'hôte a observé et ce qu'un modèle a estimé.
 
 - HTTP : `GET /v1/domains/{domain}/feedback-signals`.
-- MCP : `api_feedback_signals` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_feedback_signals` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1250,7 +1250,7 @@ Liste les signalements personnels visibles, notamment les manques de connaissanc
 **Utilisation frontend :** Permettre un suivi personnel ; aucune file de triage partagée de toute l'entreprise n'est fournie par cette route.
 
 - HTTP : `GET /v1/domains/{domain}/issues`.
-- MCP : `api_issues_list` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_issues_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1279,7 +1279,7 @@ Lit un signalement personnel, son état et sa révision.
 **Utilisation frontend :** Récupérer la révision avant de prendre une décision de résolution ou réouverture.
 
 - HTTP : `GET /v1/domains/{domain}/issues/{ident}`.
-- MCP : `api_issues_read` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_issues_read` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1306,7 +1306,7 @@ Retourne les décisions immuables prises sur un signalement personnel.
 **Utilisation frontend :** Expliquer qui a déclaré la résolution et pourquoi, sans prétendre qu'une correction de connaissance a nécessairement eu lieu.
 
 - HTTP : `GET /v1/domains/{domain}/issues/{ident}/events`.
-- MCP : `api_issues_history` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_issues_history` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1335,7 +1335,7 @@ Prend en charge, résout, classe sans suite ou rouvre un signalement avec justif
 **Utilisation frontend :** Relire après conflit. Résoudre un signalement ne publie pas une correction et ne mesure pas automatiquement une amélioration.
 
 - HTTP : `POST /v1/domains/{domain}/issues/{ident}/decisions`.
-- MCP : `api_issues_decide` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_issues_decide` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Écriture personnelle ou ajout à un historique personnel.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1362,7 +1362,7 @@ Retourne l'identité effective et les domaines auxquels elle appartient, avec le
 **Utilisation frontend :** Appeler après connexion et lors d'un changement de contexte. Construire le sélecteur de domaine et les actions proposées à partir de ce résultat, jamais d'un rôle fourni par le navigateur.
 
 - HTTP : `GET /v1/me`.
-- MCP : `api_identity_read` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_identity_read` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1387,7 +1387,7 @@ Liste les propositions accessibles avec leurs états de revue et d'acceptation.
 **Utilisation frontend :** Séparer les actions de l'auteur de celles du propriétaire ; la visibilité d'une proposition n'autorise pas son approbation.
 
 - HTTP : `GET /v1/domains/{domain}/proposals`.
-- MCP : `api_proposals_list` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_proposals_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1416,7 +1416,7 @@ Crée un changement typé appuyé sur des preuves exactes et une version de base
 **Utilisation frontend :** Préparer les opérations avec des IDs réels et leurs spans ; conserver clé, digest et version retournés.
 
 - HTTP : `POST /v1/domains/{domain}/proposals`.
-- MCP : `api_proposals_create` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_proposals_create` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent.
 - Effet : Création/révision de proposition ; connaissance servie inchangée.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1442,7 +1442,7 @@ Liste les épisodes personnels accessibles, correspondant aux questions et versi
 **Utilisation frontend :** Utiliser pour l'historique personnel ; un propriétaire ne voit pas automatiquement les épisodes privés des autres membres.
 
 - HTTP : `GET /v1/domains/{domain}/episodes`.
-- MCP : `api_episodes_list` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_episodes_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1470,10 +1470,10 @@ Ajoute une décision de revue du propriétaire, par exemple une demande de modif
 **Utilisation frontend :** Présenter le motif et la cible exacte ; recueillir la confirmation requise. Une revue ne remplace pas l'approbation puis la publication.
 
 - HTTP : `POST /v1/domains/{domain}/proposals/{ident}/reviews`.
-- MCP : `api_proposals_review` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_proposals_review` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Décision de revue ; approbation et publication restent distinctes.
-- Décision : accord explicite ; confirmation signée imposée par le pont MCP.
+- Décision : accord explicite ; confirmation signée en MCP et HTTP strict.
 
 ### Paramètres
 
@@ -1487,7 +1487,7 @@ Ajoute une décision de revue du propriétaire, par exemple une demande de modif
 
 - Corps requis `application/json` : [ReviewInput](#schema-reviewinput).
 - Succès HTTP 201, `application/json` : [ReviewReceipt](#schema-reviewreceipt).
-- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503, 428.
 
 <a id="action-proposals-reviews"></a>
 ## proposals.reviews
@@ -1497,7 +1497,7 @@ Relit les décisions de revue d'une proposition et leurs justifications.
 **Utilisation frontend :** Afficher l'historique pour expliquer les changements demandés et orienter la révision.
 
 - HTTP : `GET /v1/domains/{domain}/proposals/{ident}/reviews`.
-- MCP : `api_proposals_reviews` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_proposals_reviews` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1526,7 +1526,7 @@ Crée une nouvelle révision de proposition en conservant la traçabilité de l'
 **Utilisation frontend :** Ne pas remplacer silencieusement le contenu relu par le propriétaire ; utiliser les identifiants et préconditions de la nouvelle révision.
 
 - HTTP : `POST /v1/domains/{domain}/proposals/{ident}/revise`.
-- MCP : `api_proposals_revise` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_proposals_revise` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent.
 - Effet : Création/révision de proposition ; connaissance servie inchangée.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1553,10 +1553,10 @@ Sélectionne un passage via le modèle local configuré et crée une proposition
 **Utilisation frontend :** Vérifier que le modèle local est configuré ; local ne dispense pas de consentement, de droits ni de revue.
 
 - HTTP : `POST /v1/domains/{domain}/sources/{source_id}/extract-local`.
-- MCP : `api_sources_extract_local` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_sources_extract_local` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Traitement par modèle local configuré.
-- Décision : accord explicite ; confirmation signée imposée par le pont MCP.
+- Décision : accord explicite ; confirmation signée en MCP et HTTP strict.
 
 ### Paramètres
 
@@ -1570,7 +1570,7 @@ Sélectionne un passage via le modèle local configuré et crée une proposition
 
 - Corps requis `application/json` : [LocalExtractionInput](#schema-localextractioninput).
 - Succès HTTP 201, `application/json` : [LocalExtractionView](#schema-localextractionview).
-- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503, 428.
 
 <a id="action-sources-extract"></a>
 ## sources.extract
@@ -1580,10 +1580,10 @@ Envoie un passage borné au fournisseur configuré pour sélectionner une preuve
 **Utilisation frontend :** Présenter destination et texte concerné, confirmer puis conserver le reçu et la tentative. Ne pas relancer une tentative échouée sous une nouvelle clé automatiquement.
 
 - HTTP : `POST /v1/domains/{domain}/sources/{source_id}/extract`.
-- MCP : `api_sources_extract` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_sources_extract` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Traitement par fournisseur configuré, potentiellement facturé.
-- Décision : accord explicite ; confirmation signée imposée par le pont MCP.
+- Décision : accord explicite ; confirmation signée en MCP et HTTP strict.
 
 ### Paramètres
 
@@ -1597,7 +1597,7 @@ Envoie un passage borné au fournisseur configuré pour sélectionner une preuve
 
 - Corps requis `application/json` : [ExtractionInput](#schema-extractioninput).
 - Succès HTTP 201, `application/json` : [LocalExtractionView](#schema-localextractionview).
-- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503, 428.
 
 <a id="action-extractions-read"></a>
 ## extractions.read
@@ -1607,7 +1607,7 @@ Relit un reçu d'extraction autorisé sans exécuter de nouveau le modèle.
 **Utilisation frontend :** Afficher provenance, sélection et proposition liée ; utiliser ce reçu pour examiner le résultat ou reprendre après une incertitude.
 
 - HTTP : `GET /v1/domains/{domain}/extractions/{ident}`.
-- MCP : `api_extractions_read` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_extractions_read` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1634,7 +1634,7 @@ Vérifie que le processus HTTP répond. Ce résultat seul ne garantit ni l'accè
 **Utilisation frontend :** Utiliser pour un contrôle simple de service ; ne pas présenter un état global de production à partir de ce seul appel.
 
 - HTTP : `GET /health`.
-- MCP : `api_system_health` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_system_health` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : public.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1657,7 +1657,7 @@ Retourne les positions de connaissance acceptée et publiée du domaine.
 **Utilisation frontend :** Utiliser pour expliquer pourquoi une proposition acceptée n'apparaît pas encore dans les réponses et pour rafraîchir les données.
 
 - HTTP : `GET /v1/domains/{domain}/version`.
-- MCP : `api_domain_version` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_domain_version` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1683,7 +1683,7 @@ Lit le texte et les métadonnées d'une source accessible, dont son empreinte et
 **Utilisation frontend :** Traiter le texte comme des données non fiables ; un emplacement de provenance n'est pas nécessairement une URL de téléchargement.
 
 - HTTP : `GET /v1/domains/{domain}/sources/{source_id}`.
-- MCP : `api_sources_read` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_sources_read` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1710,10 +1710,10 @@ Remplace les lecteurs d'une source sous le contrôle du propriétaire. Le retrai
 **Utilisation frontend :** Présenter les lecteurs ajoutés et retirés, recueillir une confirmation signée côté hôte puis invalider les caches concernés.
 
 - HTTP : `PUT /v1/domains/{domain}/sources/{source_id}/access`.
-- MCP : `api_sources_access` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_sources_access` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Modification des accès ; révocation potentiellement immédiate.
-- Décision : accord explicite ; confirmation signée imposée par le pont MCP.
+- Décision : accord explicite ; confirmation signée en MCP et HTTP strict.
 
 ### Paramètres
 
@@ -1727,7 +1727,7 @@ Remplace les lecteurs d'une source sous le contrôle du propriétaire. Le retrai
 
 - Corps requis `application/json` : [AccessInput](#schema-accessinput).
 - Succès HTTP 200, `application/json` : [AccessReceipt](#schema-accessreceipt).
-- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503, 428.
 
 <a id="action-sources-propose"></a>
 ## sources.propose
@@ -1737,7 +1737,7 @@ Construit une proposition verbatim à partir d'une source, sans l'accepter ni la
 **Utilisation frontend :** Conserver Idempotency-Key pour la même intention ; ouvrir ensuite la proposition et ses différences pour revue.
 
 - HTTP : `POST /v1/domains/{domain}/sources/{source_id}/propose`.
-- MCP : `api_sources_propose` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_sources_propose` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent.
 - Effet : Création/révision de proposition ; connaissance servie inchangée.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1765,7 +1765,7 @@ Lit le contenu, les preuves et l'état actuel d'une proposition accessible.
 **Utilisation frontend :** Relire avant toute revue, révision ou approbation pour utiliser le digest et la version actuels.
 
 - HTTP : `GET /v1/domains/{domain}/proposals/{proposal_id}`.
-- MCP : `api_proposals_read` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_proposals_read` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1792,10 +1792,10 @@ Accepte la proposition précise sous l'autorité du propriétaire, si digest, ve
 **Utilisation frontend :** Recueillir la décision sur cette version puis envoyer la confirmation signée. Afficher accepté, pas publié.
 
 - HTTP : `POST /v1/domains/{domain}/proposals/{proposal_id}/approve`.
-- MCP : `api_proposals_approve` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_proposals_approve` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Acceptation ou publication selon l'opération ; consulter le reçu.
-- Décision : accord explicite ; confirmation signée imposée par le pont MCP.
+- Décision : accord explicite ; confirmation signée en MCP et HTTP strict.
 
 ### Paramètres
 
@@ -1809,7 +1809,7 @@ Accepte la proposition précise sous l'autorité du propriétaire, si digest, ve
 
 - Corps requis `application/json` : [ApprovalInput](#schema-approvalinput).
 - Succès HTTP 200, `application/json` : [ApprovalReceipt](#schema-approvalreceipt).
-- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503, 428.
 
 <a id="action-domain-publish"></a>
 ## domain.publish
@@ -1819,10 +1819,10 @@ Applique les changements acceptés à la projection servie, atomiquement avec l'
 **Utilisation frontend :** Après réussite, relire domain.version et actualiser les écrans dépendants. Après timeout, inspecter la version avant de demander une nouvelle publication.
 
 - HTTP : `POST /v1/domains/{domain}/publish`.
-- MCP : `api_domain_publish` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_domain_publish` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Acceptation ou publication selon l'opération ; consulter le reçu.
-- Décision : accord explicite ; confirmation signée imposée par le pont MCP.
+- Décision : accord explicite ; confirmation signée en MCP et HTTP strict.
 
 ### Paramètres
 
@@ -1835,7 +1835,7 @@ Applique les changements acceptés à la projection servie, atomiquement avec l'
 
 - Aucun corps attendu.
 - Succès HTTP 200, `application/json` : [PublicationReceipt](#schema-publicationreceipt).
-- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503, 428.
 
 <a id="action-domain-replay"></a>
 ## domain.replay
@@ -1845,10 +1845,10 @@ Reconstruit la projection publiée à partir du journal existant sans rejouer le
 **Utilisation frontend :** Réserver cette action d'exploitation au propriétaire confirmé ; inspecter le reçu et les versions.
 
 - HTTP : `POST /v1/domains/{domain}/replay`.
-- MCP : `api_domain_replay` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_domain_replay` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Reconstruction de la projection publiée depuis le journal.
-- Décision : accord explicite ; confirmation signée imposée par le pont MCP.
+- Décision : accord explicite ; confirmation signée en MCP et HTTP strict.
 
 ### Paramètres
 
@@ -1861,7 +1861,7 @@ Reconstruit la projection publiée à partir du journal existant sans rejouer le
 
 - Aucun corps attendu.
 - Succès HTTP 200, `application/json` : [ReplayReceipt](#schema-replayreceipt).
-- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503, 428.
 
 <a id="action-commits-compensate"></a>
 ## commits.compensate
@@ -1871,10 +1871,10 @@ Crée une proposition qui compense un changement historique, sans supprimer ce c
 **Utilisation frontend :** Présenter l'impact puis passer par revue, approbation et publication. Les changements ultérieurs incompatibles peuvent empêcher la compensation.
 
 - HTTP : `POST /v1/domains/{domain}/commits/{sequence}/compensate`.
-- MCP : `api_commits_compensate` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_commits_compensate` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Création/révision de proposition ; connaissance servie inchangée.
-- Décision : accord explicite ; confirmation signée imposée par le pont MCP.
+- Décision : accord explicite ; confirmation signée en MCP et HTTP strict.
 
 ### Paramètres
 
@@ -1888,7 +1888,7 @@ Crée une proposition qui compense un changement historique, sans supprimer ce c
 
 - Corps requis `application/json` : [RollbackInput](#schema-rollbackinput).
 - Succès HTTP 200, `application/json` : [ProposalView](#schema-proposalview).
-- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503, 428.
 
 <a id="action-concepts-list"></a>
 ## concepts.list
@@ -1898,7 +1898,7 @@ Liste les concepts publiés visibles sous les droits actuels.
 **Utilisation frontend :** Afficher la connaissance servie, distincte des sources brutes et propositions en cours.
 
 - HTTP : `GET /v1/domains/{domain}/concepts`.
-- MCP : `api_concepts_list` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_concepts_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1924,7 +1924,7 @@ Lit un concept publié et ses relations accessibles, avec ses preuves.
 **Utilisation frontend :** Conserver la provenance lors de l'affichage ; ne pas exposer des relations masquées depuis un cache global.
 
 - HTTP : `GET /v1/domains/{domain}/concepts/{concept_id}`.
-- MCP : `api_concepts_read` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_concepts_read` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1951,7 +1951,7 @@ Recherche des passages dans la connaissance publiée et crée un épisode person
 **Utilisation frontend :** Afficher citations, version servie et statut. Sans preuve, afficher le manque de connaissance. Cette route simple n'est pas idempotente : privilégier conversations.query pour une reprise de chat.
 
 - HTTP : `POST /v1/domains/{domain}/query`.
-- MCP : `api_knowledge_query` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_knowledge_query` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Recherche avec création d'un épisode personnel.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -1977,7 +1977,7 @@ Relit un épisode personnel avec sa réponse extractive et ses citations, sous l
 **Utilisation frontend :** Si une source est révoquée, accepter le refus de relecture et ne pas réafficher une copie historique conservée sous une autre session.
 
 - HTTP : `GET /v1/domains/{domain}/episodes/{episode_id}`.
-- MCP : `api_episodes_read` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_episodes_read` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -2004,7 +2004,7 @@ Enregistre le retour explicite historique associé à un épisode ; cette route 
 **Utilisation frontend :** Pour les nouveaux parcours, préférer feedback.record_signal et cibler la réponse exacte si le compagnon a reformulé l'extrait.
 
 - HTTP : `POST /v1/domains/{domain}/episodes/{episode_id}/feedback`.
-- MCP : `api_episodes_feedback` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_episodes_feedback` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Écriture personnelle ou ajout à un historique personnel.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -2031,7 +2031,7 @@ Retourne un résumé autorisé des propositions en attente et des signalements d
 **Utilisation frontend :** Construire une vue propriétaire bornée ; ce résumé n'est pas un tableau global des conversations et avis privés de l'entreprise.
 
 - HTTP : `GET /v1/domains/{domain}/brief`.
-- MCP : `api_domain_brief` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_domain_brief` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
@@ -2057,7 +2057,7 @@ Expose le catalogue des opérations métier, leurs rôles nécessaires et leurs 
 **Utilisation frontend :** Permettre à un frontend ou un agent de découvrir les actions, puis vérifier leur disponibilité avec l'identité et les lectures métier.
 
 - HTTP : `GET /v1/interactions`.
-- MCP : `api_interactions_list` ; arguments structurés `path`, `query`, `body` et éventuellement `headers` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- MCP : `api_interactions_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
 - Rôles préalables : owner, corpus_manager, contributor, agent, viewer.
 - Effet : Lecture sans modification métier durable.
 - Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.

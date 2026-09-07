@@ -23,6 +23,7 @@ class Settings(BaseSettings):
         ),
     )
     confirmation_public_key_file: Path | None = None
+    http_confirmation_mode: Literal["required", "trusted_host"] = "required"
     mcp_public_url: str | None = None
     model_daily_attempt_limit: int = Field(default=100, ge=1, le=100000)
     local_model: str | None = None

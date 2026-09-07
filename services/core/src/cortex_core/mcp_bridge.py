@@ -193,7 +193,7 @@ def definitions(spec):
     return result
 
 
-async def dispatch(app, definition, arguments, headers):
+async def dispatch(app, definition, arguments, headers, *, confirmed=False):
     path = definition["path"]
     for key, val in arguments.get("path", {}).items():
         path = path.replace("{" + key + "}", quote(str(val), safe=""))
@@ -220,6 +220,11 @@ async def dispatch(app, definition, arguments, headers):
         "client": ("127.0.0.1", 0),
         "server": ("localhost", 8000),
     }
+    if confirmed:
+        scope["cortex.confirmed"] = (
+            app.state.confirmation_guard.bridge_proof,
+            definition["action"],
+        )
     messages = []
     delivered = False
 
@@ -317,7 +322,7 @@ def install_bridge(app, server, auth, settings):
                     )
 
             await run_in_threadpool(authorize)
-            result = await dispatch(app, entry, arguments, headers)
+            result = await dispatch(app, entry, arguments, headers, confirmed=entry["sensitive"])
             return CallToolResult(
                 content=[TextContent(type="text", text=json.dumps(result))],
                 structuredContent=result,

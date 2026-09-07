@@ -52,7 +52,7 @@ La consommation de confirmation est atomique et immuable, séparée de l'opérat
 
 La confirmation lie les arguments exacts, y compris les préconditions de version/révision présentes dans le contrat. Elle n'ajoute pas une révision aux opérations HTTP qui n'en possèdent pas. L'hôte doit présenter ces limites ; le backend reste l'autorité sur les droits actuels.
 
-Les clients MCP qui ne peuvent pas injecter un en-tête de confirmation par appel peuvent utiliser les opérations ordinaires mais doivent être adaptés pour les opérations sensibles. Aucun contournement ni mode automatique non confirmé n'est fourni. Les routes HTTP directes conservent leur politique existante ; un hôte doit également éviter de donner au modèle un accès HTTP arbitraire avec les identifiants d'un propriétaire.
+Les clients MCP qui ne peuvent pas injecter un en-tête de confirmation par appel peuvent utiliser les opérations ordinaires mais doivent être adaptés pour les opérations sensibles. Aucun contournement ni mode automatique non confirmé n'est fourni. Les routes HTTP directes exigent également une confirmation par défaut (CORTEX_HTTP_CONFIRMATION_MODE=required). Le mode explicite trusted_host est réservé à un serveur de confiance ; il ne désactive pas la protection MCP. Voir le guide frontend français pour la forme signée et la migration.
 
 La couverture des opérations est exhaustive ; la boucle de compréhension, planification et dialogue autonome du produit reste un chantier distinct. Aucun appel OpenRouter réel ni frontend n'a été ajouté dans cette étape.
 

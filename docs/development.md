@@ -40,6 +40,8 @@ The demo generates ephemeral signing keys and synthetic tenants. It sends actual
 
 Set `CORTEX_DATABASE_URL` to the restricted application URL, `CORTEX_JWT_ISSUER` and `CORTEX_JWT_AUDIENCE`, plus exactly one of `CORTEX_JWKS_URL` or `CORTEX_JWT_PUBLIC_KEY_FILE`. Public-key mode accepts RS256 only; the private key is held outside the service. The JWKS URL must use HTTPS. Missing identity configuration prevents startup.
 
+Sensitive HTTP commands require a trusted-host confirmation by default. Configure `CORTEX_CONFIRMATION_PUBLIC_KEY_FILE`; the signing key stays in the confirming host. Missing confirmation returns 428. `CORTEX_HTTP_CONFIRMATION_MODE=trusted_host` is an explicit compatibility mode for a controlled backend host and never relaxes MCP. The bundled synthetic demos select this mode explicitly; production browser integrations should retain `required`. See the [French integration guide](frontend-guide.fr.md).
+
 Use `uv run cortex bootstrap --tenant <UUID> --domain <UUID> --owner <issuer-subject> --member <subject>:agent --member <subject>:viewer` with migration credentials to establish a domain. The command only inserts missing records; it does not silently replace an existing owner or membership role.
 
 Run `make serve`. The loopback API is at `http://127.0.0.1:8000`, with interactive API documentation at `/docs` and an OpenAPI schema at `/openapi.json`.
