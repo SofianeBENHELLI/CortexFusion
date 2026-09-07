@@ -62,3 +62,5 @@ evals/              Synthetic feedback scenarios and evaluation methodology
 ## Licensing
 
 The repository license has not been selected. The dependency policy does not grant a license to Cortex Fusion. Installed dependency metadata is checked separately; see the [executable-core decision](docs/architecture/decisions/0001-executable-core.md).
+
+A Python [reference MCP companion](docs/reference-companion.md) provides a bounded question → cited synthesis → personal receipt workflow without a frontend. Its optional live synthetic demo uses OpenRouter; semantic correctness and external identity-provider integration remain separate validation work.

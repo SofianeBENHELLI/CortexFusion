@@ -19,6 +19,26 @@ def main():
     model_check.add_argument(
         "--prompt-key", action="store_true", help="Read key privately from an interactive terminal"
     )
+    companion = sub.add_parser(
+        "companion-ask", help="Ask through MCP and record one cited OpenRouter response"
+    )
+    companion.add_argument("--endpoint", required=True)
+    companion.add_argument("--tenant", type=UUID, required=True)
+    companion.add_argument("--domain", type=UUID, required=True)
+    companion.add_argument("--question", required=True)
+    companion.add_argument("--request-id", type=UUID, required=True)
+    companion.add_argument(
+        "--journal", required=True, help="Private persistent local SQLite journal"
+    )
+    companion.add_argument(
+        "--budget-usd", required=True, help="Fixed conservative journal allowance, 0.05–5 USD"
+    )
+    companion.add_argument(
+        "--allow-openrouter",
+        action="store_true",
+        required=True,
+        help="Authorize sending this question and retrieved excerpts to OpenRouter",
+    )
     serve = sub.add_parser("serve")
     serve.add_argument("--port", type=int, default=8000)
     bootstrap = sub.add_parser(
@@ -41,6 +61,50 @@ def main():
     worker.add_argument("--max-jobs", type=int, default=20, choices=range(1, 101))
     worker.add_argument("--poll-seconds", type=int, default=5, choices=range(1, 301))
     args = parser.parse_args()
+    if args.command == "companion-ask":
+        import asyncio
+        import json
+        import os
+
+        from pydantic import SecretStr
+
+        from .companion import Journal, OpenRouterSynthesis, connect_and_ask, safe_error_code
+
+        try:
+            token = os.environ["CORTEX_COMPANION_TOKEN"]
+            model = OpenRouterSynthesis(
+                os.environ["CORTEX_OPENROUTER_MODEL"],
+                SecretStr(
+                    os.environ.get("CORTEX_OPENROUTER_API_KEY") or os.environ["OPENROUTER_API_KEY"]
+                ),
+            )
+            with Journal(args.journal, args.budget_usd).locked() as journal:
+                result = asyncio.run(
+                    connect_and_ask(
+                        endpoint=args.endpoint,
+                        token=token,
+                        tenant=str(args.tenant),
+                        domain=str(args.domain),
+                        question=args.question,
+                        request_id=str(args.request_id),
+                        journal=journal,
+                        model=model,
+                    )
+                )
+            print(json.dumps(result, ensure_ascii=False))
+        except Exception as exc:
+            # SDK ExceptionGroups and validation errors may contain private inputs.
+            code = safe_error_code(exc)
+            print(
+                json.dumps(
+                    {
+                        "error": code,
+                        "message": "Companion command did not complete; inspect configuration and private journal",
+                    }
+                )
+            )
+            raise SystemExit(1) from None
+        return
     if args.command == "model-check":
         import json
 
