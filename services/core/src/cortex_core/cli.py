@@ -51,7 +51,10 @@ def main():
         "companion-feedback",
         help="Record host-declared feedback on an exact response; no model call",
     )
-    for command in (conversation, feedback):
+    assessment = sub.add_parser(
+        "companion-assess", help="Infer comment satisfaction only with prior consent"
+    )
+    for command in (conversation, feedback, assessment):
         command.add_argument("--endpoint", required=True)
         command.add_argument("--tenant", type=UUID, required=True)
         command.add_argument("--domain", type=UUID, required=True)
@@ -77,6 +80,16 @@ def main():
     feedback.add_argument("--iteration-index", type=int)
     feedback.add_argument("--confidence", type=float)
     feedback.add_argument("--sentiment", choices=["positive", "negative", "neutral"])
+    assessment.add_argument("--response-id", type=UUID, required=True)
+    assessment.add_argument("--comment", required=True)
+    assessment.add_argument("--journal", required=True)
+    assessment.add_argument("--budget-usd", required=True)
+    assessment.add_argument(
+        "--allow-openrouter",
+        action="store_true",
+        required=True,
+        help="Authorize sending this comment to OpenRouter if inferred feedback is enabled",
+    )
     serve = sub.add_parser("serve")
     serve.add_argument("--port", type=int, default=8000)
     bootstrap = sub.add_parser(
@@ -99,6 +112,53 @@ def main():
     worker.add_argument("--max-jobs", type=int, default=20, choices=range(1, 101))
     worker.add_argument("--poll-seconds", type=int, default=5, choices=range(1, 301))
     args = parser.parse_args()
+    if args.command == "companion-assess":
+        import asyncio
+        import json
+        import os
+
+        from pydantic import SecretStr
+
+        from .companion import Journal, connected_session, safe_error_code
+        from .companion_assessment import OpenRouterAssessment, assess_feedback
+
+        async def assess_operation():
+            model = OpenRouterAssessment(
+                os.environ["CORTEX_OPENROUTER_MODEL"],
+                SecretStr(
+                    os.environ.get("CORTEX_OPENROUTER_API_KEY") or os.environ["OPENROUTER_API_KEY"]
+                ),
+            )
+            async with connected_session(
+                endpoint=args.endpoint,
+                token=os.environ["CORTEX_COMPANION_TOKEN"],
+                tenant=str(args.tenant),
+            ) as session:
+                with Journal(args.journal, args.budget_usd).locked() as journal:
+                    return await assess_feedback(
+                        session,
+                        endpoint=args.endpoint,
+                        domain=str(args.domain),
+                        response_id=str(args.response_id),
+                        request_id=str(args.request_id),
+                        comment=args.comment,
+                        journal=journal,
+                        model=model,
+                    )
+
+        try:
+            print(json.dumps(asyncio.run(assess_operation()), ensure_ascii=False))
+        except Exception as exc:
+            print(
+                json.dumps(
+                    {
+                        "error": safe_error_code(exc),
+                        "message": "Companion assessment did not complete",
+                    }
+                )
+            )
+            raise SystemExit(1) from None
+        return
     if args.command in {"companion-conversation", "companion-feedback"}:
         import asyncio
         import json

@@ -83,3 +83,29 @@ The response is reread before recording a signal, binding feedback to its actual
 The private journal now records a fixed diagnostic stage for failed synthesis (`input`, `provider_request`, `usage`, `choice`, `finish_reason`, `json` or `references`). Reference diagnostics contain boolean checks only. Valid provider attribution and usage are preserved even when the generated answer is rejected, so a charged failure is not mistaken for a free request. Invalid/missing usage remains unknown. Diagnostics never retain internal reasoning or an invalid model answer; ordinary saved evidence remains in the private journal as documented above. Known failures stay non-replayable, and a crash or failed journal write can still leave an unresolved attempt.
 
 The evaluator includes these diagnostics when present. A targeted follow-up on conflicting retention rules passed without relaxing validation or changing the synthesis prompt. This does not identify the original rejection's cause or replace the first 4/6 evaluation baseline.
+
+## Optional interpretation of a comment
+
+`cortex companion-assess` can classify a host-provided comment on one response. It needs an explicit `--allow-openrouter`, a configured key/model, a private journal/budget and the caller's existing `allow_inferred` preference. It never enables that preference or signs a confirmation.
+
+```sh
+uv run cortex companion-assess \
+  --endpoint https://your-cortex.example/mcp/ \
+  --tenant YOUR_TENANT_UUID --domain YOUR_DOMAIN_UUID \
+  --response-id YOUR_RESPONSE_UUID --request-id YOUR_NEW_ASSESSMENT_UUID \
+  --comment "La réponse ne m'aide pas malgré plusieurs reformulations" \
+  --journal /private/operator-directory/companion.sqlite --budget-usd 0.50 \
+  --allow-openrouter
+```
+
+The client checks inferred-feedback consent and current response access before processing. Only the bounded comment is sent to OpenRouter, not the corpus, answer text or conversation history. The model returns a sentiment, non-calibrated confidence and short explanation. The resulting MCP signal is always `origin: inferred, kind: satisfaction`; it never creates an explicit vote or an observed iteration count. The raw comment is not added to the local journal payload; its fingerprint binds retries. The inferred explanation may paraphrase that comment and is retained under the documented personal-feedback scope.
+
+The request has at most 2,000 comment characters, 15,000 serialized UTF-8 bytes and 256 completion tokens, with optional reasoning disabled and the same routing/price restrictions as synthesis. Each attempted assessment reserves five cents in the shared local journal. Failures and uncertain outcomes are not transparently replayed. A saved assessment can be resubmitted through MCP with the same signal idempotency key without a second provider call. This client-side provider call does not enter the backend's extraction-attempt ledger; keep the provider-side key spending limit.
+
+Consent is checked again after generation and by the server on append. If withdrawn during the model call, the inference is discarded and only usage accounting remains in that journal run. Re-enabling consent does not automatically resurrect that discarded assessment. A provider request already sent while authorized cannot be recalled. Existing historical signals are not deleted by opt-out. Access is reread again before the signal is sent; a revoked source or response blocks collection.
+
+New synthesis drafts record `cited-synthesis-v1`; comment assessments record `comment-satisfaction-v1`. Old saved drafts may lack prompt-version metadata. Request IDs retain their original idempotency meaning across upgrades: use a deliberate new request for a new generation. Do not relabel an old saved result as a newly generated answer.
+
+For the real-loopback synthetic demo, use `scripts/demo_companion.py --live-assessment --journal … --output …`. This simulates the answer model, explicitly enables inferred feedback for the ephemeral demo viewer, makes at most one real comment-assessment call, checks signal reuse and verifies opt-out. `--live` and `--live-assessment` are mutually exclusive. Normal automated tests use no paid provider.
+
+Live synthetic assessment on 2026-09-07 passed over the real loopback MCP server. DeepSeek returned negative sentiment with declared confidence 0.9 (not calibrated), recorded one inferred signal and no explicit votes or observed iteration count. Repetition reused the signal and subsequent opt-out blocked processing. The call reported 141 input tokens, 70 output tokens and $0.0000213339. This single fixture does not validate a general satisfaction classifier.

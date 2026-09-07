@@ -51,8 +51,33 @@ class Draft(BaseModel):
     citation_indices: list[StrictInt] = Field(max_length=50)
 
 
+def checked_usage(response):
+    """Validate attribution and cost before accepting output or retaining diagnostics."""
+    usage = response.get("usage") or {}
+    cost = usage.get("cost")
+    if type(cost) not in (int, float) or not Decimal(str(cost)).is_finite() or cost < 0:
+        raise ValueError("unknown cost")
+    model, ident = response["model"], response["id"]
+    if any(
+        not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9._:/-]{1,200}", value)
+        for value in (model, ident)
+    ):
+        raise ValueError("missing attribution")
+    counts = [usage.get("prompt_tokens"), usage.get("completion_tokens")]
+    if any(type(v) is not int or v < 0 for v in counts):
+        raise ValueError("invalid usage")
+    return model, {
+        "request_id": ident,
+        "cost_usd": cost,
+        "input_tokens": counts[0],
+        "output_tokens": counts[1],
+    }
+
+
 class OpenRouterSynthesis(OpenRouterPassageModel):
     """One generation at most; source and schema budgets include all model input."""
+
+    PROMPT_VERSION = "cited-synthesis-v1"
 
     def synthesize(self, question, episode):
         self.last_diagnostic, self.last_usage = {"stage": "input"}, None
@@ -105,25 +130,7 @@ class OpenRouterSynthesis(OpenRouterPassageModel):
         response = self._request(payload)
         try:
             self.last_diagnostic = {"stage": "usage"}
-            usage = response.get("usage") or {}
-            cost = usage.get("cost")
-            if type(cost) not in (int, float) or not Decimal(str(cost)).is_finite() or cost < 0:
-                raise ValueError("unknown cost")
-            model, ident = response["model"], response["id"]
-            if any(
-                not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9._:/-]{1,200}", value)
-                for value in (model, ident)
-            ):
-                raise ValueError("missing attribution")
-            counts = [usage.get("prompt_tokens"), usage.get("completion_tokens")]
-            if any(type(v) is not int or v < 0 for v in counts):
-                raise ValueError("invalid usage")
-            self.last_usage = {
-                "request_id": ident,
-                "cost_usd": cost,
-                "input_tokens": counts[0],
-                "output_tokens": counts[1],
-            }
+            model, self.last_usage = checked_usage(response)
             self.last_diagnostic = {"stage": "choice"}
             choice = response["choices"][0]
             self.last_diagnostic = {"stage": "finish_reason"}
@@ -169,12 +176,8 @@ class OpenRouterSynthesis(OpenRouterPassageModel):
             "answer_kind": draft.answer_kind,
             "citations": refs,
             "model": model,
-            "usage": {
-                "request_id": ident,
-                "cost_usd": cost,
-                "input_tokens": counts[0],
-                "output_tokens": counts[1],
-            },
+            "usage": self.last_usage,
+            "prompt_version": self.PROMPT_VERSION,
         }
 
 

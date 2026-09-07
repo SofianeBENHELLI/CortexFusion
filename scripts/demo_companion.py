@@ -18,7 +18,15 @@ import httpx
 import jwt
 import uvicorn
 from cortex_core.api import create_app
-from cortex_core.companion import Journal, OpenRouterSynthesis, connect_and_ask, safe_error_code
+from cortex_core.companion import (
+    Journal,
+    OpenRouterSynthesis,
+    call,
+    connect_and_ask,
+    connected_session,
+    safe_error_code,
+)
+from cortex_core.companion_assessment import OpenRouterAssessment, assess_feedback
 from cortex_core.settings import Settings
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -180,14 +188,81 @@ async def run(args, public_key, private_key):
                     "status": "passed",
                     "transport": "real_loopback_http",
                     "identity": "ephemeral_synthetic_RS256_not_external_IdP",
-                    "live_openrouter": args.live,
-                    "max_generation_calls": 1 if args.live else 0,
+                    "live_openrouter": args.live or args.live_assessment,
+                    "max_generation_calls": 1 if args.live or args.live_assessment else 0,
                     "same_request_reuses_receipt": True,
                     "elapsed_ms": round((time.monotonic() - started) * 1000),
                     "request_id": request_id,
                     "receipt": first,
                     "usage": payload["draft"]["usage"],
                 }
+                if args.live_assessment:
+                    # The demo's ephemeral viewer explicitly opts in for this fixture.
+                    viewer_headers = {
+                        "Authorization": "Bearer " + viewer_token,
+                        "X-Tenant-ID": tenant,
+                    }
+                    consent = await http.put(
+                        prefix + "/feedback-preferences",
+                        headers=viewer_headers,
+                        json={
+                            "allow_observed": False,
+                            "allow_inferred": True,
+                            "expected_revision": 0,
+                        },
+                    )
+                    consent.raise_for_status()
+                    classifier = OpenRouterAssessment(
+                        os.environ["CORTEX_OPENROUTER_MODEL"],
+                        SecretStr(
+                            os.environ.get("CORTEX_OPENROUTER_API_KEY")
+                            or os.environ["OPENROUTER_API_KEY"]
+                        ),
+                    )
+                    async with connected_session(
+                        endpoint=base + "/mcp/", token=viewer_token, tenant=tenant
+                    ) as session:
+                        assessment_args = dict(
+                            endpoint=base + "/mcp/",
+                            domain=domain,
+                            response_id=first["id"],
+                            request_id=str(uuid4()),
+                            comment="Cette réponse ne m'aide pas, j'ai reformulé plusieurs fois sans obtenir la précision attendue.",
+                            journal=journal,
+                            model=classifier,
+                        )
+                        assessed = await assess_feedback(session, **assessment_args)
+                        again = await assess_feedback(session, **assessment_args)
+                        assert assessed["signal"]["id"] == again["signal"]["id"]
+                        summary = await call(
+                            session,
+                            "api_feedback_summary",
+                            {
+                                "path": {"domain": domain},
+                                "query": {"companion_response_id": first["id"]},
+                            },
+                        )
+                        assert summary["inferred"]["negative"] == 1
+                        assert summary["explicit"]["thumbs_down"] == 0
+                        revoked = await http.put(
+                            prefix + "/feedback-preferences",
+                            headers=viewer_headers,
+                            json={
+                                "allow_observed": False,
+                                "allow_inferred": False,
+                                "expected_revision": 1,
+                            },
+                        )
+                        revoked.raise_for_status()
+                        assert (await assess_feedback(session, **assessment_args))[
+                            "status"
+                        ] == "not_collected"
+                        report.update(
+                            assessment=assessed,
+                            feedback_summary=summary,
+                            same_assessment_reuses_signal=True,
+                            revoked_consent_blocks_processing=True,
+                        )
                 return report
     finally:
         server.should_exit = True
@@ -197,10 +272,16 @@ async def run(args, public_key, private_key):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
+    live_mode = parser.add_mutually_exclusive_group()
+    live_mode.add_argument(
         "--live",
         action="store_true",
         help="Authorize one potentially paid synthetic OpenRouter generation",
+    )
+    live_mode.add_argument(
+        "--live-assessment",
+        action="store_true",
+        help="Use simulated answer synthesis and one real consented comment assessment",
     )
     parser.add_argument("--journal", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
@@ -224,7 +305,7 @@ def main():
                 "status": "failed",
                 "error": safe_error_code(exc),
                 "message": "Synthetic companion demo failed; inspect the private journal",
-                "live_openrouter": args.live,
+                "live_openrouter": args.live or args.live_assessment,
             }
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
