@@ -7,6 +7,7 @@ from urllib.parse import quote, urlencode
 
 import jsonschema
 from mcp.types import CallToolResult, TextContent, Tool, ToolAnnotations
+from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
 
 from .auth import CoreError
@@ -260,7 +261,31 @@ def install_bridge(app, server, auth, settings):
 
     async def call_tool(name, arguments):
         if not name.startswith("api_"):
-            return await legacy_call(name, arguments)
+            try:
+                return await legacy_call(name, arguments)
+            except Exception as exc:
+                error = {
+                    "error": "MCP_OPERATION_FAILED",
+                    "message": "The operation did not complete; inspect state before retrying",
+                }
+                # FastMCP wraps function errors; preserve safe business codes, never raw SDK/DB text.
+                cause = exc
+                for _ in range(8):
+                    if isinstance(cause, CoreError):
+                        error = {"error": cause.code, "message": cause.message}
+                        break
+                    if isinstance(cause, ValidationError):
+                        error = {
+                            "error": "VALIDATION_FAILED",
+                            "message": "Arguments do not match the tool contract",
+                        }
+                        break
+                    cause = cause.__cause__
+                    if cause is None:
+                        break
+                return CallToolResult(
+                    content=[TextContent(type="text", text=json.dumps(error))], isError=True
+                )
         try:
             entry = inventory().get(name)
             if entry is None:

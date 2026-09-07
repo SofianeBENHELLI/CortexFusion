@@ -439,3 +439,27 @@ def test_success_receipts_also_match_the_union_schema(world):
     jsonschema.validate(result, schema)
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate({**result, "http_status": 404}, schema)
+
+
+def test_compatibility_tool_errors_do_not_expose_private_diagnostics(world, monkeypatch):
+    def broken(*args, **kwargs):
+        raise RuntimeError("private database diagnostics")
+
+    monkeypatch.setattr(world.app.state.service, "query", broken)
+    result = rpc(world, "query", {"domain_id": world.domain, "question": "Synthetic"})
+    assert result["isError"] is True
+    assert "private database diagnostics" not in str(result)
+
+
+def test_compatibility_errors_keep_business_codes_and_sanitize_validation(world):
+    missing = rpc(
+        world, "read_source_chunks", {"domain_id": world.domain, "source_id": str(uuid4())}
+    )
+    assert missing["isError"] is True
+    assert json.loads(missing["content"][0]["text"])["error"] == "NOT_FOUND"
+    invalid = rpc(
+        world, "list_sources", {"domain_id": world.domain, "limit": "private-invalid-value"}
+    )
+    assert invalid["isError"] is True
+    assert json.loads(invalid["content"][0]["text"])["error"] == "VALIDATION_FAILED"
+    assert "private-invalid-value" not in str(invalid)
