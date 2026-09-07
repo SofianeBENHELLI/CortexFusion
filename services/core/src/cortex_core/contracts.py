@@ -453,6 +453,11 @@ class MembershipReceipt(Contract):
     created_at: datetime
 
 
+class PublicationAudit(Contract):
+    publisher: str
+    recorded_at: datetime
+
+
 class CommitSummary(Contract):
     sequence: int
     proposal_id: UUID
@@ -460,6 +465,8 @@ class CommitSummary(Contract):
     reason: str
     digest: str
     created_at: datetime
+    published: bool
+    publication: PublicationAudit | None
 
 
 class CommitPage(Contract):
@@ -467,7 +474,7 @@ class CommitPage(Contract):
     next_after: int | None
 
 
-CONTRACTS += [MembershipInput, MemberPage, MembershipReceipt, CommitPage]
+CONTRACTS += [MembershipInput, MemberPage, MembershipReceipt, PublicationAudit, CommitPage]
 
 
 class LocalExtractionInput(Contract):

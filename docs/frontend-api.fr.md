@@ -655,9 +655,9 @@ Liste les événements de modification d'appartenance au domaine.
 <a id="action-commits-list"></a>
 ## commits.list
 
-Liste le journal des changements accepté par le domaine selon le périmètre de l'opération.
+Liste les changements acceptés visibles au propriétaire, leur état publié et, lorsqu’elle existe, la trace distincte de publication réussie. Les preuves actuellement inaccessibles masquent toute l’entrée.
 
-**Utilisation frontend :** Distinguer la position du journal de la position effectivement publiée avec domain.version.
+**Utilisation frontend :** author et created_at identifient l’approbation. published indique si la séquence est publiée ; publication contient publisher et recorded_at pour les publications tracées depuis la migration 0018. published=true avec publication=null signifie que l’auteur/date de publication ne sont pas disponibles : ne pas les déduire de l’approbation. recorded_at est l’horodatage d’insertion de l’événement validé dans la transaction, pas l’heure exacte du commit ni une preuve d’affichage. Invalider le journal après publication ; une reprise ciblée ou reconstruction ne change pas cette trace.
 
 - HTTP : `GET /v1/domains/{domain}/commits`.
 - MCP : `api_commits_list` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
@@ -2408,6 +2408,8 @@ Champs non déclarés interdits.
 | `reason` | oui | texte | — |
 | `digest` | oui | texte | — |
 | `created_at` | oui | texte | format : `"date-time"` |
+| `published` | oui | booléen | — |
+| `publication` | oui | [PublicationAudit](#schema-publicationaudit) / null | — |
 
 <a id="schema-companionresponseinput"></a>
 ### CompanionResponseInput
@@ -3188,6 +3190,16 @@ Champs non déclarés interdits.
 | `authorization_servers` | oui | liste de texte | — |
 | `bearer_methods_supported` | oui | liste de `"header"` | — |
 | `resource_name` | oui | texte | — |
+
+<a id="schema-publicationaudit"></a>
+### PublicationAudit
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `publisher` | oui | texte | — |
+| `recorded_at` | oui | texte | format : `"date-time"` |
 
 <a id="schema-publicationreceipt"></a>
 ### PublicationReceipt

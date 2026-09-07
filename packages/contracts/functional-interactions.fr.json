@@ -2067,8 +2067,8 @@
       "method": "GET",
       "path": "/v1/domains/{domain}/commits",
       "operation_id": "commits.list",
-      "description_fr": "Liste le journal des changements accepté par le domaine selon le périmètre de l'opération.",
-      "frontend_fr": "Distinguer la position du journal de la position effectivement publiée avec domain.version.",
+      "description_fr": "Liste les changements acceptés visibles au propriétaire, leur état publié et, lorsqu’elle existe, la trace distincte de publication réussie. Les preuves actuellement inaccessibles masquent toute l’entrée.",
+      "frontend_fr": "author et created_at identifient l’approbation. published indique si la séquence est publiée ; publication contient publisher et recorded_at pour les publications tracées depuis la migration 0018. published=true avec publication=null signifie que l’auteur/date de publication ne sont pas disponibles : ne pas les déduire de l’approbation. recorded_at est l’horodatage d’insertion de l’événement validé dans la transaction, pas l’heure exacte du commit ni une preuve d’affichage. Invalider le journal après publication ; une reprise ciblée ou reconstruction ne change pas cette trace.",
       "effect_fr": "Lecture sans modification métier durable.",
       "mcp_tool": "api_commits_list",
       "mcp_confirmation_required": false,
@@ -8195,6 +8195,20 @@
           "type": "string",
           "format": "date-time",
           "title": "Created At"
+        },
+        "published": {
+          "type": "boolean",
+          "title": "Published"
+        },
+        "publication": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/PublicationAudit"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false,
@@ -8205,7 +8219,9 @@
         "author",
         "reason",
         "digest",
-        "created_at"
+        "created_at",
+        "published",
+        "publication"
       ],
       "title": "CommitSummary"
     },
@@ -10954,6 +10970,26 @@
         "resource_name"
       ],
       "title": "ProtectedResourceMetadata"
+    },
+    "PublicationAudit": {
+      "properties": {
+        "publisher": {
+          "type": "string",
+          "title": "Publisher"
+        },
+        "recorded_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Recorded At"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "publisher",
+        "recorded_at"
+      ],
+      "title": "PublicationAudit"
     },
     "PublicationReceipt": {
       "properties": {

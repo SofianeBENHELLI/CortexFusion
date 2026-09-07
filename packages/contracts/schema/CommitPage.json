@@ -29,6 +29,20 @@
           "format": "date-time",
           "title": "Created At",
           "type": "string"
+        },
+        "published": {
+          "title": "Published",
+          "type": "boolean"
+        },
+        "publication": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PublicationAudit"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -37,9 +51,31 @@
         "author",
         "reason",
         "digest",
-        "created_at"
+        "created_at",
+        "published",
+        "publication"
       ],
       "title": "CommitSummary",
+      "type": "object"
+    },
+    "PublicationAudit": {
+      "additionalProperties": false,
+      "properties": {
+        "publisher": {
+          "title": "Publisher",
+          "type": "string"
+        },
+        "recorded_at": {
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "publisher",
+        "recorded_at"
+      ],
+      "title": "PublicationAudit",
       "type": "object"
     }
   },

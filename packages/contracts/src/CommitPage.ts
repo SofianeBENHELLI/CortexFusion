@@ -6,6 +6,9 @@ export type Author = string;
 export type Reason = string;
 export type Digest = string;
 export type CreatedAt = string;
+export type Published = boolean;
+export type Publisher = string;
+export type RecordedAt = string;
 export type Items = CommitSummary[];
 export type NextAfter = number | null;
 
@@ -20,4 +23,10 @@ export interface CommitSummary {
   reason: Reason;
   digest: Digest;
   created_at: CreatedAt;
+  published: Published;
+  publication: PublicationAudit | null;
+}
+export interface PublicationAudit {
+  publisher: Publisher;
+  recorded_at: RecordedAt;
 }

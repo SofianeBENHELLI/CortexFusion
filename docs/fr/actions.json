@@ -156,8 +156,8 @@
     "frontend": "Réserver cette action d'exploitation au propriétaire confirmé ; inspecter le reçu et les versions."
   },
   "commits.list": {
-    "description": "Liste le journal des changements accepté par le domaine selon le périmètre de l'opération.",
-    "frontend": "Distinguer la position du journal de la position effectivement publiée avec domain.version."
+    "description": "Liste les changements acceptés visibles au propriétaire, leur état publié et, lorsqu’elle existe, la trace distincte de publication réussie. Les preuves actuellement inaccessibles masquent toute l’entrée.",
+    "frontend": "author et created_at identifient l’approbation. published indique si la séquence est publiée ; publication contient publisher et recorded_at pour les publications tracées depuis la migration 0018. published=true avec publication=null signifie que l’auteur/date de publication ne sont pas disponibles : ne pas les déduire de l’approbation. recorded_at est l’horodatage d’insertion de l’événement validé dans la transaction, pas l’heure exacte du commit ni une preuve d’affichage. Invalider le journal après publication ; une reprise ciblée ou reconstruction ne change pas cette trace."
   },
   "commits.compensate": {
     "description": "Crée une proposition qui compense un changement historique, sans supprimer ce changement du journal.",

@@ -7104,6 +7104,20 @@
                 "type": "string",
                 "format": "date-time",
                 "title": "Created At"
+              },
+              "published": {
+                "type": "boolean",
+                "title": "Published"
+              },
+              "publication": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/PublicationAudit"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "additionalProperties": false,
@@ -7114,9 +7128,31 @@
               "author",
               "reason",
               "digest",
-              "created_at"
+              "created_at",
+              "published",
+              "publication"
             ],
             "title": "CommitSummary"
+          },
+          "PublicationAudit": {
+            "properties": {
+              "publisher": {
+                "type": "string",
+                "title": "Publisher"
+              },
+              "recorded_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "Recorded At"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "publisher",
+              "recorded_at"
+            ],
+            "title": "PublicationAudit"
           },
           "MCPError": {
             "type": "object",

@@ -23678,6 +23678,20 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "published": {
+            "type": "boolean",
+            "title": "Published"
+          },
+          "publication": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublicationAudit"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -23688,7 +23702,9 @@
           "author",
           "reason",
           "digest",
-          "created_at"
+          "created_at",
+          "published",
+          "publication"
         ],
         "title": "CommitSummary"
       },
@@ -26437,6 +26453,26 @@
           "resource_name"
         ],
         "title": "ProtectedResourceMetadata"
+      },
+      "PublicationAudit": {
+        "properties": {
+          "publisher": {
+            "type": "string",
+            "title": "Publisher"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Recorded At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "publisher",
+          "recorded_at"
+        ],
+        "title": "PublicationAudit"
       },
       "PublicationReceipt": {
         "properties": {

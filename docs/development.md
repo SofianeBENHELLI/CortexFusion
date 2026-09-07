@@ -106,7 +106,7 @@ Migration 0016 creates forced-RLS immutable personal attempts/outcomes. Explicit
 
 ## Liveness and database readiness
 
-GET /health remains process liveness. GET /ready checks the exact expected Alembic revision (currently 0017), required table inventory, role restrictions, table SELECT access and enabled/forced RLS flags; it returns only ready/schema_revision or a safe NOT_READY 503. It uses a dedicated NullPool connection with a two-second driver socket timeout and 1.5-second statement timeout, with no provider calls. Update the revision and inventory in readiness.py when introducing a migration; the ready-path database test must pass on a fresh CI migration. This is not a policy-body audit or a production recovery proof.
+GET /health remains process liveness. GET /ready checks the exact expected Alembic revision (currently 0018), required table inventory, role restrictions, table SELECT access and enabled/forced RLS flags; it returns only ready/schema_revision or a safe NOT_READY 503. It uses a dedicated NullPool connection with a two-second driver socket timeout and 1.5-second statement timeout, with no provider calls. Update the revision and inventory in readiness.py when introducing a migration; the ready-path database test must pass on a fresh CI migration. This is not a policy-body audit or a production recovery proof.
 
 ## Backend synthesis SDK demo
 
@@ -119,3 +119,10 @@ Migration 0017 indexes personal episodes and episode-to-issue lookup. Issue list
 ## Targeted publication
 
 POST proposals/{proposal_id}/publish binds the chosen accepted proposal and expected_published_version. The target sequence must equal expected_published_version + 1. A target already at or below the published position returns changed=false without advancing another accepted proposal. Current owner membership and proposal evidence ACLs are checked under the domain lock. Both targeted and global publication share _publish and its atomic projection/outbox transaction. The existing POST /publish retains its explicit next-accepted-change meaning. No migration is required for targeted publication.
+
+
+### Successful publication audit
+
+Migration 0018 adds immutable, forced-RLS cf_publications. Both global and targeted publication insert the authenticated publisher and database recorded_at in the same transaction as projection, proposal/outbox state and published version. Rollback removes the event; target retries, no-op publication and projection replay create no new event. recorded_at is the database event insertion time, not an exact commit time or proof of browser delivery. No historical backfill guesses the publisher from the approving author.
+
+GET /commits and its MCP tool add published plus nullable publication {publisher, recorded_at}. Existing author/created_at describe acceptance. published=true with publication=null identifies a published version without an available audit record (including pre-0018 history); pending commits have published=false and publication=null. Existing owner and full proposal-evidence checks apply to the whole entry, including publisher metadata. The journal is not a log of every failed publication attempt.

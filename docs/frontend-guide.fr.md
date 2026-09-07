@@ -324,6 +324,23 @@ L'administration porte sur un domaine. Une modification de membre renseigne suje
 
 L'historique de membership, les revues, le journal canonique et les événements personnels de signalement sont des historiques distincts. Le frontend peut proposer une navigation entre eux, mais ne doit pas les présenter comme un journal universel auquel le propriétaire aurait accès.
 
+### Identifier une publication réussie dans le journal
+
+`commits.list` (`GET /v1/domains/{domain}/commits`, MCP `api_commits_list`) reste réservé au propriétaire et filtre les preuves de chaque entrée. Le contrat distingue :
+
+| Champs | Sens fonctionnel |
+|---|---|
+| `author`, `created_at` | Sujet et date de l’acceptation du changement |
+| `published=false`, `publication=null` | Changement accepté, encore hors de la version servie |
+| `published=true`, `publication={publisher, recorded_at}` | Publication réussie tracée avec son propre acteur et horodatage |
+| `published=true`, `publication=null` | Changement publié sans trace de publication disponible, notamment avant migration 0018 ; afficher « auteur/date de publication indisponibles » |
+
+La trace est insérée dans la transaction de publication : si celle-ci échoue, la trace et la projection sont annulées ensemble. Une reprise ciblée déjà réussie ou une reconstruction de projection ne remplace pas l’acteur d’origine et n’ajoute pas une nouvelle publication. Les deux opérations de publication, globale et ciblée, produisent cette trace pour leurs nouvelles réussites.
+
+`recorded_at` est l’heure d’insertion fournie par PostgreSQL ; ce n’est ni l’heure exacte du commit, ni celle à laquelle un utilisateur a vu le résultat. Aucune valeur historique n’est inventée à partir de l’approbateur. Une confirmation consommée atteste une intention autorisée, pas une publication réussie ; le journal ne répertorie pas tous les essais échoués. Une compensation ultérieure n’efface pas le fait historique qu’une séquence a été publiée.
+
+Après publication, invalider les requêtes TanStack Query du journal et de la version, en plus des concepts/propositions concernés. Masquer aussi cette métadonnée quand les preuves deviennent inaccessibles ; ne pas conserver une identité de publieur depuis le cache d’un autre tenant, domaine ou sujet.
+
 ## Erreurs et états transitoires
 
 | HTTP / situation | Fonction attendue du frontend |

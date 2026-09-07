@@ -164,8 +164,14 @@ class GovernanceService:
                 rows = (
                     run(
                         conn,
-                        """SELECT * FROM cf_commits WHERE tenant_id=:tenant AND domain_id=:domain
-                    AND sequence>:after ORDER BY sequence LIMIT 100""",
+                        """SELECT c.*,c.sequence<=d.published_version AS published,
+                    p.publisher,p.recorded_at
+                    FROM cf_commits c
+                    JOIN cf_domains d ON d.tenant_id=c.tenant_id AND d.id=c.domain_id
+                    LEFT JOIN cf_publications p ON p.tenant_id=c.tenant_id
+                        AND p.domain_id=c.domain_id AND p.sequence=c.sequence
+                    WHERE c.tenant_id=:tenant AND c.domain_id=:domain
+                    AND c.sequence>:after ORDER BY c.sequence LIMIT 100""",
                         **self.k.keys(p, domain),
                         after=cursor,
                     )
@@ -184,15 +190,23 @@ class GovernanceService:
                         raise
                     visible.append(
                         {
-                            k: row[k]
-                            for k in (
-                                "sequence",
-                                "proposal_id",
-                                "author",
-                                "reason",
-                                "digest",
-                                "created_at",
-                            )
+                            **{
+                                k: row[k]
+                                for k in (
+                                    "sequence",
+                                    "proposal_id",
+                                    "author",
+                                    "reason",
+                                    "digest",
+                                    "created_at",
+                                    "published",
+                                )
+                            },
+                            "publication": (
+                                {"publisher": row["publisher"], "recorded_at": row["recorded_at"]}
+                                if row["publisher"] is not None
+                                else None
+                            ),
                         }
                     )
                     if len(visible) > limit:

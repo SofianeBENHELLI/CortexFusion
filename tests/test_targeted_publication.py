@@ -113,6 +113,16 @@ def test_concurrent_target_publications_apply_once(world):
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         assert sorted(executor.map(execute, range(2))) == [False, True]
+    with world.db.transaction(world.owner, world.domain) as conn:
+        assert (
+            one(
+                conn,
+                "SELECT count(*) AS count FROM cf_publications WHERE tenant_id=:tenant AND domain_id=:domain",
+                tenant=world.tenant,
+                domain=world.domain,
+            )["count"]
+            == 1
+        )
 
 
 def test_target_confirmation_binds_body_and_mcp_reuses_target(world, identity_keys, strict_client):

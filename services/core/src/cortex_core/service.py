@@ -510,6 +510,14 @@ class KnowledgeService:
         self._apply(conn, p, domain, seq, commit["changes"])
         run(
             conn,
+            """INSERT INTO cf_publications(tenant_id,domain_id,sequence,publisher)
+            VALUES(:tenant,:domain,:seq,:publisher)""",
+            **self.keys(p, domain),
+            seq=seq,
+            publisher=p.subject,
+        )
+        run(
+            conn,
             "UPDATE cf_outbox SET status='done',attempts=attempts+1 WHERE tenant_id=:tenant AND domain_id=:domain AND sequence=:seq",
             **self.keys(p, domain),
             seq=seq,
