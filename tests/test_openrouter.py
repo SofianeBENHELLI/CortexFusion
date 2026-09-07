@@ -37,7 +37,10 @@ def test_transport_and_usage(monkeypatch):
             "data_collection": "deny",
             "zdr": True,
         }
-        assert body["max_completion_tokens"] == 256 and timeout == 45
+        # The portable OpenRouter limit keeps compatible non-OpenAI routes eligible
+        # when require_parameters=True; max_completion_tokens excluded them live.
+        assert body["max_tokens"] == 256 and timeout == 45
+        assert "max_completion_tokens" not in body
         return io.BytesIO(
             json.dumps(
                 reply(usage={"prompt_tokens": 10, "completion_tokens": 5, "cost": 0.001})

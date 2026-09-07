@@ -72,7 +72,7 @@ class OpenRouterPassageModel:
                 "model": self.model,
                 "stream": False,
                 "temperature": 0,
-                "max_completion_tokens": 256,
+                "max_tokens": 256,
                 "response_format": {
                     "type": "json_schema",
                     "json_schema": {

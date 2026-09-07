@@ -8,7 +8,7 @@ export CORTEX_OPENROUTER_API_KEY='your-private-key'
 export CORTEX_OPENROUTER_MODEL='deepseek/deepseek-v4-flash'
 ```
 
-`OPENROUTER_API_KEY` is also accepted; the Cortex-prefixed key takes precedence. Do not commit `.env` or paste real keys into issues, prompts or frontend configuration. The selected model is [DeepSeek V4 Flash](https://openrouter.ai/deepseek/deepseek-v4-flash), using the exact ID `deepseek/deepseek-v4-flash` (currently labeled 0423 in the catalog). The public endpoint catalog advertises structured outputs on several providers; eligibility under the configured routing restrictions and actual extraction behavior still require a live check. A server-side key is required before extraction is enabled.
+`OPENROUTER_API_KEY` is also accepted; the Cortex-prefixed key takes precedence. Do not commit `.env` or paste real keys into issues, prompts or frontend configuration. The selected model is [DeepSeek V4 Flash](https://openrouter.ai/deepseek/deepseek-v4-flash), using the exact ID `deepseek/deepseek-v4-flash` (currently labeled 0423 in the catalog). The public endpoint catalog advertises structured outputs on several providers; eligibility under the configured routing restrictions and actual extraction behavior remain dependent on provider routing. A server-side key is required before extraction is enabled.
 
 An owner with access to the source invokes:
 
@@ -29,7 +29,7 @@ The fixed HTTPS endpoint refuses redirects and environment proxies. Requests req
 
 Receipts include the returned model ID, OpenRouter request ID, prompt version, and reported token counts/cost in USD. Missing usage is `null`; no model-weight digest is asserted. Read a successful receipt through `GET /v1/domains/{domain}/extractions/{id}` with the originating owner's current permissions. Successful idempotent retries reuse the receipt. Failed or unresolved calls can still incur charges. Durable attempt reservations now prevent silent same-key replays and enforce a shared domain daily attempt limit. Monetary organization budgets, background extraction jobs and provider invoice reconciliation remain unfinished. One active extraction per application process limits local concurrency only.
 
-Provider authentication, balance and rate-limit errors return sanitized error codes without forwarding response bodies or credentials. Automated tests use synthetic responses and make no paid calls. A live OpenRouter check still requires a configured key and chosen model.
+Provider authentication, balance and rate-limit errors return sanitized error codes without forwarding response bodies or credentials. Automated tests use synthetic responses and make no paid calls. A live OpenRouter check requires a configured key and chosen model.
 
 Protocol references: [authentication](https://openrouter.ai/docs/quickstart), [structured outputs](https://openrouter.ai/docs/guides/features/structured-outputs), [provider routing](https://openrouter.ai/docs/guides/routing/provider-selection).
 
@@ -48,3 +48,9 @@ The key prompt is masked and requires an interactive terminal. Alternatively omi
 The JSON report includes status, whether a network attempt occurred, elapsed time, resolved model/request IDs and reported usage/cost. Exit code 0 in live mode means the passage contract passed; exit code 1 indicates a provider or output error. A successful check is not an enterprise accuracy evaluation or a complete publication workflow test. `MODEL_ROUTE_UNAVAILABLE` can mean no endpoint meets the routing requirements; `MODEL_REQUEST_REJECTED` means OpenRouter rejected request parameters. Neither is silently worked around by weakening the routing policy.
 
 Extraction calls now use [durable attempt reservations](model-attempts.md), with a shared daily allowance and no transparent retry after failed or unresolved calls.
+
+## Live synthetic validation — 2026-09-07
+
+DeepSeek V4 Flash successfully selected an exact passage through the real OpenRouter API with the configured ZDR and data-collection restrictions. The adapter now sends the portable `max_tokens` limit: using `max_completion_tokens` with required-parameter filtering excluded eligible routes in the initial live check. The 256-token ceiling and no-retry policy are unchanged.
+
+Live sampling also produced one `UNSUPPORTED_MODEL_OUTPUT` rejection. A successful connectivity check is therefore not a guarantee that every generation satisfies the passage contract. Invalid output remains rejected without creating approved knowledge or silently retrying a potentially paid call. Synthetic tests and a live diagnostic do not establish enterprise accuracy.
