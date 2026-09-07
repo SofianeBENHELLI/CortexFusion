@@ -106,8 +106,12 @@ Migration 0016 creates forced-RLS immutable personal attempts/outcomes. Explicit
 
 ## Liveness and database readiness
 
-GET /health remains process liveness. GET /ready checks the exact expected Alembic revision (currently 0016), required table inventory, role restrictions, table SELECT access and enabled/forced RLS flags; it returns only ready/schema_revision or a safe NOT_READY 503. It uses a dedicated NullPool connection with a two-second driver socket timeout and 1.5-second statement timeout, with no provider calls. Update the revision and inventory in readiness.py when introducing a migration; the ready-path database test must pass on a fresh CI migration. This is not a policy-body audit or a production recovery proof.
+GET /health remains process liveness. GET /ready checks the exact expected Alembic revision (currently 0017), required table inventory, role restrictions, table SELECT access and enabled/forced RLS flags; it returns only ready/schema_revision or a safe NOT_READY 503. It uses a dedicated NullPool connection with a two-second driver socket timeout and 1.5-second statement timeout, with no provider calls. Update the revision and inventory in readiness.py when introducing a migration; the ready-path database test must pass on a fresh CI migration. This is not a policy-body audit or a production recovery proof.
 
 ## Backend synthesis SDK demo
 
 Run `uv run python scripts/demo_backend_synthesis.py --output /tmp/cortex-backend-synthesis.json` against the dedicated `_test` database URLs after migration. The demo bootstraps synthetic published evidence, uses strict signed confirmations over real loopback HTTP with the official MCP SDK, and checks response recovery, targeted feedback, timeline and revocation. It has no live-provider switch; one simulated request and zero paid calls are required. The same workflow is tested with ASGI transport and runs over real loopback HTTP in CI. Synthetic fixture rows remain in the test database.
+
+## Personal issue query scope
+
+Migration 0017 indexes personal episodes and episode-to-issue lookup. Issue listing selects only episodes owned by the authenticated subject in SQL before checking current evidence access. It keeps the existing visible-item UUID cursor and status/episode filters. This reduces application checks across other users’ activity; it does not impose a fixed scan budget for the caller’s own revoked-evidence history.

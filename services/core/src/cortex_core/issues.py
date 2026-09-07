@@ -72,8 +72,11 @@ class IssueService:
                 after,
                 lambda row: self.k._episode(conn, p, domain, row["episode_id"]),
                 lambda row: self._view(row, IssueView),
-                "AND (:status='' OR status=:status) AND (:episode='' OR episode_id=:episode)",
-                {"status": status or "", "episode": episode_id or ""},
+                """AND (:status='' OR status=:status) AND (:episode='' OR episode_id=:episode)
+                AND EXISTS (SELECT 1 FROM cf_episodes e
+                    WHERE e.tenant_id=cf_issues.tenant_id AND e.domain_id=cf_issues.domain_id
+                    AND e.id=cf_issues.episode_id AND e.subject=:subject)""",
+                {"status": status or "", "episode": episode_id or "", "subject": p.subject},
             )
 
     def events(self, p, domain, ident, limit, after):
