@@ -20,6 +20,8 @@ uv run cortex companion-ask \
 
 `--allow-openrouter` authorizes sending this question and the retrieved excerpts to that provider. The tenant and domain come from the host command, never from model output. Remote endpoints must use HTTPS; HTTP is accepted only for explicit loopback hosts. Credentials in URLs, redirects and environment proxies are refused. The reference client currently supports POSIX hosts (Linux/macOS).
 
+HTTP operations have a 60-second timeout; MCP requests have a 90-second response deadline. These are individual request limits, not a deadline for the entire workflow. A failed initialization performs no business mutation and is not automatically retried. The reference session replaces SDK transport/session log payloads and exception details with fixed messages, including at debug level: malformed server responses can otherwise appear in validation tracebacks. This protection is scoped to its asynchronous session tasks; unrelated SDK clients retain their own logging behavior. It does not sanitize logs written by a caller's custom middleware or transport.
+
 The output is the server's personal response receipt, including the episode, served version, exact references and `semantic_validation: not_performed`. A checked reference does not prove that every generated claim follows from it.
 
 ## Model and action boundaries

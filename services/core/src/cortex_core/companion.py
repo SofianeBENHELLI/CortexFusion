@@ -8,10 +8,12 @@ import asyncio
 import fcntl
 import hashlib
 import json
+import logging
 import os
 import re
 import sqlite3
 from contextlib import asynccontextmanager, contextmanager
+from contextvars import ContextVar
 from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -475,10 +477,49 @@ async def record_feedback(
     return {"status": "recorded", "signal": signal}
 
 
+_private_mcp_session = ContextVar("cortex_private_mcp_session", default=False)
+
+
+class _PrivateMCPLogs(logging.Filter):
+    """SDK debug payloads and validation tracebacks can contain private server data."""
+
+    def filter(self, record):
+        if _private_mcp_session.get():
+            record.msg = "MCP client event; payload and exception details withheld"
+            record.args = ()
+            record.exc_info = None
+            record.exc_text = None
+            record.stack_info = None
+        return True
+
+
+_private_mcp_filter = _PrivateMCPLogs()
+
+
+@contextmanager
+def private_mcp_logs():
+    # Install once; ContextVar isolates concurrent clients and SDK background tasks.
+    # The filter is inert outside this reference client's session.
+    for name in ("mcp.client.streamable_http", "client"):
+        logging.getLogger(name).addFilter(_private_mcp_filter)
+    context_token = _private_mcp_session.set(True)
+    try:
+        yield
+    finally:
+        _private_mcp_session.reset(context_token)
+
+
 @asynccontextmanager
 async def connected_session(*, endpoint, token, tenant):
     endpoint = validate_endpoint(endpoint)
     tenant = str(UUID(tenant))
+    with private_mcp_logs():
+        async with _connected_session(endpoint=endpoint, token=token, tenant=tenant) as session:
+            yield session
+
+
+@asynccontextmanager
+async def _connected_session(*, endpoint, token, tenant):
     async with httpx.AsyncClient(
         headers={"Authorization": "Bearer " + token, "X-Tenant-ID": tenant},
         follow_redirects=False,

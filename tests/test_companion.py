@@ -1,6 +1,8 @@
 import asyncio
 import json
+import logging
 import os
+import sys
 from datetime import timedelta
 from types import SimpleNamespace
 from uuid import uuid4
@@ -16,6 +18,7 @@ from cortex_core.companion import (
     ask,
     call,
     create_conversation,
+    private_mcp_logs,
     record_feedback,
     safe_error_code,
     validate_endpoint,
@@ -282,6 +285,95 @@ def test_error_codes_survive_sdk_wrappers_without_exposing_diagnostics():
 def test_endpoint_rejects_secret_urls_and_remote_cleartext(url):
     with pytest.raises(ValueError):
         validate_endpoint(url)
+
+
+def test_private_sdk_logging_is_scoped_to_session_tasks_and_resets_after_failure(caplog):
+    logger = logging.getLogger("mcp.client.streamable_http")
+
+    async def scenario():
+        entered, outside_logged = asyncio.Event(), asyncio.Event()
+
+        async def private_task():
+            with pytest.raises(ValueError), private_mcp_logs():
+                entered.set()
+                await outside_logged.wait()
+                logger.error("private payload", exc_info=ValueError("private exception"))
+                raise ValueError("private failure")
+            logger.warning("after private session")
+
+        async def outside_task():
+            await entered.wait()
+            logger.warning("unrelated SDK client")
+            outside_logged.set()
+
+        await asyncio.gather(private_task(), outside_task())
+
+    with caplog.at_level(logging.DEBUG):
+        asyncio.run(scenario())
+    assert "private payload" not in caplog.text
+    assert "private exception" not in caplog.text
+    assert "payload and exception details withheld" in caplog.text
+    assert "unrelated SDK client" in caplog.text
+    assert "after private session" in caplog.text
+
+
+@pytest.mark.parametrize("failure", [302, 307, "invalid_json", "timeout"])
+def test_cli_transport_failure_never_redirects_or_logs_reflected_secrets(
+    monkeypatch, capsys, caplog, failure
+):
+    import cortex_core.companion as companion
+    from cortex_core.cli import main
+
+    secret = "synthetic-reflected-credential"
+    requests = []
+    original_client = httpx.AsyncClient
+
+    def respond(request):
+        requests.append(request)
+        assert request.url.host == "cortex.example"
+        assert request.headers["Authorization"] == "Bearer " + secret
+        if isinstance(failure, int):
+            return httpx.Response(
+                failure, headers={"Location": "https://other.example/mcp/?token=" + secret}
+            )
+        if failure == "timeout":
+            raise httpx.ReadTimeout(secret, request=request)
+        return httpx.Response(200, json={"reflected": secret})
+
+    def client(**kwargs):
+        return original_client(**kwargs, transport=httpx.MockTransport(respond))
+
+    def bounded_session(read, write, **kwargs):
+        return ClientSession(read, write, read_timeout_seconds=timedelta(milliseconds=100))
+
+    monkeypatch.setattr(httpx, "AsyncClient", client)
+    monkeypatch.setattr(companion, "ClientSession", bounded_session)
+    monkeypatch.setenv("CORTEX_COMPANION_TOKEN", secret)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "cortex",
+            "companion-conversation",
+            "--endpoint",
+            "https://cortex.example/mcp/",
+            "--tenant",
+            str(uuid4()),
+            "--domain",
+            str(uuid4()),
+            "--request-id",
+            str(uuid4()),
+            "--title",
+            "Private conversation",
+        ],
+    )
+    with caplog.at_level(logging.DEBUG), pytest.raises(SystemExit) as exc:
+        main()
+    assert exc.value.code == 1
+    assert len(requests) == 1  # Initialization fails: no redirect, retry or business mutation.
+    output = capsys.readouterr()
+    assert json.loads(output.out)["error"] == "COMPANION_FAILED"
+    assert secret not in output.out + output.err + caplog.text
 
 
 @pytest.mark.parametrize("lose_ack", [False, True])
