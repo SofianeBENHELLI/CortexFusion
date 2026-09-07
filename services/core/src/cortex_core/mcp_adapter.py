@@ -1,4 +1,4 @@
-"""MCP read/propose/feedback boundary. Owner commands are deliberately not agent tools."""
+"""Compatibility MCP tools; the generated exhaustive facade is installed by mcp_bridge."""
 
 from typing import Annotated
 from uuid import UUID

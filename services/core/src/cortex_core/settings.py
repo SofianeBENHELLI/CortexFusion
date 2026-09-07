@@ -22,6 +22,7 @@ class Settings(BaseSettings):
             "CORTEX_OPENROUTER_API_KEY", "OPENROUTER_API_KEY", "openrouter_api_key"
         ),
     )
+    confirmation_public_key_file: Path | None = None
     local_model: str | None = None
     ollama_url: str = "http://127.0.0.1:11434"
     max_request_bytes: int = Field(default=1000000, ge=1000)

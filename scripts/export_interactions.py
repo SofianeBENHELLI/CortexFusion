@@ -20,6 +20,7 @@ app = create_app(
         jwks_url="https://identity.invalid/keys",
         model_provider="ollama",
         local_model=None,
+        confirmation_public_key_file=None,
     )
 )
 try:

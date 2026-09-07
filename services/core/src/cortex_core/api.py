@@ -310,5 +310,8 @@ def create_app(settings: Settings | None = None):
         return catalog(app.openapi())
 
     install_openapi(app)
+    from .mcp_bridge import install_bridge
+
+    install_bridge(app, mcp, auth, settings)
     app.mount("/mcp", mcp_app)
     return app
