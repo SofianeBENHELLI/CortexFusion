@@ -238,3 +238,21 @@ def test_mcp_model_usage_matches_owner_http(world):
         },
     )
     assert r.json()["result"]["structuredContent"] == {"http_status": 200, "data": http}
+
+
+def test_outcome_storage_failure_leaves_inspectable_unresolved_attempt(world, monkeypatch, caplog):
+    model = Model(CoreError("MODEL_UNAVAILABLE", "Synthetic provider failure", 503))
+    service, command, source = ExtractionService(world.service, model), request(), world.source()
+
+    def unavailable(*args):
+        raise RuntimeError("private storage and credential diagnostics")
+
+    monkeypatch.setattr(service.attempts, "failed", unavailable)
+    with pytest.raises(CoreError) as failure:
+        service.extract(world.owner, world.domain, source["id"], command)
+    assert failure.value.code == "MODEL_UNAVAILABLE"
+    assert listing(world)[0]["status"] == "unresolved"
+    assert "private storage" not in caplog.text
+    with pytest.raises(CoreError) as retry:
+        service.extract(world.owner, world.domain, source["id"], command)
+    assert retry.value.code == "MODEL_ATTEMPT_RECORDED" and model.calls == 1

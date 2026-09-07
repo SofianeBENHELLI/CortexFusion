@@ -149,3 +149,42 @@ def test_generated_mcp_requires_confirmation_to_enable_automatic_collection(worl
     result = r.json()["result"]["structuredContent"]
     assert result["http_status"] == 428, result
     assert call(world, "GET", "/feedback-preferences", subject="bob")["allow_observed"] is False
+
+
+def test_inflight_automatic_signal_cannot_use_a_pre_optout_snapshot(world, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    from cortex_core.auth import CoreError
+    from cortex_core.contracts import FeedbackSignalInput
+    from cortex_core.feedback_signals import FeedbackSignalService
+    from cortex_core.service import KnowledgeService
+
+    eid = episode(world)
+    preference(world, observed=True)
+    knowledge = KnowledgeService(world.db)
+    service = FeedbackSignalService(knowledge)
+    original = knowledge._domain
+    entered, resume = Event(), Event()
+
+    def delayed_lock(*args, **kwargs):
+        # The transaction has read membership; pause before acquiring the domain lock.
+        entered.set()
+        assert resume.wait(5)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(knowledge, "_domain", delayed_lock)
+    body = FeedbackSignalInput(**signal("observed", "reformulation", iteration_index=2))
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(service.record, world.owner, world.domain, eid, body)
+        assert entered.wait(5)
+        try:
+            preference(world, revision=1)
+        finally:
+            resume.set()
+        with pytest.raises(DBAPIError):
+            future.result(timeout=5)
+    assert call(world, "GET", "/feedback-signals")["items"] == []
+    with pytest.raises(CoreError) as retry:
+        service.record(world.owner, world.domain, eid, body)
+    assert retry.value.code == "COLLECTION_DISABLED"
