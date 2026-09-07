@@ -14,6 +14,9 @@ from cortex_core.companion import (
     Journal,
     OpenRouterSynthesis,
     ask,
+    call,
+    create_conversation,
+    record_feedback,
     safe_error_code,
     validate_endpoint,
 )
@@ -140,7 +143,9 @@ class Session:
         self.response_id = str(uuid4())
 
     async def list_tools(self):
-        return SimpleNamespace(tools=[SimpleNamespace(name=n) for n in REQUIRED_TOOLS])
+        return SimpleNamespace(
+            tools=[SimpleNamespace(name=n) for n in REQUIRED_TOOLS | {"api_conversations_query"}]
+        )
 
     async def call_tool(self, name, args):
         self.calls.append(name)
@@ -332,3 +337,210 @@ def test_reference_companion_uses_real_sdk_and_respects_revocation(world, identi
                                 await ask(session, journal=journal, **kwargs)
 
     asyncio.run(workflow())
+
+
+def test_conversation_and_targeted_feedback_use_mcp_with_consent(world, identity_keys, tmp_path):
+    source = world.source()
+    world.approve(world.proposal(source))
+    app = create_app(
+        Settings(
+            database_url=os.environ["CORTEX_TEST_DATABASE_URL"],
+            jwt_issuer="https://identity.test",
+            jwt_public_key_file=identity_keys[1],
+            model_provider="ollama",
+            local_model=None,
+        )
+    )
+
+    async def workflow():
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://localhost:8000",
+                headers=world.headers("bob"),
+            ) as http:
+                async with streamable_http_client(
+                    "http://localhost:8000/mcp/", http_client=http
+                ) as (read, write, _):
+                    async with ClientSession(read, write) as session:
+                        await session.initialize()
+                        conv_args = dict(
+                            domain=world.domain, title="Incident questions", request_id=str(uuid4())
+                        )
+                        conversation = await create_conversation(session, **conv_args)
+                        assert (await create_conversation(session, **conv_args))[
+                            "id"
+                        ] == conversation["id"]
+                        with Journal(tmp_path / "conversation.db", "0.10").locked() as journal:
+                            model = Model()
+                            args = dict(
+                                endpoint="http://localhost:8000/mcp/",
+                                domain=world.domain,
+                                question="incident",
+                                request_id=str(uuid4()),
+                                journal=journal,
+                                model=model,
+                                conversation_id=conversation["id"],
+                            )
+                            response = await ask(session, **args)
+                            assert (await ask(session, **args))["id"] == response["id"]
+                            assert model.calls == 1
+                            messages = await call(
+                                session,
+                                "api_conversations_messages",
+                                {"path": {"domain": world.domain, "ident": conversation["id"]}},
+                            )
+                            assert len(messages["items"]) == 1
+                            assert (
+                                messages["items"][0]["result"]["episode_id"]
+                                == response["episode_id"]
+                            )
+                            feedback = dict(
+                                domain=world.domain,
+                                response_id=response["id"],
+                                request_id=str(uuid4()),
+                                origin="explicit",
+                                kind="thumbs_down",
+                                comment="Not enough detail",
+                            )
+                            first = await record_feedback(session, **feedback)
+                            assert (await record_feedback(session, **feedback))["signal"][
+                                "id"
+                            ] == first["signal"]["id"]
+                            observed = dict(
+                                domain=world.domain,
+                                response_id=response["id"],
+                                request_id=str(uuid4()),
+                                origin="observed",
+                                kind="correction",
+                                iteration_index=2,
+                            )
+                            assert (await record_feedback(session, **observed))[
+                                "status"
+                            ] == "not_collected"
+                            prefs = world.client.put(
+                                world.prefix + "/feedback-preferences",
+                                headers=world.headers("bob"),
+                                json={
+                                    "allow_observed": True,
+                                    "allow_inferred": False,
+                                    "expected_revision": 0,
+                                },
+                            )
+                            assert prefs.status_code == 200
+                            assert (await record_feedback(session, **observed))[
+                                "status"
+                            ] == "recorded"
+                            summary = await call(
+                                session,
+                                "api_feedback_summary",
+                                {
+                                    "path": {"domain": world.domain},
+                                    "query": {"conversation_id": conversation["id"]},
+                                },
+                            )
+                            assert summary["explicit"]["thumbs_down"] == 1
+                            assert summary["observed"]["correction"] == 1
+                            assert summary["observed"]["maximum_declared_iteration"] == 2
+                            assert summary["inferred"] == {
+                                "positive": 0,
+                                "negative": 0,
+                                "neutral": 0,
+                            }
+                            world.client.put(
+                                world.prefix + "/feedback-preferences",
+                                headers=world.headers("bob"),
+                                json={
+                                    "allow_observed": False,
+                                    "allow_inferred": False,
+                                    "expected_revision": 1,
+                                },
+                            ).raise_for_status()
+                            observed["request_id"] = str(uuid4())
+                            assert (await record_feedback(session, **observed))[
+                                "status"
+                            ] == "not_collected"
+                            world.service.set_access(
+                                world.owner,
+                                world.domain,
+                                source["id"],
+                                AccessInput(allowed_subjects=["alice"]),
+                            )
+                            feedback["request_id"] = str(uuid4())
+                            with pytest.raises(CoreError):
+                                await record_feedback(session, **feedback)
+
+    asyncio.run(workflow())
+
+
+def test_conversation_is_part_of_command_fingerprint(tmp_path):
+    session, model = Session(), Model()
+    args = dict(
+        endpoint="http://localhost:8000/mcp/",
+        domain=str(uuid4()),
+        question="incident",
+        request_id=str(uuid4()),
+        model=model,
+    )
+    with Journal(tmp_path / "identity.db", "0.05").locked() as journal:
+        asyncio.run(ask(session, journal=journal, **args))
+        with pytest.raises(CoreError) as caught:
+            asyncio.run(ask(session, journal=journal, conversation_id=str(uuid4()), **args))
+        assert caught.value.code == "IDEMPOTENCY_CONFLICT"
+        assert model.calls == 1
+
+
+def test_revocation_between_preference_read_and_signal_write_is_reported_without_collection():
+    class RacingSession(Session):
+        async def call_tool(self, name, args):
+            if name == "api_feedback_preferences":
+                return SimpleNamespace(
+                    isError=False,
+                    structuredContent={"http_status": 200, "data": {"allow_observed": True}},
+                )
+            if name == "api_responses_read":
+                return SimpleNamespace(
+                    isError=False,
+                    structuredContent={"http_status": 200, "data": {"episode_id": str(uuid4())}},
+                )
+            if name == "api_feedback_record_signal":
+                return SimpleNamespace(
+                    isError=True,
+                    structuredContent={
+                        "http_status": 403,
+                        "data": {"error": "COLLECTION_DISABLED", "message": "private diagnostic"},
+                    },
+                )
+            pytest.fail("Unexpected tool")
+
+    result = asyncio.run(
+        record_feedback(
+            RacingSession(),
+            domain=str(uuid4()),
+            response_id=str(uuid4()),
+            request_id=str(uuid4()),
+            origin="observed",
+            kind="reformulation",
+        )
+    )
+    assert result == {"status": "not_collected", "reason": "consent_disabled"}
+
+
+def test_invalid_provenance_never_calls_mcp():
+    class Forbidden:
+        async def call_tool(self, *args):
+            pytest.fail("Invalid signal must not be sent")
+
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        asyncio.run(
+            record_feedback(
+                Forbidden(),
+                domain=str(uuid4()),
+                response_id=str(uuid4()),
+                request_id=str(uuid4()),
+                origin="inferred",
+                kind="thumbs_up",
+            )
+        )

@@ -26,6 +26,11 @@ def main():
     companion.add_argument("--tenant", type=UUID, required=True)
     companion.add_argument("--domain", type=UUID, required=True)
     companion.add_argument("--question", required=True)
+    companion.add_argument(
+        "--conversation-id",
+        type=UUID,
+        help="Append this question to an existing personal conversation",
+    )
     companion.add_argument("--request-id", type=UUID, required=True)
     companion.add_argument(
         "--journal", required=True, help="Private persistent local SQLite journal"
@@ -39,6 +44,39 @@ def main():
         required=True,
         help="Authorize sending this question and retrieved excerpts to OpenRouter",
     )
+    conversation = sub.add_parser(
+        "companion-conversation", help="Create a personal conversation through MCP; no model call"
+    )
+    feedback = sub.add_parser(
+        "companion-feedback",
+        help="Record host-declared feedback on an exact response; no model call",
+    )
+    for command in (conversation, feedback):
+        command.add_argument("--endpoint", required=True)
+        command.add_argument("--tenant", type=UUID, required=True)
+        command.add_argument("--domain", type=UUID, required=True)
+        command.add_argument("--request-id", type=UUID, required=True)
+    conversation.add_argument("--title", required=True)
+    feedback.add_argument("--response-id", type=UUID, required=True)
+    feedback.add_argument("--origin", choices=["explicit", "observed", "inferred"], required=True)
+    feedback.add_argument(
+        "--kind",
+        choices=[
+            "thumbs_up",
+            "thumbs_down",
+            "comment",
+            "resolved",
+            "reformulation",
+            "correction",
+            "abandon",
+            "satisfaction",
+        ],
+        required=True,
+    )
+    feedback.add_argument("--comment", default="")
+    feedback.add_argument("--iteration-index", type=int)
+    feedback.add_argument("--confidence", type=float)
+    feedback.add_argument("--sentiment", choices=["positive", "negative", "neutral"])
     serve = sub.add_parser("serve")
     serve.add_argument("--port", type=int, default=8000)
     bootstrap = sub.add_parser(
@@ -61,6 +99,52 @@ def main():
     worker.add_argument("--max-jobs", type=int, default=20, choices=range(1, 101))
     worker.add_argument("--poll-seconds", type=int, default=5, choices=range(1, 301))
     args = parser.parse_args()
+    if args.command in {"companion-conversation", "companion-feedback"}:
+        import asyncio
+        import json
+        import os
+
+        from .companion import (
+            connected_session,
+            create_conversation,
+            record_feedback,
+            safe_error_code,
+        )
+
+        async def operation():
+            async with connected_session(
+                endpoint=args.endpoint,
+                token=os.environ["CORTEX_COMPANION_TOKEN"],
+                tenant=str(args.tenant),
+            ) as session:
+                common = {"domain": str(args.domain), "request_id": str(args.request_id)}
+                if args.command == "companion-conversation":
+                    return await create_conversation(session, title=args.title, **common)
+                return await record_feedback(
+                    session,
+                    response_id=str(args.response_id),
+                    origin=args.origin,
+                    kind=args.kind,
+                    comment=args.comment,
+                    iteration_index=args.iteration_index,
+                    confidence=args.confidence,
+                    sentiment=args.sentiment,
+                    **common,
+                )
+
+        try:
+            print(json.dumps(asyncio.run(operation()), ensure_ascii=False))
+        except Exception as exc:
+            print(
+                json.dumps(
+                    {
+                        "error": safe_error_code(exc),
+                        "message": "Companion operation did not complete",
+                    }
+                )
+            )
+            raise SystemExit(1) from None
+        return
     if args.command == "companion-ask":
         import asyncio
         import json
@@ -86,6 +170,7 @@ def main():
                         tenant=str(args.tenant),
                         domain=str(args.domain),
                         question=args.question,
+                        conversation_id=str(args.conversation_id) if args.conversation_id else None,
                         request_id=str(args.request_id),
                         journal=journal,
                         model=model,

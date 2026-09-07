@@ -57,3 +57,23 @@ Unit tests additionally cover rejected references, incomplete outputs, input lim
 The loopback HTTP demonstration passed with `deepseek/deepseek-v4-flash`: the generated French response cited the synthetic incident procedure, a personal receipt was saved, and repeating the command returned that receipt. One generation reported 175 input tokens, 62 output tokens and $0.00004186; the complete first-and-replay workflow took about 4.4 seconds in this local run. Earlier synthesis trials were rejected by the output contract. After explicitly disabling optional reasoning, the bounded structured synthesis passed; this does not establish that reasoning was the sole cause of the earlier rejections or guarantee all future outputs.
 
 References: [OpenRouter reasoning controls](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens) and [provider price/routing controls](https://openrouter.ai/docs/guides/routing/provider-selection).
+
+## Conversations and feedback
+
+`cortex companion-conversation --endpoint … --tenant … --domain … --request-id UUID --title "Incident"` creates a personal conversation through MCP. Reuse its returned ID with `companion-ask --conversation-id UUID`. The server stores the retrieval episode in that conversation and applies its normal idempotency rules. The journal fingerprint also includes the conversation, preventing reuse of an existing command key in another conversation. This groups questions and responses; it does not yet rewrite pronouns using conversation history or send prior turns to the model.
+
+`cortex companion-feedback` needs only the Cortex identity token, not an OpenRouter key:
+
+```sh
+uv run cortex companion-feedback \
+  --endpoint https://your-cortex.example/mcp/ \
+  --tenant YOUR_TENANT_UUID --domain YOUR_DOMAIN_UUID \
+  --response-id YOUR_RESPONSE_UUID --request-id YOUR_NEW_SIGNAL_UUID \
+  --origin explicit --kind thumbs_down --comment "La réponse manque de précision"
+```
+
+Use an explicit origin only for a user action actually captured by the host. Observed events (`reformulation`, `correction`, `abandon`, `resolved`) may include `--iteration-index`; this is a host declaration, not automatically measured effort. Inferred satisfaction requires `--origin inferred --kind satisfaction --confidence … --sentiment … --comment …`. This client accepts the host's inference and provenance; it does not run a classifier or manufacture a thumbs-up/down.
+
+Before observed/inferred feedback, the client reads the caller's current preferences. If collection is disabled, it returns `status: not_collected, reason: consent_disabled`; the server rechecks consent when appending a signal. A concurrent opt-out producing `COLLECTION_DISABLED` is also reported as not collected. Other server failures remain errors. The client does not turn collection on or sign a consent confirmation. Explicit feedback remains available independently of automatic collection preferences.
+
+The response is reread before recording a signal, binding feedback to its actual episode with current access checks. Repeat the same signal request ID to reuse the server receipt rather than count a new signal. These commands and their Python helpers use the same MCP tools that another companion can call. Existing personal feedback summaries can filter by conversation or exact response.

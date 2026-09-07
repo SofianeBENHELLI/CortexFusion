@@ -11,7 +11,7 @@ import json
 import os
 import re
 import sqlite3
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -25,7 +25,13 @@ from mcp.client.streamable_http import streamable_http_client
 from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 from .auth import CoreError
-from .contracts import CompanionResponseInput, QueryInput, QueryResult
+from .contracts import (
+    CompanionResponseInput,
+    ConversationInput,
+    FeedbackSignalInput,
+    QueryInput,
+    QueryResult,
+)
 from .openrouter_model import OpenRouterPassageModel
 
 NAME = "cortex-reference-companion-v1"
@@ -237,16 +243,27 @@ async def call(session, name, args):
         or not 200 <= envelope.get("http_status", 0) < 300
     ):
         # Never echo server tool text, validation inputs, credentials or source bodies.
+        if (
+            isinstance(envelope, dict)
+            and isinstance(envelope.get("data"), dict)
+            and envelope["data"].get("error") == "COLLECTION_DISABLED"
+        ):
+            raise CoreError("COLLECTION_DISABLED", "Automatic collection is disabled", 403)
         raise CoreError("COMPANION_MCP_REJECTED", "MCP operation failed or access was refused")
     return envelope["data"]
 
 
-async def ask(session, *, endpoint, domain, question, request_id, journal, model):
+async def ask(
+    session, *, endpoint, domain, question, request_id, journal, model, conversation_id=None
+):
     domain, request_id = str(UUID(domain)), str(UUID(request_id))
     QueryInput(question=question)
+    conversation_id = str(UUID(conversation_id)) if conversation_id else None
     tools = {t.name for t in (await session.list_tools()).tools}
     if not REQUIRED_TOOLS <= tools:
         raise CoreError("COMPANION_INCOMPATIBLE", "Required Cortex MCP tools are unavailable")
+    if conversation_id and "api_conversations_query" not in tools:
+        raise CoreError("COMPANION_INCOMPATIBLE", "Conversation query tool is unavailable")
     identity = await call(session, "api_identity_read", {})
     fingerprint = hashlib.sha256(
         json.dumps(
@@ -256,6 +273,7 @@ async def ask(session, *, endpoint, domain, question, request_id, journal, model
                 "domain": domain,
                 "question": question,
                 "model": model.model,
+                **({"conversation_id": conversation_id} if conversation_id else {}),
             },
             sort_keys=True,
         ).encode()
@@ -273,9 +291,19 @@ async def ask(session, *, endpoint, domain, question, request_id, journal, model
             "Previous command outcome is uncertain; no automatic replay",
         )
     if state == "new":
-        episode = await call(
-            session, "api_knowledge_query", {"path": path, "body": {"question": question}}
-        )
+        if conversation_id:
+            episode = await call(
+                session,
+                "api_conversations_query",
+                {
+                    "path": {**path, "ident": conversation_id},
+                    "body": {"question": question, "idempotency_key": request_id},
+                },
+            )
+        else:
+            episode = await call(
+                session, "api_knowledge_query", {"path": path, "body": {"question": question}}
+            )
         episode = QueryResult.model_validate(episode).model_dump(mode="json")
         data = {"episode": episode}
         journal.save(request_id, "evidence", data)
@@ -355,7 +383,67 @@ def safe_error_code(exc):
     return "COMPANION_FAILED"
 
 
-async def connect_and_ask(*, endpoint, token, tenant, **kwargs):
+async def create_conversation(session, *, domain, title, request_id):
+    body = ConversationInput(title=title, idempotency_key=str(UUID(request_id)))
+    return await call(
+        session,
+        "api_conversations_create",
+        {
+            "path": {"domain": str(UUID(domain))},
+            "body": body.model_dump(mode="json"),
+        },
+    )
+
+
+async def record_feedback(
+    session,
+    *,
+    domain,
+    response_id,
+    request_id,
+    origin,
+    kind,
+    comment="",
+    iteration_index=None,
+    confidence=None,
+    sentiment=None,
+):
+    """Host-declared event only. Never creates a vote from a model's answer or silence."""
+    path = {"domain": str(UUID(domain))}
+    response_id = str(UUID(response_id))
+    body = FeedbackSignalInput(
+        companion_response_id=response_id,
+        origin=origin,
+        kind=kind,
+        comment=comment,
+        iteration_index=iteration_index,
+        confidence=confidence,
+        sentiment=sentiment,
+        companion=NAME,
+        idempotency_key=str(UUID(request_id)),
+    ).model_dump(mode="json")
+    if origin in {"observed", "inferred"}:
+        preferences = await call(session, "api_feedback_preferences", {"path": path})
+        if not preferences["allow_" + origin]:
+            return {"status": "not_collected", "reason": "consent_disabled"}
+    receipt = await call(
+        session, "api_responses_read", {"path": {**path, "response_id": response_id}}
+    )
+    try:
+        signal = await call(
+            session,
+            "api_feedback_record_signal",
+            {"path": {**path, "episode_id": receipt["episode_id"]}, "body": body},
+        )
+    except CoreError as exc:
+        if exc.code == "COLLECTION_DISABLED" and origin in {"observed", "inferred"}:
+            return {"status": "not_collected", "reason": "consent_disabled"}
+        raise
+    return {"status": "recorded", "signal": signal}
+
+
+@asynccontextmanager
+async def connected_session(*, endpoint, token, tenant):
     endpoint = validate_endpoint(endpoint)
     tenant = str(UUID(tenant))
     async with httpx.AsyncClient(
@@ -369,4 +457,9 @@ async def connect_and_ask(*, endpoint, token, tenant, **kwargs):
                 read, write, read_timeout_seconds=timedelta(seconds=90)
             ) as session:
                 await session.initialize()
-                return await ask(session, endpoint=endpoint, **kwargs)
+                yield session
+
+
+async def connect_and_ask(*, endpoint, token, tenant, **kwargs):
+    async with connected_session(endpoint=endpoint, token=token, tenant=tenant) as session:
+        return await ask(session, endpoint=endpoint, **kwargs)
