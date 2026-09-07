@@ -56,36 +56,44 @@ class CompanionResponseService:
         }
 
     def create(self, p, domain, episode_id, data):
-        payload = data.model_dump(mode="json")
-        fingerprint = digest({"episode_id": episode_id, **payload})
         with self.db.transaction(p, domain) as conn:
             self.k._domain(conn, p, domain, lock=True)
-            episode = self.k._episode(conn, p, domain, episode_id)
-            old = one(
-                conn,
-                "SELECT * FROM cf_companion_responses WHERE tenant_id=:tenant AND domain_id=:domain AND subject=:subject AND idempotency_key=:key",
-                **self.k.keys(p, domain),
-                subject=p.subject,
-                key=data.idempotency_key,
-            )
-            if old:
-                if old["request_hash"] != fingerprint:
-                    raise CoreError("IDEMPOTENCY_CONFLICT", "Companion response key reused")
-                return self._view(conn, p, domain, old)
-            self._references(episode, payload)
-            row = one(
-                conn,
-                """INSERT INTO cf_companion_responses(tenant_id,domain_id,id,subject,episode_id,payload,idempotency_key,request_hash)
-                VALUES(:tenant,:domain,:id,:subject,:episode,CAST(:payload AS jsonb),:key,:hash) RETURNING *""",
-                **self.k.keys(p, domain),
-                id=str(uuid4()),
-                subject=p.subject,
-                episode=episode_id,
-                payload=encoded(payload),
-                key=data.idempotency_key,
-                hash=fingerprint,
-            )
-            return self._view(conn, p, domain, row)
+            return self._create(conn, p, domain, episode_id, data)
+
+    def _create(self, conn, p, domain, episode_id, data):
+        """Append a receipt in the caller's transaction, with its domain lock held.
+
+        The caller owns commit/rollback. Episode and reference checks are retained
+        here so an orchestrator cannot bypass personal ownership or evidence ACLs.
+        """
+        payload = data.model_dump(mode="json")
+        fingerprint = digest({"episode_id": episode_id, **payload})
+        episode = self.k._episode(conn, p, domain, episode_id)
+        old = one(
+            conn,
+            "SELECT * FROM cf_companion_responses WHERE tenant_id=:tenant AND domain_id=:domain AND subject=:subject AND idempotency_key=:key",
+            **self.k.keys(p, domain),
+            subject=p.subject,
+            key=data.idempotency_key,
+        )
+        if old:
+            if old["request_hash"] != fingerprint:
+                raise CoreError("IDEMPOTENCY_CONFLICT", "Companion response key reused")
+            return self._view(conn, p, domain, old)
+        self._references(episode, payload)
+        row = one(
+            conn,
+            """INSERT INTO cf_companion_responses(tenant_id,domain_id,id,subject,episode_id,payload,idempotency_key,request_hash)
+            VALUES(:tenant,:domain,:id,:subject,:episode,CAST(:payload AS jsonb),:key,:hash) RETURNING *""",
+            **self.k.keys(p, domain),
+            id=str(uuid4()),
+            subject=p.subject,
+            episode=episode_id,
+            payload=encoded(payload),
+            key=data.idempotency_key,
+            hash=fingerprint,
+        )
+        return self._view(conn, p, domain, row)
 
     def detail(self, p, domain, ident):
         with self.db.transaction(p, domain) as conn:
