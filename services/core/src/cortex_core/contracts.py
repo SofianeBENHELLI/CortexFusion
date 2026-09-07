@@ -955,3 +955,11 @@ class SynthesisPage(Contract):
 
 
 CONTRACTS += [SynthesisInput, SynthesisUsage, SynthesisView, SynthesisPage]
+
+
+class ReadinessView(Contract):
+    status: Literal["ready"]
+    schema_revision: str
+
+
+CONTRACTS += [ReadinessView]

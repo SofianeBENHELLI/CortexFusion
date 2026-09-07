@@ -4,7 +4,7 @@ Générée par `scripts/export_frontend_reference.py` depuis OpenAPI, le catalog
 
 Lire d'abord le [guide des parcours frontend](frontend-guide.fr.md). Cette référence décrit le comportement actuel, pas des fonctions futures. Le catalogue machine français est `packages/contracts/functional-interactions.fr.json`.
 
-Couverture : **77 opérations HTTP**, chacune liée à son outil MCP généré. Les outils de compatibilité et les ressources/prompts sont décrits dans le guide MCP.
+Couverture : **78 opérations HTTP**, chacune liée à son outil MCP généré. Les outils de compatibilité et les ressources/prompts sont décrits dans le guide MCP.
 
 ## Règles communes
 
@@ -79,6 +79,7 @@ Couverture : **77 opérations HTTP**, chacune liée à son outil MCP généré. 
 | [sources.extract_local](#action-sources-extract_local) | `POST /v1/domains/{domain}/sources/{source_id}/extract-local` | Sélectionne un passage de cette source avec le modèle local. |
 | [sources.extract](#action-sources-extract) | `POST /v1/domains/{domain}/sources/{source_id}/extract` | Prépare l'extraction de ce passage avec le fournisseur configuré. |
 | [extractions.read](#action-extractions-read) | `GET /v1/domains/{domain}/extractions/{ident}` | Montre le reçu de mon extraction. |
+| [system.ready](#action-system-ready) | `GET /ready` | Vérifie que la base et son schéma permettent de servir le backend. |
 | [system.health](#action-system-health) | `GET /health` | Vérifie que le service répond. |
 | [domain.version](#action-domain-version) | `GET /v1/domains/{domain}/version` | Quelle version de connaissance est publiée ? |
 | [sources.read](#action-sources-read) | `GET /v1/domains/{domain}/sources/{source_id}` | Montre cette source et son empreinte. |
@@ -1751,6 +1752,29 @@ Relit un reçu d'extraction autorisé sans exécuter de nouveau le modèle.
 - Succès HTTP 200, `application/json` : [LocalExtractionView](#schema-localextractionview).
 - Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
 
+<a id="action-system-ready"></a>
+## system.ready
+
+Vérifie la connexion à PostgreSQL, la révision de migration attendue, le rôle SQL restreint et les indicateurs de RLS forcée sur les tables applicatives.
+
+**Utilisation frontend :** Utiliser comme sonde de disponibilité backend : 200 ready ou 503 NOT_READY sans diagnostic sensible. /health reste une sonde de vie statique. Aucun test fournisseur IA, aucun appel payant, aucune certification du contenu ni du fonctionnement de toutes les routes.
+
+- HTTP : `GET /ready`.
+- MCP : `api_system_ready` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- Rôles préalables : public.
+- Effet : Lecture sans modification métier durable.
+- Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
+
+### Paramètres
+
+Aucun paramètre déclaré.
+
+### Corps et résultat
+
+- Aucun corps attendu.
+- Succès HTTP 200, `application/json` : [ReadinessView](#schema-readinessview).
+- Erreurs déclarées : voir erreurs de transport.
+
 <a id="action-system-health"></a>
 ## system.health
 
@@ -3220,6 +3244,16 @@ Champs non déclarés interdits.
 | `protocol_version` | non | `"1"` | défaut : `"1"` |
 | `operation_id` | non | `"conversations.query"` | défaut : `"conversations.query"` |
 | `idempotency_key` | oui | texte | longueur min. : `8`; longueur max. : `128` |
+
+<a id="schema-readinessview"></a>
+### ReadinessView
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `status` | oui | `"ready"` | — |
+| `schema_revision` | oui | texte | — |
 
 <a id="schema-replayreceipt"></a>
 ### ReplayReceipt

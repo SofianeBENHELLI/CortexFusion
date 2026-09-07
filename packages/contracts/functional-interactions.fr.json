@@ -6154,6 +6154,37 @@
       }
     },
     {
+      "action_id": "system.ready",
+      "roles": [],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Vérifie que la base et son schéma permettent de servir le backend.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/ready",
+      "operation_id": "system.ready",
+      "description_fr": "Vérifie la connexion à PostgreSQL, la révision de migration attendue, le rôle SQL restreint et les indicateurs de RLS forcée sur les tables applicatives.",
+      "frontend_fr": "Utiliser comme sonde de disponibilité backend : 200 ready ou 503 NOT_READY sans diagnostic sensible. /health reste une sonde de vie statique. Aucun test fournisseur IA, aucun appel payant, aucune certification du contenu ni du fonctionnement de toutes les routes.",
+      "effect_fr": "Lecture sans modification métier durable.",
+      "mcp_tool": "api_system_ready",
+      "mcp_confirmation_required": false,
+      "parameters": [],
+      "request_body": null,
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadinessView"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "action_id": "system.health",
       "roles": [],
       "effect": "none",
@@ -10954,6 +10985,26 @@
         "citations"
       ],
       "title": "QueryResult"
+    },
+    "ReadinessView": {
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "ready",
+          "title": "Status"
+        },
+        "schema_revision": {
+          "type": "string",
+          "title": "Schema Revision"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "status",
+        "schema_revision"
+      ],
+      "title": "ReadinessView"
     },
     "ReplayReceipt": {
       "properties": {

@@ -22,6 +22,7 @@ GET /feedback-preferences|feedback.preferences|member|none|Quelles remontées au
 PUT /feedback-preferences|feedback.configure|member|personal|Modifie mes préférences de remontée automatique avec mon accord explicite.
 POST /episodes/{}/signals|feedback.record_signal|member|personal|Enregistre ce signal de feedback avec son origine déclarée.
 GET /feedback-signals|feedback.signals|member|none|Montre mes signaux de feedback accessibles.
+GET /ready|system.ready|public|none|Vérifie que la base et son schéma permettent de servir le backend.
 GET /health|system.health|public|none|Vérifie que le service répond.
 GET /v1/me|identity.read|member|none|Quels domaines et fonctions me sont accessibles ?
 GET /v1/interactions|interactions.list|member|none|Quelles actions puis-je préparer avec cette API ?

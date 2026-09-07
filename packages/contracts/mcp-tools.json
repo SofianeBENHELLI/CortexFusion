@@ -18663,6 +18663,117 @@
       }
     },
     {
+      "name": "api_system_ready",
+      "description": "Vérifie que la base et son schéma permettent de servir le backend.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ReadinessView"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/ReadinessView"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "$defs": {
+          "ReadinessView": {
+            "properties": {
+              "status": {
+                "type": "string",
+                "const": "ready",
+                "title": "Status"
+              },
+              "schema_revision": {
+                "type": "string",
+                "title": "Schema Revision"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "status",
+              "schema_revision"
+            ],
+            "title": "ReadinessView"
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
       "name": "api_system_health",
       "description": "Vérifie que le service répond.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
       "inputSchema": {

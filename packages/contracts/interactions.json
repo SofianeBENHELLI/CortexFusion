@@ -999,6 +999,18 @@
       "operation_id": "extractions.read"
     },
     {
+      "action_id": "system.ready",
+      "roles": [],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Vérifie que la base et son schéma permettent de servir le backend.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/ready",
+      "operation_id": "system.ready"
+    },
+    {
       "action_id": "system.health",
       "roles": [],
       "effect": "none",

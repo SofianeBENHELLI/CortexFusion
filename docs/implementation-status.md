@@ -1,38 +1,26 @@
 # Implementation status
 
-Updated: 2026-09-07
+Updated: 2026-09-08
 
-## Delivered development slice
+## Delivered backend
 
-The trusted-knowledge round trip is executable against PostgreSQL: register a source, submit a verbatim proposal, reject agent approval, approve as the owner, publish, retrieve a cited excerpt, replay, and compensate. Source permissions are rechecked before recording/returning answers, including when an access change occurs during retrieval.
+The PostgreSQL backend supports private sources and collections, persistent text-import batches, bounded text/PDF/DOCX file parsing and a recoverable file worker. corpus_manager can import and propose, while owner approval and publication remain separate. Sources can be followed through accessible proposals with a source filter; an imported source is not automatically served knowledge. See [corpus API](corpus-api.md) and [workspace backend](backend-workspace.md).
 
-The Python and TypeScript contract artifacts are generated and checked for drift. A per-session Cordis service adapter loads/disposes against the real framework package. It does not expose owner commands. The complete DeepSeek model/tool profile has not been integrated.
+Source-backed concepts and relations support proposals, review/revision/diff, owner acceptance, atomic publication, replay and compensation. The published projection is JSONB and retrieval is lexical/extractive. RS256/JWKS identity, domain roles, tenant RLS and current evidence permissions apply. Personal conversations, companion responses, feedback, issue decisions and membership history retain their own visibility boundaries. A personal issue decision can explicitly reference a correction proposal; linked resolution requires its publication and records the historical version.
 
-A first corpus API increment now adds private immutable collections, permission-filtered source/collection lists and persistent text import batches. The new `corpus_manager` role can import and propose but cannot approve. Each caller-driven processing step atomically registers sources and records per-item outcomes; failed items can be retried and pending items cancelled. This is JSON text/Markdown registration, not binary upload, PDF parsing or background execution. See [corpus API](corpus-api.md).
+All HTTP operations have generated MCP equivalents plus 16 compatibility tools. Authenticated resources and workflow prompts support discovery and preparation. Sensitive commands require single-use signed trusted-host confirmations in MCP and by default in direct HTTP; trusted_host HTTP compatibility must be explicit. Optional HTTPS protected-resource metadata advertises the configured external issuer. External companion login has not yet been validated. See [AI-native contract](ai-native.md) and [MCP onboarding](mcp-onboarding.md).
 
-A subsequent workspace increment adds review decisions/revisions and diffs, personal conversations/history, identity/domain discovery, owner-scoped membership administration, private binary uploads, bounded PDF/DOCX/text parsing and a recoverable file-worker command. See [workspace backend](backend-workspace.md) for endpoint semantics and limitations. Interactive login and enterprise onboarding/administration remain separate work. The reference companion described below adds bounded external synthesis.
+The [French frontend guide](frontend-guide.fr.md) and [exhaustive endpoint reference](frontend-api.fr.md) describe user/admin/corpus functions, inputs, permissions, effects, errors and recovery. Exact browser origins can be configured for CORS. Conversation queries offer started/result/error SSE progress while preserving JSON/MCP and idempotency. A bounded personal timeline joins episodes, response receipts, signals and issues with forward/backward and child pagination. These events do not stream LLM tokens.
 
-An opt-in, owner-only [OpenRouter adapter](openrouter.md) or [local passage selector](local-extraction.md) now has an immutable model receipt and independent exact-span validation. A real synthetic loopback model-to-publication round trip passed. This is not canonical-summary synthesis or semantic answering.
+Optional owner-scoped OpenRouter or local passage selection creates unapproved proposals with exact-span validation and durable model attempt outcomes. Explicitly enabled [backend synthesis](backend-synthesis-design.fr.md) instead serves an existing personal episode through a fresh OpenRouter adapter per attempt. It reserves before calling, shares the domain daily attempt allowance with extraction, never replays an uncertain key and records response/outcome atomically. No-evidence episodes receive deterministic abstention without a paid call. Private lookup supports recovery after lost delivery; stored success does not prove display, reading or satisfaction. Provider usage is not an invoice and citations do not certify semantic truth.
 
-Registered sources now have deterministic Unicode/UTF-8 bounded chunk pages and extraction can target one span while retaining original-source citations. Personal issue resolution/reopening has revision checks and immutable decision receipts. Shared team triage remains separate.
+The [reference MCP companion](reference-companion.md) remains a separate client with a durable private journal, bounded synthesis and feedback support. Explicit, observed and inferred [feedback](feedback-loop.md) preserve provenance; observed/inferred collection requires opt-in. Negative votes can open personal issues; feedback never publishes knowledge. Summary windows can target conversations and precise response receipts. Shared team triage and calibrated satisfaction inference remain open.
 
-The [interface-independent interaction protocol](ai-native.md) now documents every HTTP operation, with generated OpenAPI/interaction/MCP artifacts checked in CI. All HTTP interactions now have generated MCP equivalents, alongside 16 compatibility tools. Sensitive commands require single-use signed trusted-host confirmations; all calls retain HTTP service permissions. This is not yet an autonomous conversational orchestration loop.
+`/health` is process liveness. `/ready` checks the database revision, required tables, role restrictions and RLS flags through a dedicated time-bounded connection. It does not test a model provider or certify the content of RLS policies. Run migrations before serving traffic.
 
-The [companion feedback loop](feedback-loop.md) adds personal opt-in preferences and immutable explicit/observed/inferred signals, linked to episodes and rechecked source access. Explicit negative votes open personal issues atomically; estimates never become votes or trusted knowledge.
+The Python/TypeScript contracts and French descriptions are checked for drift. A per-session Cordis service adapter was exercised with the real framework; the full DeepSeek tool profile and autonomous harness loop are not integrated. Enterprise IdP onboarding, semantic/vector retrieval, separate short/long-term memory tiers, daily scheduled consolidation and production operations remain unfinished.
 
-Authenticated [MCP resources and workflow prompts](mcp-onboarding.md) now provide discovery and permission-checked preparation without mutations. Optional configured HTTPS protected-resource metadata advertises the external issuer and binds access-token audience to the resource URL. Actual external companion login remains unvalidated.
-
-Personal [feedback summaries](feedback-loop.md) now separate explicit votes, observed effort events and inferred sentiment over bounded windows, with optional conversation scope and current evidence filtering. Six reproducible [synthetic scenarios](../evals/README.md) validate accounting; they do not measure semantic answer quality.
-
-[Durable model attempts](model-attempts.md) now reserve a shared per-domain daily allowance before calls and append sanitized terminal outcomes. Failed/unresolved keys cannot silently replay provider calls. Success outcomes commit atomically with extraction/proposal creation. The cap measures attempts, not money, and provider reconciliation remains open.
-
-Personal [companion response receipts](companion-responses.md) now preserve the final externally generated response separately from retrieval episodes. References must match the episode; semantic entailment is not certified. Feedback and summary filters can target a precise response while retaining compatibility with older episode-only signals.
-
-A [reference MCP companion](reference-companion.md) now performs permission-checked retrieval, bounded OpenRouter synthesis and personal receipt creation, with exact citation validation and a durable private journal. It supports conversations, declared feedback and consent-gated inference from a bounded comment. Lost-acknowledgement tests verify one model generation and one server record on recovery. SDK logs are filtered within the reference session to prevent malformed-response tracebacks from exposing payloads.
-
-Live synthetic DeepSeek V4 Flash passage selection, cited synthesis and inferred feedback have succeeded. The [synthesis evaluation](../evals/README.md) first met 4/6 lexical scenarios; a versioned v2 prompt met 2/2 separate targeted cases. An ambiguous-comment assessment exceeded its predeclared confidence threshold. These are bounded observations, not a semantic quality or calibrated satisfaction claim.
-
-Sensitive direct HTTP actions now require the same signed trusted-host confirmation as MCP by default. The in-process bridge carries a non-network proof after verification, avoiding double consumption; replay across transports is rejected. An explicit trusted_host HTTP compatibility mode is reserved for controlled hosts and the synthetic invariant fixtures. See the [French frontend guide](frontend-guide.fr.md).
+Live synthetic DeepSeek V4 Flash passage selection, cited synthesis and inferred feedback succeeded in earlier bounded demonstrations. The [synthesis evaluation](../evals/README.md) first met 4/6 lexical scenarios; a versioned v2 prompt met 2/2 separate targeted cases. An ambiguous-comment assessment exceeded its predeclared confidence threshold. These observations do not establish production semantic quality or calibrated satisfaction. New backend transport/workflow tests use simulated providers.
 
 ## Relationship to the coding plan
 
@@ -47,8 +35,8 @@ Sensitive direct HTTP actions now require the same signed trusted-host confirmat
 | CF-014 — publication | JSONB concept/relationship projection is atomic; AGE/vector projection integration is not implemented |
 | CF-015–016 — replay/compensation/demo | Implemented and demonstrated on synthetic PostgreSQL data |
 | CF-017–022 — ingestion and learning | Collections, paginated source listing and persistent text import receipts implemented; bounded PDF/DOCX parsing and a file worker added; optional OpenRouter/local quote selection added; Docling, Temporal and canonical summaries remain open |
-| CF-023–027 — retrieval/protocol/harness | Lexical retrieval, episodes, feedback, exhaustive MCP, Cordis seam and a cited-synthesis reference companion implemented; semantic retrieval and full autonomous harness execution remain open |
-| CF-028–030 — product interface | Not started; interactive API documentation is a developer surface, not the product UI |
+| CF-023–027 — retrieval/protocol/harness | Lexical retrieval, episodes, feedback, exhaustive MCP, Cordis seam, durable backend synthesis and a cited-synthesis reference companion implemented; semantic retrieval and full autonomous harness execution remain open |
+| CF-028–030 — product interface | Frontend developed separately by the user; French functional contracts, CORS, SSE query progress and timeline are delivered here |
 | CF-031–036 — consolidation/evaluation | Owner brief, synthetic feedback/synthesis evaluation and local restore rehearsal implemented; scheduled consolidation, production recovery and enterprise benchmark remain open |
 
 A [local restore rehearsal](restore-rehearsal.md) matched 29 tables and RLS policies in an isolated database and passed the synthetic governed-knowledge demonstration afterward. This does not establish production disaster recovery.
@@ -64,7 +52,7 @@ The local storage compatibility probe is documented separately. The Compose defi
 1. Extend baseline binary parsing with logical document versions, semantic segmentation, layout fidelity and production worker orchestration.
 2. Extend extraction fidelity and synthesis evaluation with annotated cases and held-out inputs; preserve recorded failures and calibrate inferred satisfaction before using confidence thresholds operationally.
 3. Introduce versioned embedding/graph projection adapters with the same publication tests.
-4. Validate an external identity provider and companion against the existing MCP contracts. A product frontend remains a separate future scope.
+4. Validate an external identity provider and companion against the existing MCP contracts. The product frontend is being developed separately.
 5. Evaluate on a bounded set of enterprise documents and questions once supplied.
 
 Do not mark these later stages complete based on the current extractive demo. Enterprise source files, expected answers, and processing destinations must be explicitly selected before real-corpus model processing.

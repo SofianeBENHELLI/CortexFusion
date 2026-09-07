@@ -29,6 +29,7 @@ from .contracts import (
     PublicationReceipt,
     QueryInput,
     QueryResult,
+    ReadinessView,
     ReplayReceipt,
     RollbackInput,
     SourceDetail,
@@ -56,6 +57,7 @@ from .local_model import LocalPassageModel
 from .mcp_discovery import challenge, discovery_router, transport_security
 from .model_attempts_api import model_attempts_router
 from .openrouter_model import OpenRouterPassageModel
+from .readiness import ReadinessService
 from .service import KnowledgeService
 from .settings import Settings
 from .synthesis import SynthesisService
@@ -273,6 +275,10 @@ def create_app(settings: Settings | None = None):
     @app.get("/v1/domains/{domain}/extractions/{ident}", response_model=LocalExtractionView)
     def extraction_receipt(domain: UUID, ident: UUID, p=Depends(principal)):
         return extraction.receipt(p, str(domain), str(ident))
+
+    @app.get("/ready", response_model=ReadinessView)
+    def ready():
+        return ReadinessService(db).check()
 
     @app.get("/health", response_model=HealthView)
     def health():

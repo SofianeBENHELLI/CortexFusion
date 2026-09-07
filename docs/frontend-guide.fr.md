@@ -8,13 +8,21 @@ La [référence exhaustive des endpoints](frontend-api.fr.md) donne, pour chaque
 
 | Parcours demandé | Disponible | Écart ou limite actuelle |
 |---|---|---|
-| Interroger le domaine | Recherche publiée, épisode personnel, citations exactes, version servie, manque de connaissance ; compagnon de référence avec synthèse citée | Flux SSE de recherche livré sur la question de conversation ; il ne diffuse pas de tokens LLM. La validation des citations ne prouve pas la vérité de chaque phrase générée. |
+| Interroger le domaine | Recherche publiée, épisode personnel, citations exactes, version servie, manque de connaissance ; synthèse citée backend optionnelle et compagnon de référence | Flux SSE de recherche livré sur la question de conversation ; il ne diffuse pas de tokens LLM. La validation des citations ne prouve pas la vérité de chaque phrase générée. |
 | Piloter et naviguer dans six vues | Brief propriétaire, concepts/relations, conversations archivables, propositions, signaux personnels, corpus/imports, journal | Le brief est un instantané à la demande, pas une synthèse quotidienne programmée. Pas de moteur de mémoire court/long terme distinct. |
 | Valider et publier | Diff/preuves, rejet, report, demande de modification, réouverture, approbation et publication séparées | Pas de tâche de publication asynchrone ni de barre de progression métier ; le reçu confirme la transaction. |
 | Corriger un concept ou une relation | Proposition typée de remplacement de concept avec ses relations et preuves, revue puis publication | Pas de PATCH direct sur une relation canonique. Préparer la nouvelle représentation complète à partir du concept relu. |
-| Boucler sur les retours | Signal explicite/observé/inféré, signalement personnel, prise en charge, résolution, classement sans suite et historique | Pas de file de feedback partagée entre tous les membres. La décision de signalement est dans son historique personnel ; elle n'est pas une publication au journal canonique. Lien correction→signalement à expliciter, sans prétendre qu'il est automatisé. |
+| Boucler sur les retours | Signal explicite/observé/inféré, signalement personnel, prise en charge, résolution, classement sans suite et historique | Pas de file de feedback partagée entre tous les membres. La décision de signalement est dans son historique personnel ; elle n'est pas une publication au journal canonique. Lien explicite correction_proposal_id dans les décisions ; une résolution liée exige une proposition publiée. |
 | Alimenter le corpus | Collections, lots texte, dépôt JSON base64, analyse bornée, états/erreurs, reprises, création de sources et propositions | L'import réussi ne crée pas automatiquement une proposition ou une publication. Pas d'OCR général ni de garantie de fidélité complète du PDF. |
 | Tracer et administrer | Rôles par domaine, lecteurs par source, événements de membership, revue et journal immuables | Pas d'annuaire global, invitations, synchronisation de groupes ni d'IdP fourni par Cortex Fusion. |
+
+## Vérifier la disponibilité du backend
+
+`GET /health` indique que le processus HTTP répond. `GET /ready` (`api_system_ready`) ouvre une connexion PostgreSQL dédiée et vérifie la révision de migration attendue, la présence des tables requises, leurs indicateurs de RLS activée/forcée, leur lisibilité et l’absence de rôle applicatif superutilisateur, BYPASSRLS ou propriétaire. Une réponse 200 contient `status=ready` et `schema_revision`. Un échec retourne 503 avec `error=NOT_READY`, sans chaîne de connexion, identité SQL ou détail d’erreur.
+
+La révision attendue doit correspondre exactement au code déployé. Exécuter les migrations avant d’envoyer du trafic ; une base plus récente peut aussi être refusée par un ancien serveur. La sonde HTTP est publique pour l’exploitation ; l’outil MCP conserve l’authentification du transport. Les délais de socket (2 secondes) et de requête SQL (1,5 seconde) bornent chaque opération, pas un SLA global.
+
+Cette sonde ne contacte aucun fournisseur IA, ne teste pas la validité de sa clé, ne certifie pas le corps des politiques RLS, les données ou tous les parcours métier, et ne remplace pas les tests de migration. Un frontend peut distinguer une indisponibilité backend d’un refus de droits, sans tenter une action métier pour vérifier la connexion. Éviter le polling à haute fréquence : chaque sonde crée sa propre connexion et n’utilise pas le pool applicatif.
 
 ## Objets et mots à employer
 
@@ -29,10 +37,10 @@ La [référence exhaustive des endpoints](frontend-api.fr.md) donne, pour chaque
 | Commit / version | Historique accepté et position publiée. Une approbation peut précéder la visibilité dans les réponses. |
 | Conversation | Historique personnel dans un domaine, renommable et archivable. |
 | Épisode | Une question, son résultat de recherche, ses preuves et la version servie. |
-| Réponse de compagnon | Formulation finale effectivement livrée, séparée de l'extrait brut ; citations vérifiées, sémantique non certifiée. |
+| Réponse de compagnon | Formulation conservée, séparée de l'extrait brut ; citations vérifiées, sémantique non certifiée. Sa présence ne prouve pas son affichage ou sa lecture. |
 | Signal | Retour immuable dont l'origine est explicite, observée ou inférée. |
 | Signalement | Problème personnel à suivre ; sa fermeture ne modifie pas la connaissance. |
-| Tentative IA | Réservation et résultat durable d'un appel d'extraction ; pas une facture globale. |
+| Tentative IA | Réservation et résultat durable d'une extraction ou synthèse ; un état unresolved ne permet pas une relance automatique. Pas une facture globale. |
 
 Éviter « ajouté au cerveau » après un upload : dire « fichier reçu », « source enregistrée », « proposition créée », « accepté » ou « publié », selon le reçu exact.
 

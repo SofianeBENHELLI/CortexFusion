@@ -18083,6 +18083,34 @@
         ]
       }
     },
+    "/ready": {
+      "get": {
+        "summary": "Ready",
+        "operationId": "system.ready",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessView"
+                }
+              }
+            }
+          }
+        },
+        "x-cortex-interaction": {
+          "action_id": "system.ready",
+          "roles": [],
+          "effect": "none",
+          "effect_description": "Read only; no durable application change.",
+          "intent_example": "Vérifie que la base et son schéma permettent de servir le backend.",
+          "confirmation_policy": "authorized_user_intent",
+          "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access."
+        },
+        "description": "Vérifie que la base et son schéma permettent de servir le backend.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access."
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -26201,6 +26229,26 @@
           "citations"
         ],
         "title": "QueryResult"
+      },
+      "ReadinessView": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ready",
+            "title": "Status"
+          },
+          "schema_revision": {
+            "type": "string",
+            "title": "Schema Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "schema_revision"
+        ],
+        "title": "ReadinessView"
       },
       "ReplayReceipt": {
         "properties": {

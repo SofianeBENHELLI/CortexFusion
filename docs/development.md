@@ -103,3 +103,7 @@ proposals.list accepts optional source_id, matched against the proposal validati
 ## Durable backend synthesis
 
 Migration 0016 creates forced-RLS immutable personal attempts/outcomes. Explicit CORTEX_SYNTHESIS_ENABLED plus configured OpenRouter credentials enables synthesis; the default remains disabled. Calls share the extraction domain daily reservation limit, reserve before networking, never replay uncertain keys and store the response/outcome atomically. No-evidence episodes receive deterministic abstention without a paid reservation. HTTP/MCP sensitive-command confirmation applies; GET remains private and read-only. Use a fresh synthesis adapter per attempt and consult the French frontend guide for terminal/unresolved states. No token streaming or production semantic quality certification is included.
+
+## Liveness and database readiness
+
+GET /health remains process liveness. GET /ready checks the exact expected Alembic revision (currently 0016), required table inventory, role restrictions, table SELECT access and enabled/forced RLS flags; it returns only ready/schema_revision or a safe NOT_READY 503. It uses a dedicated NullPool connection with a two-second driver socket timeout and 1.5-second statement timeout, with no provider calls. Update the revision and inventory in readiness.py when introducing a migration; the ready-path database test must pass on a fresh CI migration. This is not a policy-body audit or a production recovery proof.
