@@ -7,6 +7,9 @@ Every HTTP action has a stable operation ID, an example intent, role prerequisit
 | Action | HTTP | Roles | Effect | Example intent |
 |---|---|---|---|---|
 | `system.mcp_discovery` | `GET /.well-known/oauth-protected-resource` | public | none | Découvre le fournisseur d'identité configuré pour cette ressource MCP. |
+| `models.attempts` | `GET /v1/domains/{domain}/model-attempts` | owner | none | Liste mes tentatives d'extraction et leurs résultats durables. |
+| `models.attempt` | `GET /v1/domains/{domain}/model-attempts/{attempt_id}` | owner | none | Inspecte cette tentative sans relancer le fournisseur. |
+| `models.usage` | `GET /v1/domains/{domain}/model-usage` | owner | none | Quel quota de tentatives IA reste disponible aujourd'hui dans ce domaine ? |
 | `conversations.create` | `POST /v1/domains/{domain}/conversations` | owner, corpus_manager, contributor, agent, viewer | personal | Crée une conversation sur les incidents. |
 | `conversations.list` | `GET /v1/domains/{domain}/conversations` | owner, corpus_manager, contributor, agent, viewer | none | Retrouve mes conversations actives. |
 | `conversations.read` | `GET /v1/domains/{domain}/conversations/{ident}` | owner, corpus_manager, contributor, agent, viewer | none | Ouvre cette conversation. |
@@ -95,6 +98,9 @@ Every HTTP action has a stable operation ID, an example intent, role prerequisit
 | `list_issues` | read | List personal knowledge gaps or disputed answers with their current decision revisions. |
 | `decide_issue` | writes state | Apply the user's explicit decision to their own issue. Refresh stale revisions; resolution does not fix or certify knowledge. |
 | `api_system_mcp_discovery` | read | Découvre le fournisseur d'identité configuré pour cette ressource MCP.  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
+| `api_models_attempts` | read | Liste mes tentatives d'extraction et leurs résultats durables.  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
+| `api_models_attempt` | read | Inspecte cette tentative sans relancer le fournisseur.  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
+| `api_models_usage` | read | Quel quota de tentatives IA reste disponible aujourd'hui dans ce domaine ?  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
 | `api_conversations_create` | writes state | Crée une conversation sur les incidents.  Changes personal state or appends personal feedback/decision history.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
 | `api_conversations_list` | read | Retrouve mes conversations actives.  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |
 | `api_conversations_read` | read | Ouvre cette conversation.  Read only; no durable application change.  Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. |

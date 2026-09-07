@@ -1,6 +1,6 @@
 """Typed contract source; exported JSON Schema is checked into packages/contracts."""
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 from typing import Annotated, Literal
 from uuid import UUID
@@ -780,3 +780,34 @@ class FeedbackSummary(Contract):
 
 
 CONTRACTS += [FeedbackSummary]
+
+
+class ModelAttemptView(Contract):
+    id: UUID
+    source_id: UUID
+    provider: Literal["openrouter", "ollama"]
+    requested_model: str
+    input_span: SourceRef
+    input_sha256: str
+    idempotency_key: str
+    created_at: datetime
+    status: Literal["unresolved", "succeeded", "failed"]
+    finished_at: datetime | None
+    error_code: str | None
+    extraction_id: UUID | None
+
+
+class ModelAttemptPage(Contract):
+    items: list[ModelAttemptView]
+    next_after: UUID | None
+
+
+class ModelUsageView(Contract):
+    utc_day: date
+    daily_limit: int = Field(ge=1)
+    reserved_attempts: int = Field(ge=0)
+    remaining_attempts: int = Field(ge=0)
+    scope: str
+
+
+CONTRACTS += [ModelAttemptView, ModelAttemptPage, ModelUsageView]

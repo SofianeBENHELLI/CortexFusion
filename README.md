@@ -72,3 +72,5 @@ See [AI-native interaction protocol](docs/ai-native.md) and the [generated actio
 The [companion feedback loop](docs/feedback-loop.md) separates deliberate votes, observed interaction events and model estimates, with opt-in personal collection and immutable receipts.
 
 The [MCP onboarding guide](docs/mcp-onboarding.md) describes authenticated resources, workflow prompts and optional HTTPS protected-resource discovery for an external identity provider.
+
+[Model attempt history and limits](docs/model-attempts.md) make provider failures and interrupted calls inspectable and prevent silent same-key replays.

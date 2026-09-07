@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "utc_day": {
+      "format": "date",
+      "title": "Utc Day",
+      "type": "string"
+    },
+    "daily_limit": {
+      "minimum": 1,
+      "title": "Daily Limit",
+      "type": "integer"
+    },
+    "reserved_attempts": {
+      "minimum": 0,
+      "title": "Reserved Attempts",
+      "type": "integer"
+    },
+    "remaining_attempts": {
+      "minimum": 0,
+      "title": "Remaining Attempts",
+      "type": "integer"
+    },
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    }
+  },
+  "required": [
+    "utc_day",
+    "daily_limit",
+    "reserved_attempts",
+    "remaining_attempts",
+    "scope"
+  ],
+  "title": "ModelUsageView",
+  "type": "object"
+}

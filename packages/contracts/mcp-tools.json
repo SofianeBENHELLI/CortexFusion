@@ -993,6 +993,520 @@
       }
     },
     {
+      "name": "api_models_attempts",
+      "description": "Liste mes tentatives d'extraction et leurs résultats durables.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Domain"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain"
+            ]
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "integer",
+                "maximum": 100,
+                "minimum": 1,
+                "default": 20,
+                "title": "Limit"
+              },
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "After"
+              }
+            },
+            "additionalProperties": false,
+            "required": []
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "$ref": "#/$defs/ModelAttemptPage"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "ModelAttemptPage": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/ModelAttemptView"
+                },
+                "type": "array",
+                "title": "Items"
+              },
+              "next_after": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Next After"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "items",
+              "next_after"
+            ],
+            "title": "ModelAttemptPage"
+          },
+          "ModelAttemptView": {
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Id"
+              },
+              "source_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Source Id"
+              },
+              "provider": {
+                "type": "string",
+                "enum": [
+                  "openrouter",
+                  "ollama"
+                ],
+                "title": "Provider"
+              },
+              "requested_model": {
+                "type": "string",
+                "title": "Requested Model"
+              },
+              "input_span": {
+                "$ref": "#/$defs/SourceRef"
+              },
+              "input_sha256": {
+                "type": "string",
+                "title": "Input Sha256"
+              },
+              "idempotency_key": {
+                "type": "string",
+                "title": "Idempotency Key"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "Created At"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "unresolved",
+                  "succeeded",
+                  "failed"
+                ],
+                "title": "Status"
+              },
+              "finished_at": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Finished At"
+              },
+              "error_code": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Error Code"
+              },
+              "extraction_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Extraction Id"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "id",
+              "source_id",
+              "provider",
+              "requested_model",
+              "input_span",
+              "input_sha256",
+              "idempotency_key",
+              "created_at",
+              "status",
+              "finished_at",
+              "error_code",
+              "extraction_id"
+            ],
+            "title": "ModelAttemptView"
+          },
+          "SourceRef": {
+            "properties": {
+              "source_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Source Id"
+              },
+              "start": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Start",
+                "description": "Zero-based Unicode code point offset, inclusive"
+              },
+              "end": {
+                "type": "integer",
+                "exclusiveMinimum": 0.0,
+                "title": "End",
+                "description": "Unicode code point offset, exclusive; not UTF-16 units"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "source_id",
+              "start",
+              "end"
+            ],
+            "title": "SourceRef"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "api_models_attempt",
+      "description": "Inspecte cette tentative sans relancer le fournisseur.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Domain"
+              },
+              "attempt_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Attempt Id"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain",
+              "attempt_id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "$ref": "#/$defs/ModelAttemptView"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "ModelAttemptView": {
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Id"
+              },
+              "source_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Source Id"
+              },
+              "provider": {
+                "type": "string",
+                "enum": [
+                  "openrouter",
+                  "ollama"
+                ],
+                "title": "Provider"
+              },
+              "requested_model": {
+                "type": "string",
+                "title": "Requested Model"
+              },
+              "input_span": {
+                "$ref": "#/$defs/SourceRef"
+              },
+              "input_sha256": {
+                "type": "string",
+                "title": "Input Sha256"
+              },
+              "idempotency_key": {
+                "type": "string",
+                "title": "Idempotency Key"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "Created At"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "unresolved",
+                  "succeeded",
+                  "failed"
+                ],
+                "title": "Status"
+              },
+              "finished_at": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Finished At"
+              },
+              "error_code": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Error Code"
+              },
+              "extraction_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Extraction Id"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "id",
+              "source_id",
+              "provider",
+              "requested_model",
+              "input_span",
+              "input_sha256",
+              "idempotency_key",
+              "created_at",
+              "status",
+              "finished_at",
+              "error_code",
+              "extraction_id"
+            ],
+            "title": "ModelAttemptView"
+          },
+          "SourceRef": {
+            "properties": {
+              "source_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Source Id"
+              },
+              "start": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Start",
+                "description": "Zero-based Unicode code point offset, inclusive"
+              },
+              "end": {
+                "type": "integer",
+                "exclusiveMinimum": 0.0,
+                "title": "End",
+                "description": "Unicode code point offset, exclusive; not UTF-16 units"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "source_id",
+              "start",
+              "end"
+            ],
+            "title": "SourceRef"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "api_models_usage",
+      "description": "Quel quota de tentatives IA reste disponible aujourd'hui dans ce domaine ?\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Domain"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "$ref": "#/$defs/ModelUsageView"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "ModelUsageView": {
+            "properties": {
+              "utc_day": {
+                "type": "string",
+                "format": "date",
+                "title": "Utc Day"
+              },
+              "daily_limit": {
+                "type": "integer",
+                "minimum": 1.0,
+                "title": "Daily Limit"
+              },
+              "reserved_attempts": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Reserved Attempts"
+              },
+              "remaining_attempts": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Remaining Attempts"
+              },
+              "scope": {
+                "type": "string",
+                "title": "Scope"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "utc_day",
+              "daily_limit",
+              "reserved_attempts",
+              "remaining_attempts",
+              "scope"
+            ],
+            "title": "ModelUsageView"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
       "name": "api_conversations_create",
       "description": "Crée une conversation sur les incidents.\n\nChanges personal state or appends personal feedback/decision history.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
       "inputSchema": {

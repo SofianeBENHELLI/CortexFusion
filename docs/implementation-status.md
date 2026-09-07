@@ -24,6 +24,8 @@ Authenticated [MCP resources and workflow prompts](mcp-onboarding.md) now provid
 
 Personal [feedback summaries](feedback-loop.md) now separate explicit votes, observed effort events and inferred sentiment over bounded windows, with optional conversation scope and current evidence filtering. Six reproducible [synthetic scenarios](../evals/README.md) validate accounting; they do not measure semantic answer quality.
 
+[Durable model attempts](model-attempts.md) now reserve a shared per-domain daily allowance before calls and append sanitized terminal outcomes. Failed/unresolved keys cannot silently replay provider calls. Success outcomes commit atomically with extraction/proposal creation. The cap measures attempts, not money, and provider reconciliation remains open.
+
 ## Relationship to the coding plan
 
 | Planned work | Current state |

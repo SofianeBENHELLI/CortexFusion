@@ -50,6 +50,7 @@ from .issues import IssueService
 from .issues_api import issues_router
 from .local_model import LocalPassageModel
 from .mcp_discovery import challenge, discovery_router, transport_security
+from .model_attempts_api import model_attempts_router
 from .openrouter_model import OpenRouterPassageModel
 from .service import KnowledgeService
 from .settings import Settings
@@ -120,7 +121,7 @@ def create_app(settings: Settings | None = None):
         )
     elif settings.model_provider == "ollama" and settings.local_model:
         model_adapter = LocalPassageModel(settings.local_model, settings.ollama_url)
-    extraction = ExtractionService(service, model_adapter)
+    extraction = ExtractionService(service, model_adapter, settings.model_daily_attempt_limit)
     from .mcp_adapter import create_mcp
 
     mcp = create_mcp(
@@ -200,6 +201,7 @@ def create_app(settings: Settings | None = None):
         return auth.authenticate(authorization, x_tenant_id)
 
     app.include_router(discovery_router(settings))
+    app.include_router(model_attempts_router(extraction.attempts, principal))
     app.include_router(conversations_router(ConversationService(service), principal))
     app.include_router(governance_router(GovernanceService(service), principal))
     corpus = CorpusService(service)

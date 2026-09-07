@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     )
     confirmation_public_key_file: Path | None = None
     mcp_public_url: str | None = None
+    model_daily_attempt_limit: int = Field(default=100, ge=1, le=100000)
     local_model: str | None = None
     ollama_url: str = "http://127.0.0.1:11434"
     max_request_bytes: int = Field(default=1000000, ge=1000)

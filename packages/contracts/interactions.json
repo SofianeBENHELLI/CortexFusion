@@ -16,6 +16,48 @@
       "operation_id": "system.mcp_discovery"
     },
     {
+      "action_id": "models.attempts",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Liste mes tentatives d'extraction et leurs résultats durables.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/model-attempts",
+      "operation_id": "models.attempts"
+    },
+    {
+      "action_id": "models.attempt",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Inspecte cette tentative sans relancer le fournisseur.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/model-attempts/{attempt_id}",
+      "operation_id": "models.attempt"
+    },
+    {
+      "action_id": "models.usage",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Quel quota de tentatives IA reste disponible aujourd'hui dans ce domaine ?",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/model-usage",
+      "operation_id": "models.usage"
+    },
+    {
       "action_id": "conversations.create",
       "roles": [
         "owner",

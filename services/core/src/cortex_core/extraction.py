@@ -1,17 +1,22 @@
+import logging
 from hashlib import sha256
 from threading import BoundedSemaphore
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
+from sqlalchemy.exc import DBAPIError
+
 from .auth import CoreError
 from .contracts import ProposalInput
+from .model_attempts import ModelAttemptService
 from .service import digest, encoded, one, run
 from .workspace import WorkspaceService
 
 
 class ExtractionService:
-    def __init__(self, knowledge, model):
+    def __init__(self, knowledge, model, daily_limit=100):
         self.k, self.db, self.model = knowledge, knowledge.db, model
         self.slot = BoundedSemaphore(1)
+        self.attempts = ModelAttemptService(knowledge, daily_limit)
 
     def _existing(self, conn, p, domain, key, fingerprint):
         row = one(
@@ -65,7 +70,20 @@ class ExtractionService:
             )
         if not self.slot.acquire(blocking=False):
             raise CoreError("MODEL_BUSY", "A model extraction is already running", 503)
+        attempt = None
         try:
+            attempt = self.attempts.reserve(
+                p,
+                domain,
+                source_id,
+                data.idempotency_key,
+                fingerprint,
+                getattr(self.model, "provider", "ollama"),
+                getattr(self.model, "model", "unspecified-adapter"),
+                base,
+                stop,
+                content,
+            )
             selection = self.model.select(content)
             # Independent boundary check, even when a model adapter is replaced.
             start, end = selection["start"], selection["end"]
@@ -84,6 +102,7 @@ class ExtractionService:
                 self.k._source(conn, p, domain, source_id)
                 old = self._existing(conn, p, domain, data.idempotency_key, fingerprint)
                 if old:
+                    self.attempts.succeeded(conn, p, domain, attempt, old["id"])
                     return old
                 proposal = self.k._propose(
                     conn,
@@ -144,6 +163,7 @@ class ExtractionService:
                     key=data.idempotency_key,
                     hash=fingerprint,
                 )
+                self.attempts.succeeded(conn, p, domain, attempt, ident)
                 return {
                     "id": ident,
                     "proposal": proposal,
@@ -152,6 +172,21 @@ class ExtractionService:
                     if metadata["provider"] == "openrouter"
                     else "local_model_passage_selection",
                 }
+        except Exception as exc:
+            if attempt:
+                try:
+                    self.attempts.failed(p, domain, attempt, exc)
+                except Exception:
+                    logging.getLogger(__name__).warning(
+                        "Model attempt outcome could not be recorded", extra={"attempt_id": attempt}
+                    )
+            if isinstance(exc, (CoreError, DBAPIError)):
+                raise
+            raise CoreError(
+                "MODEL_OPERATION_FAILED",
+                "Model extraction did not complete; inspect the attempt before retrying",
+                503,
+            ) from None
         finally:
             self.slot.release()
 
