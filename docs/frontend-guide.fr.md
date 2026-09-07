@@ -100,7 +100,17 @@ Zustand peut conserver le brouillon de question, les panneaux ouverts et l'inten
 
 Ne pas activer de retry automatique pour toute mutation. Conserver une clé par intention logique et reprendre selon le contrat. Une nouvelle clé signifie une nouvelle commande, parfois un nouvel appel facturé. Pour les lectures, temporiser les retries et arrêter sur 401/403/404 selon le contexte.
 
-La configuration CORS n'est pas encore livrée à cet état. Un frontend servi sur une autre origine ne doit pas supposer que le navigateur accepte les prévols ; utiliser un serveur d'interface ou un proxy de développement de même origine en attendant le lot d'intégration. Le déploiement devra déclarer explicitement les origines autorisées.
+### Accès navigateur et CORS
+
+Configurer `CORTEX_CORS_ORIGINS` comme un tableau JSON d'origines exactes, par exemple `["http://localhost:5173"]` pour Vite ou `["https://app.example.com"]` en production. L'origine contient schéma, hôte et port éventuel, sans chemin ni barre finale. Les jokers, origine null, identifiants intégrés, paramètres et HTTP distant sont refusés. HTTP est autorisé seulement pour localhost, 127.0.0.1 et ::1 explicitement nommés. La valeur vide `[]` désactive cette ouverture navigateur ; elle ne constitue pas un filtre global d'origine sur les clients serveur.
+
+Quand la liste est configurée, toute requête portant une origine absente de la liste est refusée avant les commandes, même avec un jeton valide. Ajouter aussi l'origine du service si une interface servie par ce service doit l'appeler en envoyant Origin. Les clients serveur/CLI sans Origin restent soumis à l'authentification habituelle.
+
+Les prévols OPTIONS autorisés passent sans JWT, mais les appels réels exigent toujours identité, droits et confirmations. Les méthodes admises sont GET, POST, PUT, DELETE et OPTIONS ; une méthode ou un en-tête de contrôle non déclaré est refusé au prévol. L'origine admise est retournée explicitement, avec variation par origine. Les cookies de session ne sont pas activés par CORS : l'intégration utilise les en-têtes Bearer et tenant ; ne pas supposer un mode credentials par cookie.
+
+Les en-têtes autorisés couvrent Authorization, X-Tenant-ID, Content-Type, Accept, Idempotency-Key, X-Cortex-Confirmation, MCP-Protocol-Version, Mcp-Session-Id et Last-Event-ID. Les réponses exposent Content-Disposition, X-Content-Type-Options, WWW-Authenticate, Retry-After et les en-têtes de session/protocole MCP. Cela permet de lire le téléchargement binaire et le challenge d'authentification depuis fetch.
+
+L'origine frontend autorisée peut aussi utiliser MCP, mais n'est pas ajoutée aux hôtes serveur permis. Configurer séparément l'URL publique MCP et l'audience ; ne pas contourner la protection d'hôte avec X-Forwarded-Host. Un statut 421 indique notamment un hôte MCP non autorisé. CORS est un contrôle navigateur/origine, pas un remplacement de l'authentification.
 
 ## Parcours 1 — question, citations, historique et voix
 
@@ -185,7 +195,7 @@ L'historique de membership, les revues, le journal canonique et les événements
 | HTTP / situation | Fonction attendue du frontend |
 |---|---|
 | 401 | Rétablir la session externe ; garder le brouillon local si approprié, sans exposer les jetons |
-| 403 | Afficher le refus de capacité/collecte/confirmation ; actualiser les droits si nécessaire |
+| 403 | Afficher le refus de capacité/collecte/confirmation ; actualiser les droits si nécessaire. ORIGIN_NOT_ALLOWED est un refus de transport ; le navigateur peut masquer son corps faute d’autorisation CORS. |
 | 404 | Objet absent ou inaccessible ; ne pas révéler son existence via un cache d'une autre identité |
 | 409 | Relire l'objet ; distinguer révision périmée, clé réutilisée avec autre contenu, état incompatible ou tentative IA déjà réservée |
 | 413 | Réduire la taille ; vérifier octets et taille base64 avant nouvel envoi |

@@ -22,18 +22,20 @@ def challenge(settings):
 
 
 def transport_security(settings):
-    if not settings.mcp_public_url:
+    if not settings.mcp_public_url and not settings.cors_origins:
         return None
-    parsed = urlsplit(settings.mcp_public_url)
+    parsed = urlsplit(settings.mcp_public_url) if settings.mcp_public_url else None
     return TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
-        allowed_hosts=["127.0.0.1:*", "localhost:*", "[::1]:*", parsed.netloc],
+        allowed_hosts=["127.0.0.1:*", "localhost:*", "[::1]:*"]
+        + ([parsed.netloc] if parsed else []),
         allowed_origins=[
             "http://127.0.0.1:*",
             "http://localhost:*",
             "http://[::1]:*",
-            f"{parsed.scheme}://{parsed.netloc}",
-        ],
+        ]
+        + ([f"{parsed.scheme}://{parsed.netloc}"] if parsed else [])
+        + settings.cors_origins,
     )
 
 

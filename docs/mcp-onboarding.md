@@ -48,3 +48,7 @@ Metadata is built from server configuration, never from incoming Host or forward
 - Re-read personal collection preferences and honor opt-out. See [feedback loop](feedback-loop.md).
 
 No OAuth scope model is advertised by this increment; domain roles and object permissions remain enforced by the application. Deployment still requires an issuer and companion interoperability test, session/credential lifecycle policy and operational hardening. Exhaustive tool exposure and metadata discovery alone do not demonstrate compatibility with every LLM host.
+
+## Browser origins
+
+The optional `CORTEX_CORS_ORIGINS` exact allowlist admits browser preflights and exposes MCP session headers. Accepted origins are also passed to MCP transport origin validation; they never expand allowed server hosts. Authentication, signed confirmations and DNS-rebinding protection remain enforced. See the [French browser integration guide](frontend-guide.fr.md).

@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import DBAPIError
 
 from .auth import Authenticator, CoreError
+from .browser_transport import install_browser_transport
 from .companion_responses import CompanionResponseService
 from .companion_responses_api import companion_responses_router
 from .contracts import (
@@ -161,6 +162,7 @@ def create_app(settings: Settings | None = None):
         limit=settings.max_request_bytes,
         authentication_challenge=challenge(settings),
     )
+    install_browser_transport(app, settings)
 
     @app.exception_handler(CoreError)
     async def core_error(request, exc):

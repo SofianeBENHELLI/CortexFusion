@@ -48,6 +48,10 @@ Run `make serve`. The loopback API is at `http://127.0.0.1:8000`, with interacti
 
 Send `Authorization: Bearer <valid token>` and `X-Tenant-ID: <tenant UUID>` on protected requests. Do not put tokens in URLs. An identity subject must also have membership in the requested domain. The JWT's role field is ignored for application authorization.
 
+## Browser origins
+
+Set `CORTEX_CORS_ORIGINS` to an exact JSON array, such as `["http://localhost:5173"]`. No trailing slash, wildcard, embedded credentials or remote cleartext origins are accepted. Empty disables CORS. When configured, requests with other Origin values are rejected before business execution; server clients without Origin still authenticate normally. Allowed preflights need no token; actual requests retain bearer, tenant and confirmation checks. Cookie credentials are not enabled. Download and MCP session headers are exposed. This does not expand the MCP server host allowlist; configure the public resource separately. See the [French guide](frontend-guide.fr.md).
+
 ## Knowledge flow
 
 1. Owner: `POST /v1/domains/{domain}/sources` with a title, original location, text content, and allowed subjects. The uploader must have access, and all readers must be domain members.

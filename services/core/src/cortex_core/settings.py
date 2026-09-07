@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     )
     confirmation_public_key_file: Path | None = None
     http_confirmation_mode: Literal["required", "trusted_host"] = "required"
+    cors_origins: list[str] = Field(default_factory=list, max_length=20)
     mcp_public_url: str | None = None
     model_daily_attempt_limit: int = Field(default=100, ge=1, le=100000)
     local_model: str | None = None
@@ -32,6 +33,27 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_security(self):
+        if len(self.cors_origins) != len(set(self.cors_origins)):
+            raise ValueError("CORS origins must be unique")
+        for origin in self.cors_origins:
+            parsed = HttpUrl(origin)
+            if (
+                any(c.isspace() for c in origin)
+                or "*" in origin
+                or parsed.username
+                or parsed.password
+                or parsed.query
+                or parsed.fragment
+                or parsed.path != "/"
+                or str(parsed).removesuffix("/") != origin
+                or (
+                    parsed.scheme != "https"
+                    and parsed.host not in {"localhost", "127.0.0.1", "[::1]"}
+                )
+            ):
+                raise ValueError(
+                    "CORS origins require canonical HTTPS or explicit HTTP loopback, without a path"
+                )
         if not self.database_url.startswith("postgresql+pg8000://"):
             raise ValueError("Cortex requires PostgreSQL through pg8000")
         if bool(self.jwt_public_key_file) == bool(self.jwks_url):
