@@ -16,7 +16,7 @@ The same scenario assertions run in the ordinary `make test` CI suite. Additiona
 
 ## Next quality evaluations
 
-A future enterprise evaluation needs an explicitly selected corpus, processing destination, versioned gold questions/answers and a held-out baseline. Measure source fidelity, relevant retrieval, abstention, freshness, latency and model usage by served corpus version. Do not conclude that resolving an issue caused better answers until the same bounded question set is rerun against a published correction. Model versions and prompt/retrieval configurations must accompany results. No semantic quality, calibrated satisfaction or real OpenRouter performance result is claimed by the current fixtures.
+A future enterprise evaluation needs an explicitly selected corpus, processing destination, versioned gold questions/answers and a held-out baseline. Measure source fidelity, relevant retrieval, abstention, freshness, latency and model usage by served corpus version. Do not conclude that resolving an issue caused better answers until the same bounded question set is rerun against a published correction. Model versions and prompt/retrieval configurations must accompany results. The feedback accounting fixtures alone make no semantic quality, calibrated satisfaction or real OpenRouter performance claim. Separate live synthesis observations are recorded below.
 
 ## Cited synthesis scenarios
 

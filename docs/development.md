@@ -66,10 +66,14 @@ Authenticated resources/prompts guide companion onboarding. Optional HTTPS prote
 
 The TypeScript `CoreClient` and Cordis plugin live under `apps/harness/src/`. Instantiate a per-identity/domain client with a token callback. It supports cancellation and rejects remote cleartext origins and credential-bearing URLs. The real Cordis package is exercised in Node tests. Registration into the complete DeepSeek tools/model loop and AG-UI remains a later integration step.
 
+## Reference companion without a frontend
+
+The [reference companion guide](reference-companion.md) documents CLI questions, conversations, feedback and optional comment assessment using the MCP SDK. It adds one bounded external synthesis after lexical retrieval, validates exact references and records a personal response receipt. Live synthetic OpenRouter demonstrations have succeeded; normal tests use mock providers. `--allow-openrouter` and an explicitly configured private key are required for the model commands.
+
 ## Validation and limitations
 
 `make test` checks formatting, schemas, generated TypeScript, database/API invariants, Node client/Cordis behavior, and installed dependency license metadata. Integration tests intentionally fail if the explicit test database variables are absent. They create unique synthetic tenants and never truncate the database; test data accumulates until the dedicated test database is deliberately reset.
 
 Two upstream deprecation warnings currently arise from Starlette/httpx and AnyIO integration; they do not fail the tests. No warnings are suppressed by the test configuration.
 
-The core includes bounded PDF/DOCX/text parsing, a recoverable file worker, optional model passage selection, durable call attempts and a shared daily attempt allowance. Answer retrieval remains lexical/extractive; companion output is stored as personal history without semantic certification. Semantic embeddings/synthesis evaluation, full risk policies, managed workflow deployment, real enterprise identity/companion validation and the product interface remain open. A local [restore rehearsal](restore-rehearsal.md) and [synthetic feedback evaluation](../evals/README.md) provide bounded evidence, not production readiness.
+The core includes bounded PDF/DOCX/text parsing, a recoverable file worker, optional model passage selection, durable call attempts and a shared daily attempt allowance. Answer retrieval remains lexical/extractive; companion output is stored as personal history without semantic certification. Semantic embeddings, enterprise synthesis evaluation, full risk policies, managed workflow deployment, real enterprise identity/companion validation and the product interface remain open. A local [restore rehearsal](restore-rehearsal.md) and [synthetic feedback evaluation](../evals/README.md) provide bounded evidence, not production readiness.

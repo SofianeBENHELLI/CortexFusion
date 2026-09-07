@@ -13,9 +13,10 @@ Cortex Fusion is building a governed memory for people and AI companions. Its ex
 - Exhaustive generated MCP tools, authenticated resources/prompts and signed confirmations for sensitive actions.
 - Personal companion response receipts and explicit/observed/inferred feedback, opt-in collection and bounded effort summaries.
 - Optional OpenRouter or local passage selection, durable model attempt outcomes and a shared daily call allowance.
+- A reference MCP companion for cited OpenRouter synthesis, resumable receipts and consent-gated comment assessment.
 - Generated JSON Schema/TypeScript/OpenAPI/MCP artifacts, PostgreSQL tests and a tested Cordis service adapter.
 
-**This is a development backend.** Semantic retrieval/synthesis, enterprise evaluation, real external identity/companion validation and production orchestration remain open. No product frontend is included. Original confidential specifications and enterprise corpora remain local; no live OpenRouter validation is claimed.
+**This is a development backend.** Semantic retrieval, enterprise evaluation, real external identity/companion validation and production orchestration remain open. Bounded synthesis and inferred feedback have been exercised with live OpenRouter on synthetic data; this does not certify answer quality or calibrate model confidence. No product frontend is included. Original confidential specifications and enterprise corpora remain local.
 
 ## Run and verify
 
@@ -40,6 +41,7 @@ For a persistent API, configure identity verification and run `make serve`. Inte
 | [AI-native protocol](docs/ai-native.md) and [action reference](docs/interaction-reference.md) | Stable operation IDs, effects, schemas and host behavior |
 | [Exhaustive MCP](docs/mcp-exhaustive.md) and [onboarding](docs/mcp-onboarding.md) | Tools, resources, prompts, identity discovery and confirmations |
 | [Corpus API](docs/corpus-api.md) and [workspace backend](docs/backend-workspace.md) | Corpus manager, review, files, conversations and membership |
+| [Reference companion](docs/reference-companion.md) | CLI questions, cited synthesis, conversations, feedback and consent-gated assessment |
 | [Companion responses](docs/companion-responses.md) and [feedback](docs/feedback-loop.md) | Delivered-answer receipts, provenance, opt-in collection and metrics |
 | [OpenRouter](docs/openrouter.md), [local extraction](docs/local-extraction.md), [model attempts](docs/model-attempts.md) | Provider configuration, evidence bounds, attempts and limits |
 | [Documentation index](docs/README.md) and [contributing](CONTRIBUTING.md) | Architecture, product scope and development conventions |
@@ -56,7 +58,7 @@ tests/               PostgreSQL/API/MCP invariants and contract checks
 apps/web/            Planned product interface
 services/workflows/  Planned managed ingestion and consolidation
 packages/agents/     Planned full model orchestration
-evals/              Synthetic feedback scenarios and evaluation methodology
+evals/              Synthetic feedback/synthesis scenarios and evaluation methodology
 ```
 
 ## Licensing

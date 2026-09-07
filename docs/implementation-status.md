@@ -10,7 +10,7 @@ The Python and TypeScript contract artifacts are generated and checked for drift
 
 A first corpus API increment now adds private immutable collections, permission-filtered source/collection lists and persistent text import batches. The new `corpus_manager` role can import and propose but cannot approve. Each caller-driven processing step atomically registers sources and records per-item outcomes; failed items can be retried and pending items cancelled. This is JSON text/Markdown registration, not binary upload, PDF parsing or background execution. See [corpus API](corpus-api.md).
 
-A subsequent workspace increment adds review decisions/revisions and diffs, personal conversations/history, identity/domain discovery, owner-scoped membership administration, private binary uploads, bounded PDF/DOCX/text parsing and a recoverable file-worker command. See [workspace backend](backend-workspace.md) for endpoint semantics and limitations. Interactive login and enterprise onboarding/administration and semantic model answering remain separate work.
+A subsequent workspace increment adds review decisions/revisions and diffs, personal conversations/history, identity/domain discovery, owner-scoped membership administration, private binary uploads, bounded PDF/DOCX/text parsing and a recoverable file-worker command. See [workspace backend](backend-workspace.md) for endpoint semantics and limitations. Interactive login and enterprise onboarding/administration remain separate work. The reference companion described below adds bounded external synthesis.
 
 An opt-in, owner-only [OpenRouter adapter](openrouter.md) or [local passage selector](local-extraction.md) now has an immutable model receipt and independent exact-span validation. A real synthetic loopback model-to-publication round trip passed. This is not canonical-summary synthesis or semantic answering.
 
@@ -28,6 +28,10 @@ Personal [feedback summaries](feedback-loop.md) now separate explicit votes, obs
 
 Personal [companion response receipts](companion-responses.md) now preserve the final externally generated response separately from retrieval episodes. References must match the episode; semantic entailment is not certified. Feedback and summary filters can target a precise response while retaining compatibility with older episode-only signals.
 
+A [reference MCP companion](reference-companion.md) now performs permission-checked retrieval, bounded OpenRouter synthesis and personal receipt creation, with exact citation validation and a durable private journal. It supports conversations, declared feedback and consent-gated inference from a bounded comment. Lost-acknowledgement tests verify one model generation and one server record on recovery. SDK logs are filtered within the reference session to prevent malformed-response tracebacks from exposing payloads.
+
+Live synthetic DeepSeek V4 Flash passage selection, cited synthesis and inferred feedback have succeeded. The [synthesis evaluation](../evals/README.md) first met 4/6 lexical scenarios; a versioned v2 prompt met 2/2 separate targeted cases. An ambiguous-comment assessment exceeded its predeclared confidence threshold. These are bounded observations, not a semantic quality or calibrated satisfaction claim.
+
 ## Relationship to the coding plan
 
 | Planned work | Current state |
@@ -41,24 +45,24 @@ Personal [companion response receipts](companion-responses.md) now preserve the 
 | CF-014 — publication | JSONB concept/relationship projection is atomic; AGE/vector projection integration is not implemented |
 | CF-015–016 — replay/compensation/demo | Implemented and demonstrated on synthetic PostgreSQL data |
 | CF-017–022 — ingestion and learning | Collections, paginated source listing and persistent text import receipts implemented; bounded PDF/DOCX parsing and a file worker added; optional OpenRouter/local quote selection added; Docling, Temporal and canonical summaries remain open |
-| CF-023–027 — retrieval/protocol/harness | Lexical extractive baseline, episodes, feedback, MCP, and Cordis service seam implemented; semantic answering and full harness execution remain open |
+| CF-023–027 — retrieval/protocol/harness | Lexical retrieval, episodes, feedback, exhaustive MCP, Cordis seam and a cited-synthesis reference companion implemented; semantic retrieval and full autonomous harness execution remain open |
 | CF-028–030 — product interface | Not started; interactive API documentation is a developer surface, not the product UI |
-| CF-031–036 — consolidation/evaluation | Basic owner brief exists; scheduled consolidation, model evaluation, recovery packaging and enterprise benchmark remain open |
+| CF-031–036 — consolidation/evaluation | Owner brief, synthetic feedback/synthesis evaluation and local restore rehearsal implemented; scheduled consolidation, production recovery and enterprise benchmark remain open |
 
 A [local restore rehearsal](restore-rehearsal.md) matched 29 tables and RLS policies in an isolated database and passed the synthetic governed-knowledge demonstration afterward. This does not establish production disaster recovery.
 
 ## Evidence
 
-Run `make test` and `make demo-core` in the environment described in the development guide. Tests use actual PostgreSQL, not SQLite or an in-memory substitute. They include publication failure/retry, concurrent approvals, consistent reads during publication, in-flight permission revocation, immutable records, replay, compensation conflicts, wire examples and authenticated MCP calls.
+Run `make test` and `make demo-core` in the environment described in the development guide. Database/API tests use actual PostgreSQL. The companion also has local SQLite journal tests and mocked-provider tests. They include publication failure/retry, concurrent approvals, consistent reads during publication, in-flight permission revocation, immutable records, replay, compensation conflicts, wire examples and authenticated MCP calls.
 
 The local storage compatibility probe is documented separately. The Compose definition has not been run on the original development machine because Docker was unavailable; the migration path was tested against fresh native PostgreSQL databases. GitHub CI is the independent Linux check when this branch is pushed.
 
 ## Next increment
 
 1. Extend baseline binary parsing with logical document versions, semantic segmentation, layout fidelity and production worker orchestration.
-2. Validate the configured OpenRouter model with synthetic inputs, then add extraction fidelity evaluation. The adapter is implemented; no live OpenRouter call has been made.
+2. Extend extraction fidelity and synthesis evaluation with annotated cases and held-out inputs; preserve recorded failures and calibrate inferred satisfaction before using confidence thresholds operationally.
 3. Introduce versioned embedding/graph projection adapters with the same publication tests.
-4. Build the owner review and chat interface on the existing contracts.
+4. Validate an external identity provider and companion against the existing MCP contracts. A product frontend remains a separate future scope.
 5. Evaluate on a bounded set of enterprise documents and questions once supplied.
 
 Do not mark these later stages complete based on the current extractive demo. Enterprise source files, expected answers, and processing destinations must be explicitly selected before real-corpus model processing.

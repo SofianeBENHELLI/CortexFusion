@@ -1,6 +1,6 @@
 # Workspace backend: review, files, conversations and membership
 
-This increment extends the corpus API with the browser-facing operations below. It is an authenticated API, not a delivered product interface or a complete enterprise deployment. Apply `make migrate` through revision 0006 before starting the updated application.
+This increment extends the corpus API with the browser-facing operations below. It is an authenticated API, not a delivered product interface or a complete enterprise deployment. Run `make migrate` to the current migration head before starting the application; this workspace increment originally introduced revision 0006.
 
 ## Discover the current identity
 
