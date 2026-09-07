@@ -16,7 +16,9 @@ An opt-in, owner-only [OpenRouter adapter](openrouter.md) or [local passage sele
 
 Registered sources now have deterministic Unicode/UTF-8 bounded chunk pages and extraction can target one span while retaining original-source citations. Personal issue resolution/reopening has revision checks and immutable decision receipts. Shared team triage remains separate.
 
-The [interface-independent interaction protocol](ai-native.md) now documents every HTTP operation, with generated OpenAPI/interaction/MCP artifacts checked in CI. All 61 HTTP interactions now have generated MCP equivalents, alongside 16 compatibility tools. Sensitive commands require single-use signed trusted-host confirmations; all calls retain HTTP service permissions. This is not yet an autonomous conversational orchestration loop.
+The [interface-independent interaction protocol](ai-native.md) now documents every HTTP operation, with generated OpenAPI/interaction/MCP artifacts checked in CI. All HTTP interactions now have generated MCP equivalents, alongside 16 compatibility tools. Sensitive commands require single-use signed trusted-host confirmations; all calls retain HTTP service permissions. This is not yet an autonomous conversational orchestration loop.
+
+The [companion feedback loop](feedback-loop.md) adds personal opt-in preferences and immutable explicit/observed/inferred signals, linked to episodes and rechecked source access. Explicit negative votes open personal issues atomically; estimates never become votes or trusted knowledge.
 
 ## Relationship to the coding plan
 

@@ -1,6 +1,6 @@
 # Exposition MCP exhaustive
 
-Le serveur Streamable HTTP est monté sur `/mcp/`. Il expose **61 outils `api_*`, un pour chaque opération HTTP documentée, et 16 outils historiques compatibles**. Les entrées de `tools/list` portent des schémas JSON d'entrée et, pour chaque outil généré, un schéma de résultat. `packages/contracts/mcp-tools.json` est l'export vérifié par CI.
+Le serveur Streamable HTTP est monté sur `/mcp/`. Il expose **un outil `api_*` pour chaque opération HTTP documentée et 16 outils historiques compatibles**. Les entrées de `tools/list` portent des schémas JSON d'entrée et, pour chaque outil généré, un schéma de résultat. `packages/contracts/mcp-tools.json` est l'export vérifié par CI.
 
 La couverture exhaustive désigne les opérations applicatives du contrat OpenAPI, y compris la santé, la découverte, les collections, sources, fichiers, extractions, propositions, conversations, signalements, membres et publication. Les routes techniques de documentation `/docs`, `/redoc`, `/openapi.json` et le transport MCP lui-même ne sont pas des actions métier récursivement exposées. La spécification et le catalogue sont distribués comme artefacts et via la découverte d'actions.
 

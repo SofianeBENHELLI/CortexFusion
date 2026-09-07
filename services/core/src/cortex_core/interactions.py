@@ -7,6 +7,10 @@ from fastapi.openapi.utils import get_openapi
 # method/path | stable action ID | role set | effect | example user intent
 # Placeholder names are normalized so wording changes do not change action IDs.
 DEFINITIONS = """
+GET /feedback-preferences|feedback.preferences|member|none|Quelles remontées automatiques ai-je autorisées ?
+PUT /feedback-preferences|feedback.configure|member|personal|Modifie mes préférences de remontée automatique avec mon accord explicite.
+POST /episodes/{}/signals|feedback.record_signal|member|personal|Enregistre ce signal de feedback avec son origine déclarée.
+GET /feedback-signals|feedback.signals|member|none|Montre mes signaux de feedback accessibles.
 GET /health|system.health|public|none|Vérifie que le service répond.
 GET /v1/me|identity.read|member|none|Quels domaines et fonctions me sont accessibles ?
 GET /v1/interactions|interactions.list|member|none|Quelles actions puis-je préparer avec cette API ?
@@ -108,6 +112,7 @@ for line in DEFINITIONS.strip().splitlines():
         "intent_example": intent,
         "confirmation_policy": "explicit_user_decision"
         if effect in {"access", "trusted", "rebuild", "model", "local_model", "review"}
+        or ident == "feedback.configure"
         else "authorized_user_intent",
         "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
     }

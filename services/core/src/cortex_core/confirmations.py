@@ -19,7 +19,7 @@ class ConfirmationVerifier:
         self.public_key = public_key_file.read_text() if public_key_file else None
         self.db = db
 
-    def consume(self, p, domain, action, arguments, token):
+    def consume(self, p, domain, action, arguments, token, *, owner=True):
         if not self.public_key or not token:
             raise CoreError(
                 "CONFIRMATION_REQUIRED",
@@ -66,7 +66,7 @@ class ConfirmationVerifier:
                 403,
             ) from None
         try:
-            with self.db.transaction(p, domain, owner=True) as conn:
+            with self.db.transaction(p, domain, owner=owner) as conn:
                 run(
                     conn,
                     "INSERT INTO cf_mcp_confirmations(tenant_id,domain_id,id,subject,action,command_hash) VALUES(:tenant,:domain,:id,:subject,:action,:hash)",

@@ -654,3 +654,80 @@ class InteractionCatalog(Contract):
 
 
 CONTRACTS += [InteractionCatalog]
+
+
+class FeedbackPreferences(Contract):
+    allow_observed: bool = False
+    allow_inferred: bool = False
+    revision: int = Field(ge=0)
+
+
+class FeedbackPreferencesInput(Contract):
+    allow_observed: bool
+    allow_inferred: bool
+    expected_revision: int = Field(ge=0)
+
+
+class FeedbackSignalInput(Contract):
+    origin: Literal["explicit", "observed", "inferred"]
+    kind: Literal[
+        "thumbs_up",
+        "thumbs_down",
+        "comment",
+        "reformulation",
+        "correction",
+        "abandon",
+        "resolved",
+        "satisfaction",
+    ]
+    comment: str = Field(default="", max_length=2000)
+    companion: str = Field(min_length=1, max_length=100)
+    confidence: float | None = Field(default=None, ge=0, le=1, allow_inf_nan=False)
+    sentiment: Literal["positive", "negative", "neutral"] | None = None
+    iteration_index: int | None = Field(default=None, ge=1, le=10000)
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+    @model_validator(mode="after")
+    def provenance(self):
+        allowed = {
+            "explicit": {"thumbs_up", "thumbs_down", "comment", "resolved"},
+            "observed": {"reformulation", "correction", "abandon", "resolved"},
+            "inferred": {"satisfaction"},
+        }
+        if self.kind not in allowed[self.origin]:
+            raise ValueError("Signal kind does not match its origin")
+        if self.origin == "inferred":
+            if self.confidence is None or self.sentiment is None or not self.comment.strip():
+                raise ValueError(
+                    "Inferred satisfaction requires confidence, sentiment and explanation"
+                )
+        elif self.confidence is not None or self.sentiment is not None:
+            raise ValueError("Confidence and sentiment belong only to inferred satisfaction")
+        if self.iteration_index is not None and self.origin != "observed":
+            raise ValueError("Iteration index belongs only to observed signals")
+        if self.kind == "comment" and not self.comment.strip():
+            raise ValueError("An explicit comment cannot be empty")
+        return self
+
+
+class FeedbackSignalView(Contract):
+    id: UUID
+    episode_id: UUID
+    served_version: int
+    source_ids: list[UUID]
+    signal: FeedbackSignalInput
+    created_at: datetime
+
+
+class FeedbackSignalPage(Contract):
+    items: list[FeedbackSignalView]
+    next_after: UUID | None
+
+
+CONTRACTS += [
+    FeedbackPreferences,
+    FeedbackPreferencesInput,
+    FeedbackSignalInput,
+    FeedbackSignalView,
+    FeedbackSignalPage,
+]

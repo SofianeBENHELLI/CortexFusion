@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "allow_observed": {
+      "default": false,
+      "title": "Allow Observed",
+      "type": "boolean"
+    },
+    "allow_inferred": {
+      "default": false,
+      "title": "Allow Inferred",
+      "type": "boolean"
+    },
+    "revision": {
+      "minimum": 0,
+      "title": "Revision",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "revision"
+  ],
+  "title": "FeedbackPreferences",
+  "type": "object"
+}

@@ -497,6 +497,78 @@
       "operation_id": "files.cancel"
     },
     {
+      "action_id": "feedback.preferences",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Quelles remontées automatiques ai-je autorisées ?",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/feedback-preferences",
+      "operation_id": "feedback.preferences"
+    },
+    {
+      "action_id": "feedback.configure",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "personal",
+      "effect_description": "Changes personal state or appends personal feedback/decision history.",
+      "intent_example": "Modifie mes préférences de remontée automatique avec mon accord explicite.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "PUT",
+      "path": "/v1/domains/{domain}/feedback-preferences",
+      "operation_id": "feedback.configure"
+    },
+    {
+      "action_id": "feedback.record_signal",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "personal",
+      "effect_description": "Changes personal state or appends personal feedback/decision history.",
+      "intent_example": "Enregistre ce signal de feedback avec son origine déclarée.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/episodes/{episode_id}/signals",
+      "operation_id": "feedback.record_signal"
+    },
+    {
+      "action_id": "feedback.signals",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre mes signaux de feedback accessibles.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/feedback-signals",
+      "operation_id": "feedback.signals"
+    },
+    {
       "action_id": "issues.list",
       "roles": [
         "owner",

@@ -5990,6 +5990,745 @@
       }
     },
     {
+      "name": "api_feedback_preferences",
+      "description": "Quelles remontées automatiques ai-je autorisées ?\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Domain"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "$ref": "#/$defs/FeedbackPreferences"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "FeedbackPreferences": {
+            "properties": {
+              "allow_observed": {
+                "type": "boolean",
+                "title": "Allow Observed",
+                "default": false
+              },
+              "allow_inferred": {
+                "type": "boolean",
+                "title": "Allow Inferred",
+                "default": false
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Revision"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "revision"
+            ],
+            "title": "FeedbackPreferences"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "api_feedback_configure",
+      "description": "Modifie mes préférences de remontée automatique avec mon accord explicite.\n\nChanges personal state or appends personal feedback/decision history.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access. Requires a trusted-host signed confirmation header bound to these exact arguments.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Domain"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain"
+            ]
+          },
+          "body": {
+            "$ref": "#/$defs/FeedbackPreferencesInput"
+          }
+        },
+        "required": [
+          "path",
+          "body"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "FeedbackPreferencesInput": {
+            "properties": {
+              "allow_observed": {
+                "type": "boolean",
+                "title": "Allow Observed"
+              },
+              "allow_inferred": {
+                "type": "boolean",
+                "title": "Allow Inferred"
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Expected Revision"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "allow_observed",
+              "allow_inferred",
+              "expected_revision"
+            ],
+            "title": "FeedbackPreferencesInput"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "$ref": "#/$defs/FeedbackPreferences"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "FeedbackPreferences": {
+            "properties": {
+              "allow_observed": {
+                "type": "boolean",
+                "title": "Allow Observed",
+                "default": false
+              },
+              "allow_inferred": {
+                "type": "boolean",
+                "title": "Allow Inferred",
+                "default": false
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0.0,
+                "title": "Revision"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "revision"
+            ],
+            "title": "FeedbackPreferences"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "api_feedback_record_signal",
+      "description": "Enregistre ce signal de feedback avec son origine déclarée.\n\nChanges personal state or appends personal feedback/decision history.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Domain"
+              },
+              "episode_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Episode Id"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain",
+              "episode_id"
+            ]
+          },
+          "body": {
+            "$ref": "#/$defs/FeedbackSignalInput"
+          }
+        },
+        "required": [
+          "path",
+          "body"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "FeedbackSignalInput": {
+            "properties": {
+              "origin": {
+                "type": "string",
+                "enum": [
+                  "explicit",
+                  "observed",
+                  "inferred"
+                ],
+                "title": "Origin"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "thumbs_up",
+                  "thumbs_down",
+                  "comment",
+                  "reformulation",
+                  "correction",
+                  "abandon",
+                  "resolved",
+                  "satisfaction"
+                ],
+                "title": "Kind"
+              },
+              "comment": {
+                "type": "string",
+                "maxLength": 2000,
+                "title": "Comment",
+                "default": ""
+              },
+              "companion": {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1,
+                "title": "Companion"
+              },
+              "confidence": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "maximum": 1.0,
+                    "minimum": 0.0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Confidence"
+              },
+              "sentiment": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "positive",
+                      "negative",
+                      "neutral"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Sentiment"
+              },
+              "iteration_index": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "maximum": 10000.0,
+                    "minimum": 1.0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Iteration Index"
+              },
+              "idempotency_key": {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 8,
+                "title": "Idempotency Key"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "origin",
+              "kind",
+              "companion",
+              "idempotency_key"
+            ],
+            "title": "FeedbackSignalInput"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "$ref": "#/$defs/FeedbackSignalView"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "FeedbackSignalView": {
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Id"
+              },
+              "episode_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Episode Id"
+              },
+              "served_version": {
+                "type": "integer",
+                "title": "Served Version"
+              },
+              "source_ids": {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array",
+                "title": "Source Ids"
+              },
+              "signal": {
+                "$ref": "#/$defs/FeedbackSignalInput"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "Created At"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "id",
+              "episode_id",
+              "served_version",
+              "source_ids",
+              "signal",
+              "created_at"
+            ],
+            "title": "FeedbackSignalView"
+          },
+          "FeedbackSignalInput": {
+            "properties": {
+              "origin": {
+                "type": "string",
+                "enum": [
+                  "explicit",
+                  "observed",
+                  "inferred"
+                ],
+                "title": "Origin"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "thumbs_up",
+                  "thumbs_down",
+                  "comment",
+                  "reformulation",
+                  "correction",
+                  "abandon",
+                  "resolved",
+                  "satisfaction"
+                ],
+                "title": "Kind"
+              },
+              "comment": {
+                "type": "string",
+                "maxLength": 2000,
+                "title": "Comment",
+                "default": ""
+              },
+              "companion": {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1,
+                "title": "Companion"
+              },
+              "confidence": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "maximum": 1.0,
+                    "minimum": 0.0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Confidence"
+              },
+              "sentiment": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "positive",
+                      "negative",
+                      "neutral"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Sentiment"
+              },
+              "iteration_index": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "maximum": 10000.0,
+                    "minimum": 1.0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Iteration Index"
+              },
+              "idempotency_key": {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 8,
+                "title": "Idempotency Key"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "origin",
+              "kind",
+              "companion",
+              "idempotency_key"
+            ],
+            "title": "FeedbackSignalInput"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "api_feedback_signals",
+      "description": "Montre mes signaux de feedback accessibles.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Domain"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain"
+            ]
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "integer",
+                "maximum": 100,
+                "minimum": 1,
+                "default": 20,
+                "title": "Limit"
+              },
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "After"
+              },
+              "episode_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Episode Id"
+              }
+            },
+            "additionalProperties": false,
+            "required": []
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "$ref": "#/$defs/FeedbackSignalPage"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "FeedbackSignalPage": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/FeedbackSignalView"
+                },
+                "type": "array",
+                "title": "Items"
+              },
+              "next_after": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Next After"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "items",
+              "next_after"
+            ],
+            "title": "FeedbackSignalPage"
+          },
+          "FeedbackSignalView": {
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Id"
+              },
+              "episode_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Episode Id"
+              },
+              "served_version": {
+                "type": "integer",
+                "title": "Served Version"
+              },
+              "source_ids": {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array",
+                "title": "Source Ids"
+              },
+              "signal": {
+                "$ref": "#/$defs/FeedbackSignalInput"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "Created At"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "id",
+              "episode_id",
+              "served_version",
+              "source_ids",
+              "signal",
+              "created_at"
+            ],
+            "title": "FeedbackSignalView"
+          },
+          "FeedbackSignalInput": {
+            "properties": {
+              "origin": {
+                "type": "string",
+                "enum": [
+                  "explicit",
+                  "observed",
+                  "inferred"
+                ],
+                "title": "Origin"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "thumbs_up",
+                  "thumbs_down",
+                  "comment",
+                  "reformulation",
+                  "correction",
+                  "abandon",
+                  "resolved",
+                  "satisfaction"
+                ],
+                "title": "Kind"
+              },
+              "comment": {
+                "type": "string",
+                "maxLength": 2000,
+                "title": "Comment",
+                "default": ""
+              },
+              "companion": {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1,
+                "title": "Companion"
+              },
+              "confidence": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "maximum": 1.0,
+                    "minimum": 0.0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Confidence"
+              },
+              "sentiment": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "positive",
+                      "negative",
+                      "neutral"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Sentiment"
+              },
+              "iteration_index": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "maximum": 10000.0,
+                    "minimum": 1.0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Iteration Index"
+              },
+              "idempotency_key": {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 8,
+                "title": "Idempotency Key"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "origin",
+              "kind",
+              "companion",
+              "idempotency_key"
+            ],
+            "title": "FeedbackSignalInput"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
       "name": "api_issues_list",
       "description": "Liste mes signalements ouverts.\n\nRead only; no durable application change.\n\nService checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
       "inputSchema": {

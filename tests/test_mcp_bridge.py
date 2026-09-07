@@ -68,7 +68,7 @@ def test_exhaustive_tool_inventory_and_no_identity_arguments(world):
         for op in methods.values()
     }
     assert set(generated) == expected
-    assert len(generated) == 61 and len(tools) == 77
+    assert len(generated) == len(expected) and len(tools) == len(expected) + 16
     for tool in generated.values():
         assert tool["outputSchema"]["properties"]["data"]
         properties = tool["inputSchema"]["properties"]
@@ -352,3 +352,36 @@ def test_concurrent_confirmation_reuse_accepts_one_call(world, trusted_client, i
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         assert sorted(pool.map(invoke, range(2))) == [200, 409]
+
+
+def test_member_can_confirm_only_their_own_feedback_preferences(
+    world, trusted_client, identity_keys
+):
+    args = {
+        "path": {"domain": world.domain},
+        "body": {"allow_observed": True, "allow_inferred": False, "expected_revision": 0},
+    }
+    signed = token(world, identity_keys, "feedback.configure", args, subject="bob")
+    result = data(
+        rpc(
+            world,
+            "api_feedback_configure",
+            args,
+            client=trusted_client,
+            subject="bob",
+            confirmation=signed,
+        )
+    )
+    assert result == {"allow_observed": True, "allow_inferred": False, "revision": 1}
+    assert data(rpc(world, "api_feedback_preferences", {"path": args["path"]})) == {
+        "allow_observed": False,
+        "allow_inferred": False,
+        "revision": 0,
+    }
+    assert (
+        data(
+            rpc(world, "api_feedback_configure", args, client=trusted_client, confirmation=signed),
+            403,
+        )["error"]
+        == "CONFIRMATION_INVALID"
+    )

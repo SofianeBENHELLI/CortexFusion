@@ -39,6 +39,8 @@ from .corpus import CorpusService
 from .corpus_api import corpus_router
 from .db import Database
 from .extraction import ExtractionService
+from .feedback_signals import FeedbackSignalService
+from .feedback_signals_api import feedback_signals_router
 from .files import FileService
 from .files_api import files_router
 from .governance import GovernanceService
@@ -190,6 +192,7 @@ def create_app(settings: Settings | None = None):
     corpus = CorpusService(service)
     app.include_router(corpus_router(corpus, principal))
     app.include_router(files_router(FileService(corpus), principal))
+    app.include_router(feedback_signals_router(FeedbackSignalService(service), principal))
     app.include_router(issues_router(IssueService(service), principal))
     app.include_router(
         workspace_router(

@@ -220,10 +220,15 @@ def install_bridge(app, server, auth, settings):
                 p = auth.authenticate(headers.get("authorization"), headers.get("x-tenant-id"))
                 if entry["sensitive"]:
                     domain = arguments.get("path", {}).get("domain")
-                    with app.state.db.transaction(p, domain, owner=True):
+                    with app.state.db.transaction(p, domain, owner=entry["roles"] == ["owner"]):
                         pass
                     verifier.consume(
-                        p, domain, entry["action"], arguments, headers.get("x-cortex-confirmation")
+                        p,
+                        domain,
+                        entry["action"],
+                        arguments,
+                        headers.get("x-cortex-confirmation"),
+                        owner=entry["roles"] == ["owner"],
                     )
 
             await run_in_threadpool(authorize)
