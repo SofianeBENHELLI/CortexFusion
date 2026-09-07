@@ -226,6 +226,30 @@ Lire les préférences avant collecte. En cas de refus concurrent `COLLECTION_DI
 
 Le signalement personnel peut recevoir `start`, `resolve`, `dismiss` ou `reopen`, avec sa révision, sa raison et sa clé. Afficher « pris en charge », « résolu », « classé sans suite » et « rouvert ». Les décisions figurent dans `issues.history`. Pour corriger une connaissance, créer une proposition séparée ; ne pas annoncer que résoudre le signalement a publié une correction.
 
+### Associer une correction à un signalement personnel
+
+Créer d’abord la proposition par `proposals.create`, avec les changements et preuves choisis explicitement. Le commentaire, la question et l’identifiant du signalement ne sont pas copiés automatiquement vers la proposition, dont la visibilité dépend des preuves. Puis appeler `issues.decide` (ou `api_issues_decide`) sur son propre signalement :
+
+```json
+{
+  "action": "start",
+  "expected_revision": 0,
+  "reason": "Je propose une correction documentée.",
+  "idempotency_key": "issue-start-unique-001",
+  "correction_proposal_id": "00000000-0000-4000-8000-000000000001"
+}
+```
+
+Les identifiants de cet exemple doivent être remplacés par ceux du domaine. Ce lien est optionnel, réservé aux actions `start` et `resolve`, et exige un rôle permettant de lire la proposition (`owner`, `corpus_manager`, `contributor` ou `agent`) ainsi que l’accès actuel à toutes ses preuves. Le rôle `viewer` peut toujours gérer son signalement sans lien de proposition. Être propriétaire du domaine n’autorise pas à gérer le signalement d’un autre utilisateur.
+
+Pour `start`, la proposition doit être prête, acceptée ou publiée. Pour `resolve` avec un lien, elle doit être **publiée** : une simple acceptation retourne `CORRECTION_NOT_PUBLISHED` (409), sans modifier le signalement. Une proposition rejetée, différée, à réviser ou remplacée retourne `CORRECTION_NOT_ACTIVE` (409). Créer une nouvelle clé après modification de la décision ; reprendre la même clé et le même corps après une perte de réponse. Un échec métier avant l’écriture du reçu peut être repris après correction de la précondition.
+
+Le reçu et `issues.history` conservent l’identifiant, l’empreinte immuable et la version de publication connue **au moment de la décision**. Un reçu de prise en charge avant publication garde donc une version nulle. La résolution reçoit sa propre révision et son propre reçu. La consultation d’une décision liée recontrôle les droits de la proposition : si ces droits sont retirés, la décision entière est masquée, et ses anciennes clés ne permettent pas de relire le reçu. Les décisions sans lien restent visibles tant que le signalement est accessible. L’historique peut donc présenter des révisions non consécutives.
+
+Ce lien déclare quelle correction l’utilisateur associe au problème. Il ne prouve pas sémantiquement que la proposition corrige la réponse. Une publication ultérieure ou une compensation peut remplacer ses effets ; la version enregistrée est historique. Une nouvelle question sourcée et un retour explicite permettent d’évaluer le résultat ; `reopen` reste une décision explicite. Une clôture `resolve` sans lien reste possible et ne signifie pas qu’une correction a été publiée.
+
+Après la décision, invalider le signalement, son historique, les listes de signalements, la timeline et le brief concernés. Les clés et confirmations de création, acceptation et publication restent distinctes de celles du signalement.
+
 ## Parcours 6 — importer, traiter et proposer
 
 Le dépôt binaire utilise JSON/base64 et accepte au plus 500 000 octets décodés ; le schéma limite la chaîne encodée à 666 668 caractères. Le nom de fichier n'est pas un chemin. Les analyses restent bornées à 30 000 caractères extraits dans cette version. Ne pas promettre la prise en charge de tous les PDF scannés.

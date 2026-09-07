@@ -257,11 +257,11 @@
   },
   "issues.history": {
     "description": "Retourne les décisions immuables prises sur un signalement personnel.",
-    "frontend": "Expliquer qui a déclaré la résolution et pourquoi, sans prétendre qu'une correction de connaissance a nécessairement eu lieu."
+    "frontend": "Afficher les décisions personnelles et leurs éventuels liens correction_proposal_id, correction_digest et correction_published_version. Une décision liée est masquée si les droits actuels ne permettent plus de consulter sa proposition. La version est celle de sa publication historique, sans certification d’efficacité."
   },
   "issues.decide": {
     "description": "Prend en charge, résout, classe sans suite ou rouvre un signalement avec justification et contrôle de révision.",
-    "frontend": "Relire après conflit. Résoudre un signalement ne publie pas une correction et ne mesure pas automatiquement une amélioration."
+    "frontend": "Relire après conflit. Pour start ou resolve, correction_proposal_id associe explicitement une proposition visible par un rôle autorisé à consulter les propositions ; resolve avec ce lien exige une proposition publiée. Sans lien, resolve reste une clôture déclarative. Aucun commentaire personnel n’est copié dans la proposition ; aucune acceptation ou publication automatique."
   },
   "members.list": {
     "description": "Liste les membres et rôles d'un domaine sous l'autorité de son propriétaire.",

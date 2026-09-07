@@ -28,6 +28,19 @@
       "minLength": 8,
       "title": "Idempotency Key",
       "type": "string"
+    },
+    "correction_proposal_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Correction Proposal Id"
     }
   },
   "required": [

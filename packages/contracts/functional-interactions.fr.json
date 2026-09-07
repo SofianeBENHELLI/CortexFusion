@@ -4589,7 +4589,7 @@
       "path": "/v1/domains/{domain}/issues/{ident}/events",
       "operation_id": "issues.history",
       "description_fr": "Retourne les décisions immuables prises sur un signalement personnel.",
-      "frontend_fr": "Expliquer qui a déclaré la résolution et pourquoi, sans prétendre qu'une correction de connaissance a nécessairement eu lieu.",
+      "frontend_fr": "Afficher les décisions personnelles et leurs éventuels liens correction_proposal_id, correction_digest et correction_published_version. Une décision liée est masquée si les droits actuels ne permettent plus de consulter sa proposition. La version est celle de sa publication historique, sans certification d’efficacité.",
       "effect_fr": "Lecture sans modification métier durable.",
       "mcp_tool": "api_issues_history",
       "mcp_confirmation_required": false,
@@ -4709,7 +4709,7 @@
       "path": "/v1/domains/{domain}/issues/{ident}/decisions",
       "operation_id": "issues.decide",
       "description_fr": "Prend en charge, résout, classe sans suite ou rouvre un signalement avec justification et contrôle de révision.",
-      "frontend_fr": "Relire après conflit. Résoudre un signalement ne publie pas une correction et ne mesure pas automatiquement une amélioration.",
+      "frontend_fr": "Relire après conflit. Pour start ou resolve, correction_proposal_id associe explicitement une proposition visible par un rôle autorisé à consulter les propositions ; resolve avec ce lien exige une proposition publiée. Sans lien, resolve reste une clôture déclarative. Aucun commentaire personnel n’est copié dans la proposition ; aucune acceptation ou publication automatique.",
       "effect_fr": "Écriture personnelle ou ajout à un historique personnel.",
       "mcp_tool": "api_issues_decide",
       "mcp_confirmation_required": false,
@@ -9293,6 +9293,18 @@
           "maxLength": 128,
           "minLength": 8,
           "title": "Idempotency Key"
+        },
+        "correction_proposal_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Correction Proposal Id"
         }
       },
       "additionalProperties": false,
@@ -9353,6 +9365,42 @@
           "type": "string",
           "format": "date-time",
           "title": "Created At"
+        },
+        "correction_proposal_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Correction Proposal Id"
+        },
+        "correction_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Correction Digest"
+        },
+        "correction_published_version": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1.0
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Correction Published Version"
         }
       },
       "additionalProperties": false,

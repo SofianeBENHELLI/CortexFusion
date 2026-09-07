@@ -567,6 +567,13 @@ class IssueDecisionInput(Contract):
     expected_revision: int = Field(ge=0)
     reason: str = Field(min_length=1, max_length=2000)
     idempotency_key: str = Field(min_length=8, max_length=128)
+    correction_proposal_id: UUID | None = None
+
+    @model_validator(mode="after")
+    def correction_action(self):
+        if self.correction_proposal_id is not None and self.action not in ("start", "resolve"):
+            raise ValueError("A correction can only accompany start or resolve")
+        return self
 
 
 class IssueEvent(Contract):
@@ -578,6 +585,9 @@ class IssueEvent(Contract):
     revision: int
     reason: str
     created_at: datetime
+    correction_proposal_id: UUID | None = None
+    correction_digest: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+    correction_published_version: int | None = Field(default=None, ge=1)
 
 
 class IssueEventPage(Contract):

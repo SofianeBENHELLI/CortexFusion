@@ -1340,7 +1340,7 @@ Lit un signalement personnel, son état et sa révision.
 
 Retourne les décisions immuables prises sur un signalement personnel.
 
-**Utilisation frontend :** Expliquer qui a déclaré la résolution et pourquoi, sans prétendre qu'une correction de connaissance a nécessairement eu lieu.
+**Utilisation frontend :** Afficher les décisions personnelles et leurs éventuels liens correction_proposal_id, correction_digest et correction_published_version. Une décision liée est masquée si les droits actuels ne permettent plus de consulter sa proposition. La version est celle de sa publication historique, sans certification d’efficacité.
 
 - HTTP : `GET /v1/domains/{domain}/issues/{ident}/events`.
 - MCP : `api_issues_history` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
@@ -1369,7 +1369,7 @@ Retourne les décisions immuables prises sur un signalement personnel.
 
 Prend en charge, résout, classe sans suite ou rouvre un signalement avec justification et contrôle de révision.
 
-**Utilisation frontend :** Relire après conflit. Résoudre un signalement ne publie pas une correction et ne mesure pas automatiquement une amélioration.
+**Utilisation frontend :** Relire après conflit. Pour start ou resolve, correction_proposal_id associe explicitement une proposition visible par un rôle autorisé à consulter les propositions ; resolve avec ce lien exige une proposition publiée. Sans lien, resolve reste une clôture déclarative. Aucun commentaire personnel n’est copié dans la proposition ; aucune acceptation ou publication automatique.
 
 - HTTP : `POST /v1/domains/{domain}/issues/{ident}/decisions`.
 - MCP : `api_issues_decide` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
@@ -2749,6 +2749,7 @@ Champs non déclarés interdits.
 | `expected_revision` | oui | entier | minimum : `0.0` |
 | `reason` | oui | texte | longueur min. : `1`; longueur max. : `2000` |
 | `idempotency_key` | oui | texte | longueur min. : `8`; longueur max. : `128` |
+| `correction_proposal_id` | non | texte / null | — |
 
 <a id="schema-issueevent"></a>
 ### IssueEvent
@@ -2765,6 +2766,9 @@ Champs non déclarés interdits.
 | `revision` | oui | entier | — |
 | `reason` | oui | texte | — |
 | `created_at` | oui | texte | format : `"date-time"` |
+| `correction_proposal_id` | non | texte / null | — |
+| `correction_digest` | non | texte / null | — |
+| `correction_published_version` | non | entier / null | — |
 
 <a id="schema-issueeventpage"></a>
 ### IssueEventPage

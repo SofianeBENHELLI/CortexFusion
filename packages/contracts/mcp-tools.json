@@ -881,6 +881,19 @@
                 "minLength": 8,
                 "title": "Idempotency Key",
                 "type": "string"
+              },
+              "correction_proposal_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Correction Proposal Id"
               }
             },
             "required": [
@@ -12635,6 +12648,42 @@
                 "type": "string",
                 "format": "date-time",
                 "title": "Created At"
+              },
+              "correction_proposal_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Correction Proposal Id"
+              },
+              "correction_digest": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Correction Digest"
+              },
+              "correction_published_version": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1.0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Correction Published Version"
               }
             },
             "additionalProperties": false,
@@ -12744,6 +12793,18 @@
                 "maxLength": 128,
                 "minLength": 8,
                 "title": "Idempotency Key"
+              },
+              "correction_proposal_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Correction Proposal Id"
               }
             },
             "additionalProperties": false,
@@ -12859,6 +12920,42 @@
                 "type": "string",
                 "format": "date-time",
                 "title": "Created At"
+              },
+              "correction_proposal_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Correction Proposal Id"
+              },
+              "correction_digest": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Correction Digest"
+              },
+              "correction_published_version": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1.0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Correction Published Version"
               }
             },
             "additionalProperties": false,
