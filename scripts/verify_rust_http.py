@@ -169,6 +169,9 @@ def run(binary, rust_url, admin_url):
                     client.get(f"/v1/domains/{domain}/version", headers=foreign).status_code == 404
                 )
                 checks.append("tenant_and_domain_isolation")
+                from verify_rust_sources import verify_sources
+
+                checks.extend(verify_sources(client, headers, admin, tenant, domain))
                 with admin.begin() as conn:
                     conn.execute(
                         text(
@@ -205,8 +208,8 @@ def run(binary, rust_url, admin_url):
             return {
                 "status": "passed",
                 "checks": checks,
-                "native_http_operations": 6 if os.environ.get("CORTEX_TERMINUS_URL") else 3,
-                "native_mcp_operations": 6,
+                "native_http_operations": 11 if os.environ.get("CORTEX_TERMINUS_URL") else 8,
+                "native_mcp_operations": 11,
                 "terminus_application_integration": bool(os.environ.get("CORTEX_TERMINUS_URL")),
                 "model_calls": 0,
             }

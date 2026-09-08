@@ -120,7 +120,7 @@ impl ConfirmationVerifier {
 pub(crate) struct ConfirmedAction {
     pub subject: String,
     pub tenant: String,
-    pub action: &'static str,
+    pub action: String,
 }
 
 #[cfg(test)]

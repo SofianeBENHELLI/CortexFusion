@@ -28,11 +28,16 @@ def verify_mcp(client, headers, domain):
     result = rpc("tools/list", {}).json()["result"]
     expected_names = {
         "api_system_health",
+        "api_system_ready",
         "api_identity_read",
         "api_domain_version",
         "api_concepts_list",
         "api_concepts_read",
         "api_proposals_publish",
+        "api_sources_create",
+        "api_sources_read",
+        "api_sources_list",
+        "api_sources_chunks",
     }
     assert {t["name"] for t in result["tools"]} == expected_names
     expected = json.loads(
@@ -44,6 +49,7 @@ def verify_mcp(client, headers, domain):
         assert tool["outputSchema"] == original["outputSchema"]
     for name, arguments, path in [
         ("api_system_health", {}, "/health"),
+        ("api_system_ready", {}, "/ready"),
         ("api_identity_read", {}, "/v1/me"),
         ("api_domain_version", {"path": {"domain": domain}}, f"/v1/domains/{domain}/version"),
     ]:

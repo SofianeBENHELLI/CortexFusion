@@ -1,5 +1,10 @@
-//! Official SDK transport invoking native Rust routes in-process, without Python.
-use crate::{auth::Authenticator, error::CoreError};
+//! Contract-driven official MCP SDK transport, dispatching only native Rust operations.
+use crate::{
+    auth::Authenticator,
+    confirmation::{ConfirmationVerifier, ConfirmedAction},
+    database::Database,
+    error::CoreError,
+};
 use axum::{
     Router,
     body::{Body, to_bytes},
@@ -16,153 +21,200 @@ use rmcp::{
     },
 };
 use serde_json::{Value, json};
-use std::sync::Arc;
+use std::{collections::BTreeMap, sync::Arc};
 use tower::ServiceExt;
 use uuid::Uuid;
 
-const NATIVE: &[&str] = &[
+pub const NATIVE: &[&str] = &[
     "api_system_health",
+    "api_system_ready",
     "api_identity_read",
     "api_domain_version",
     "api_concepts_list",
     "api_concepts_read",
     "api_proposals_publish",
+    "api_sources_create",
+    "api_sources_list",
+    "api_sources_read",
+    "api_sources_chunks",
 ];
+struct Operation {
+    tool: Tool,
+    schema: jsonschema::Validator,
+    method: http::Method,
+    path: String,
+    action: String,
+    sensitive: bool,
+}
 #[derive(Clone)]
 struct NativeMcp {
     http: Router,
-    tools: Arc<Vec<Tool>>,
+    operations: Arc<BTreeMap<String, Operation>>,
     auth: Authenticator,
-    db: crate::database::Database,
-    confirmation: Option<crate::confirmation::ConfirmationVerifier>,
+    db: Database,
+    confirmation: Option<ConfirmationVerifier>,
 }
-fn argument_error() -> ErrorData {
-    ErrorData::invalid_params(
-        "Arguments must match the advertised native tool schema",
-        None,
-    )
+fn invalid() -> CoreError {
+    CoreError {
+        code: "VALIDATION_FAILED",
+        message: "Arguments do not match the tool contract",
+        status: http::StatusCode::UNPROCESSABLE_ENTITY,
+    }
 }
-fn route(name: &str, args: Value) -> Result<String, ErrorData> {
-    let object = args.as_object().ok_or_else(argument_error)?;
-    if name == "api_proposals_publish" {
-        if object.len() != 2 {
-            return Err(argument_error());
-        }
-        let path = args["path"].as_object().ok_or_else(argument_error)?;
-        let body = args["body"].as_object().ok_or_else(argument_error)?;
-        if path.len() != 2 || body.len() != 1 {
-            return Err(argument_error());
-        }
-        let domain = Uuid::parse_str(
-            path.get("domain")
-                .and_then(Value::as_str)
-                .ok_or_else(argument_error)?,
-        )
-        .map_err(|_| argument_error())?;
-        let id = Uuid::parse_str(
-            path.get("proposal_id")
-                .and_then(Value::as_str)
-                .ok_or_else(argument_error)?,
-        )
-        .map_err(|_| argument_error())?;
-        let expected = body
-            .get("expected_published_version")
-            .and_then(Value::as_f64)
-            .filter(|v| v.fract() == 0.0 && *v >= 0.0 && *v < 9223372036854775808.0)
-            .ok_or_else(argument_error)?;
-        let _ = expected;
-        return Ok(format!("/v1/domains/{domain}/proposals/{id}/publish"));
+fn request_for(
+    operation: &Operation,
+    arguments: &Value,
+    headers: &http::HeaderMap,
+) -> Result<http::Request<Body>, CoreError> {
+    if !operation.schema.is_valid(arguments) {
+        return Err(invalid());
     }
-    if matches!(name, "api_system_health" | "api_identity_read") {
-        if !object.is_empty() {
-            return Err(argument_error());
+    let mut path = operation.path.clone();
+    if let Some(params) = arguments["path"].as_object() {
+        for (key, value) in params {
+            let value = value
+                .as_str()
+                .map(str::to_owned)
+                .unwrap_or_else(|| value.to_string());
+            // A path argument is always one segment, irrespective of future schema changes.
+            if value.contains('/')
+                || value.contains('\\')
+                || value == "."
+                || value == ".."
+                || value.contains('?')
+                || value.contains('#')
+                || value.contains('%')
+            {
+                return Err(invalid());
+            }
+            path = path.replace(&format!("{{{key}}}"), &value);
         }
-        return Ok(if name == "api_system_health" {
-            "/health"
-        } else {
-            "/v1/me"
+    }
+    let mut url = reqwest::Url::parse(&format!("http://localhost{path}")).map_err(|_| invalid())?;
+    if let Some(params) = arguments["query"].as_object() {
+        for (key, value) in params {
+            url.query_pairs_mut().append_pair(
+                key,
+                &value.as_str().map(str::to_owned).unwrap_or_else(|| {
+                    if value.is_null() {
+                        "None".into()
+                    } else {
+                        value.to_string()
+                    }
+                }),
+            );
         }
-        .into());
     }
-    if !NATIVE.contains(&name) {
-        return Err(ErrorData::invalid_params(
-            "Tool is not implemented by the native Rust candidate",
-            None,
-        ));
+    let uri = if let Some(query) = url.query() {
+        format!("{}?{query}", url.path())
+    } else {
+        url.path().into()
+    };
+    let body = if let Some(body) = arguments.get("body") {
+        Body::from(serde_json::to_vec(body).map_err(|_| invalid())?)
+    } else {
+        Body::empty()
+    };
+    let mut request = http::Request::builder()
+        .method(operation.method.clone())
+        .uri(uri)
+        .body(body)
+        .map_err(|_| invalid())?;
+    *request.headers_mut() = headers.clone();
+    request.headers_mut().remove("content-length");
+    request.headers_mut().remove("transfer-encoding");
+    if arguments.get("body").is_some() {
+        request.headers_mut().insert(
+            "content-type",
+            http::HeaderValue::from_static("application/json"),
+        );
     }
-    if object.len() != 1 {
-        return Err(argument_error());
-    }
-    let path = args["path"].as_object().ok_or_else(argument_error)?;
-    let expected = if name == "api_concepts_read" { 2 } else { 1 };
-    if path.len() != expected
-        || path
-            .keys()
-            .any(|k| k != "domain" && !(name == "api_concepts_read" && k == "concept_id"))
-    {
-        return Err(argument_error());
-    }
-    let domain = Uuid::parse_str(path["domain"].as_str().ok_or_else(argument_error)?)
-        .map_err(|_| argument_error())?;
-    Ok(match name {
-        "api_domain_version" => format!("/v1/domains/{domain}/version"),
-        "api_concepts_list" => format!("/v1/domains/{domain}/concepts"),
-        "api_concepts_read" => {
-            let id = Uuid::parse_str(path["concept_id"].as_str().ok_or_else(argument_error)?)
-                .map_err(|_| argument_error())?;
-            format!("/v1/domains/{domain}/concepts/{id}")
+    if let Some(params) = arguments["header"].as_object() {
+        for (key, value) in params {
+            // Identity and confirmation can only come from the transport.
+            if [
+                "authorization",
+                "x-tenant-id",
+                "x-cortex-confirmation",
+                "host",
+                "origin",
+            ]
+            .contains(&key.to_ascii_lowercase().as_str())
+            {
+                return Err(invalid());
+            }
+            request.headers_mut().insert(
+                http::HeaderName::from_bytes(key.as_bytes()).map_err(|_| invalid())?,
+                http::HeaderValue::from_str(value.as_str().ok_or_else(invalid)?)
+                    .map_err(|_| invalid())?,
+            );
         }
-        _ => return Err(argument_error()),
-    })
+    }
+    Ok(request)
+}
+fn failure(error: CoreError, confirmation: Option<Value>) -> CallToolResponse {
+    let mut value = json!({"http_status":error.status.as_u16(),"data":{"error":error.code,"message":error.message}});
+    if let Some(request) = confirmation {
+        value["confirmation_request"] = request;
+    }
+    CallToolResult::structured_error(value).into()
 }
 impl ServerHandler for NativeMcp {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
-            .with_instructions("CortexFusion native Rust migration candidate. Only listed operations are implemented; Publication requires a trusted-host signed confirmation. Knowledge remains subject to current source access.")
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build()).with_instructions("CortexFusion native Rust migration candidate. Only listed operations are implemented. Sensitive actions require a trusted-host signed confirmation. Knowledge is subject to current source permissions.")
     }
     async fn list_tools(
         &self,
         request: Option<PaginatedRequestParams>,
-        _context: RequestContext<RoleServer>,
+        _: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, ErrorData> {
         if request.is_some_and(|r| r.cursor.is_some()) {
-            return Err(argument_error());
+            return Err(ErrorData::invalid_params("Unknown cursor", None));
         }
         Ok(ListToolsResult {
-            tools: (*self.tools).clone(),
+            tools: NATIVE
+                .iter()
+                .map(|name| self.operations[*name].tool.clone())
+                .collect(),
             ..Default::default()
         })
     }
     fn get_tool(&self, name: &str) -> Option<Tool> {
-        self.tools.iter().find(|t| t.name == name).cloned()
+        self.operations.get(name).map(|op| op.tool.clone())
     }
     async fn call_tool(
         &self,
         request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
+        let Some(operation) = self.operations.get(request.name.as_ref()) else {
+            return Ok(failure(
+                CoreError {
+                    code: "UNKNOWN_TOOL",
+                    message: "Unknown action",
+                    status: http::StatusCode::NOT_FOUND,
+                },
+                None,
+            ));
+        };
         let arguments = Value::Object(request.arguments.unwrap_or_default());
-        let path = route(&request.name, arguments.clone())?;
         let parts = context
             .extensions
             .get::<http::request::Parts>()
             .ok_or_else(|| ErrorData::internal_error("Missing HTTP identity context", None))?;
-        let mut http_request = http::Request::builder()
-            .uri(path)
-            .body(Body::empty())
-            .map_err(|_| argument_error())?;
-        *http_request.headers_mut() = parts.headers.clone();
-        if request.name == "api_proposals_publish" {
-            let action = "proposals.publish";
+        let mut native = match request_for(operation, &arguments, &parts.headers) {
+            Ok(r) => r,
+            Err(e) => return Ok(failure(e, None)),
+        };
+        if operation.sensitive {
             let result: Result<crate::auth::Principal, CoreError> = async {
                 let p = self.auth.authenticate(&parts.headers)?;
-                let domain = Uuid::parse_str(
-                    arguments["path"]["domain"]
-                        .as_str()
-                        .ok_or_else(CoreError::invalid_uuid)?,
-                )
-                .map_err(|_| CoreError::invalid_uuid())?
-                .to_string();
+                let domain =
+                    Uuid::parse_str(arguments["path"]["domain"].as_str().ok_or_else(invalid)?)
+                        .map_err(|_| invalid())?
+                        .to_string();
+                let tx = self.db.locked_owner_transaction(&p, &domain).await?;
+                tx.commit().await.map_err(CoreError::sql)?;
                 if parts
                     .headers
                     .get_all("x-cortex-confirmation")
@@ -170,19 +222,15 @@ impl ServerHandler for NativeMcp {
                     .count()
                     > 1
                 {
-                    return Err(CoreError::auth());
+                    return Err(invalid());
                 }
-                let tx = self.db.locked_owner_transaction(&p, &domain).await?;
-                tx.commit().await.map_err(CoreError::sql)?;
-                let verifier = self
-                    .confirmation
+                self.confirmation
                     .as_ref()
-                    .ok_or_else(crate::confirmation::required)?;
-                verifier
+                    .ok_or_else(crate::confirmation::required)?
                     .consume(
                         &p,
                         &domain,
-                        action,
+                        &operation.action,
                         &arguments,
                         parts
                             .headers
@@ -196,37 +244,41 @@ impl ServerHandler for NativeMcp {
             let p = match result {
                 Ok(p) => p,
                 Err(e) => {
-                    let mut value = json!({"http_status":e.status.as_u16(),"data":{"error":e.code,"message":e.message}});
-                    if e.code == "CONFIRMATION_REQUIRED" {
-                        value["confirmation_request"] = json!({"action":action,"command_hash":crate::confirmation::command_hash(action,&arguments).map_err(|_|argument_error())?,"transport_header":"X-Cortex-Confirmation","max_lifetime_seconds":300});
-                    }
-                    return Ok(CallToolResult::structured_error(value).into());
+                    let confirmation = if e.code == "CONFIRMATION_REQUIRED" {
+                        Some(
+                            json!({"action":operation.action,"command_hash":crate::confirmation::command_hash(&operation.action,&arguments).map_err(|_|ErrorData::internal_error("Invalid command",None))?,"transport_header":"X-Cortex-Confirmation","max_lifetime_seconds":300}),
+                        )
+                    } else {
+                        None
+                    };
+                    return Ok(failure(e, confirmation));
                 }
             };
-            *http_request.method_mut() = http::Method::POST;
-            *http_request.body_mut() =
-                Body::from(serde_json::to_vec(&arguments["body"]).map_err(|_| argument_error())?);
-            http_request
-                .extensions_mut()
-                .insert(crate::confirmation::ConfirmedAction {
-                    subject: p.subject,
-                    tenant: p.tenant,
-                    action,
-                });
+            native.extensions_mut().insert(ConfirmedAction {
+                subject: p.subject,
+                tenant: p.tenant,
+                action: operation.action.clone(),
+            });
         }
         let response = self
             .http
             .clone()
-            .oneshot(http_request)
+            .oneshot(native)
             .await
             .map_err(|_| ErrorData::internal_error("Native operation unavailable", None))?;
         let status = response.status().as_u16();
         let bytes = to_bytes(response.into_body(), 4_000_000)
             .await
             .map_err(|_| ErrorData::internal_error("Native response exceeded bound", None))?;
-        let data: Value = serde_json::from_slice(&bytes)
+        let mut data: Value = serde_json::from_slice(&bytes)
             .map_err(|_| ErrorData::internal_error("Invalid native response", None))?;
-        let value = json!({"http_status":status,"data":data});
+        let confirmation = data
+            .as_object_mut()
+            .and_then(|v| v.remove("confirmation_request"));
+        let mut value = json!({"http_status":status,"data":data});
+        if let Some(request) = confirmation {
+            value["confirmation_request"] = request;
+        }
         Ok(if status >= 400 {
             CallToolResult::structured_error(value)
         } else {
@@ -239,35 +291,79 @@ async fn authenticate(State(auth): State<Authenticator>, request: Request, next:
     if let Err(error) = auth.authenticate(request.headers()) {
         return error.into_response();
     }
-    // Local candidate has no browser origins enabled. Native clients omit Origin.
     if request.headers().contains_key("origin") {
         return (http::StatusCode::FORBIDDEN, "Origin is not enabled").into_response();
     }
     next.run(request).await
 }
+fn operations() -> Result<BTreeMap<String, Operation>, CoreError> {
+    let tools: Value =
+        serde_json::from_str(include_str!("../../../packages/contracts/mcp-tools.json"))
+            .map_err(|_| CoreError::database())?;
+    let catalog: Value = serde_json::from_str(include_str!(
+        "../../../packages/contracts/interactions.json"
+    ))
+    .map_err(|_| CoreError::database())?;
+    let mut result = BTreeMap::new();
+    for name in NATIVE {
+        let raw = tools["tools"]
+            .as_array()
+            .ok_or_else(CoreError::database)?
+            .iter()
+            .find(|t| t["name"] == *name)
+            .ok_or_else(CoreError::database)?;
+        let meta = catalog["items"]
+            .as_array()
+            .ok_or_else(CoreError::database)?
+            .iter()
+            .find(|m| {
+                m["action_id"]
+                    .as_str()
+                    .is_some_and(|action| format!("api_{}", action.replace('.', "_")) == *name)
+            })
+            .ok_or_else(CoreError::database)?;
+        let tool: Tool = serde_json::from_value(raw.clone()).map_err(|_| CoreError::database())?;
+        let schema = jsonschema::options()
+            .should_validate_formats(true)
+            .with_format("uuid", |value: &str| Uuid::parse_str(value).is_ok())
+            .build(&raw["inputSchema"])
+            .map_err(|_| CoreError::database())?;
+        let method = http::Method::from_bytes(
+            meta["method"]
+                .as_str()
+                .ok_or_else(CoreError::database)?
+                .as_bytes(),
+        )
+        .map_err(|_| CoreError::database())?;
+        result.insert(
+            (*name).into(),
+            Operation {
+                tool,
+                schema,
+                method,
+                path: meta["path"]
+                    .as_str()
+                    .ok_or_else(CoreError::database)?
+                    .into(),
+                action: meta["action_id"]
+                    .as_str()
+                    .ok_or_else(CoreError::database)?
+                    .into(),
+                sensitive: meta["confirmation_policy"] == "explicit_user_decision",
+            },
+        );
+    }
+    Ok(result)
+}
 pub fn mount(
     http: Router,
     auth: Authenticator,
-    confirmation: Option<crate::confirmation::ConfirmationVerifier>,
-    db: crate::database::Database,
+    confirmation: Option<ConfirmationVerifier>,
+    db: Database,
 ) -> Result<Router, CoreError> {
-    let value: Value =
-        serde_json::from_str(include_str!("../../../packages/contracts/mcp-tools.json"))
-            .map_err(|_| CoreError::database())?;
-    let tools: Vec<Tool> = value["tools"]
-        .as_array()
-        .ok_or_else(CoreError::database)?
-        .iter()
-        .filter(|t| t["name"].as_str().is_some_and(|n| NATIVE.contains(&n)))
-        .cloned()
-        .map(|t| serde_json::from_value(t).map_err(|_| CoreError::database()))
-        .collect::<Result<_, _>>()?;
-    if tools.len() != NATIVE.len() {
-        return Err(CoreError::database());
-    }
     let handler = NativeMcp {
         http: http.clone(),
-        tools: Arc::new(tools),
+        operations: Arc::new(operations()?),
         auth: auth.clone(),
         db,
         confirmation,
@@ -275,41 +371,44 @@ pub fn mount(
     let config = StreamableHttpServerConfig::default()
         .with_legacy_session_mode(false)
         .with_json_response(true)
-        .with_max_request_body_bytes(64_000);
+        .with_max_request_body_bytes(1_000_000);
     let service = StreamableHttpService::new(
         move || Ok(handler.clone()),
         LocalSessionManager::default().into(),
         config,
     );
-    let mcp = Router::new()
-        .nest_service("/mcp", service)
-        .layer(middleware::from_fn_with_state(auth, authenticate));
-    Ok(http.merge(mcp))
+    Ok(http.merge(
+        Router::new()
+            .nest_service("/mcp", service)
+            .layer(middleware::from_fn_with_state(auth, authenticate)),
+    ))
 }
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
-    fn native_routes_do_not_accept_role_or_path_injection() {
-        assert!(route("api_identity_read", json!({"role":"owner"})).is_err());
+    fn contract_driven_routes_reject_forged_identity_and_traversal() {
+        let operations = operations().unwrap();
+        let headers = http::HeaderMap::new();
         assert!(
-            route(
-                "api_concepts_read",
-                json!({"path":{"domain":"../admin","concept_id":Uuid::nil()}})
+            request_for(
+                &operations["api_identity_read"],
+                &json!({"role":"owner"}),
+                &headers
             )
             .is_err()
         );
         assert!(
-            route(
-                "api_concepts_list",
-                json!({"path":{"domain":Uuid::nil()},"tenant":"forged"})
+            request_for(
+                &operations["api_concepts_list"],
+                &json!({"path":{"domain":"../admin"}}),
+                &headers
             )
             .is_err()
         );
-        assert!(route("api_proposals_approve", json!({})).is_err());
-        assert_eq!(
-            route("api_domain_version", json!({"path":{"domain":Uuid::nil()}})).unwrap(),
-            format!("/v1/domains/{}/version", Uuid::nil())
-        );
+        let args = json!({"path":{"domain":Uuid::nil(),"proposal_id":Uuid::nil()},"body":{"expected_published_version":0}});
+        let request = request_for(&operations["api_proposals_publish"], &args, &headers).unwrap();
+        assert_eq!(request.method(), http::Method::POST);
+        assert!(request.uri().path().ends_with("/publish"));
     }
 }

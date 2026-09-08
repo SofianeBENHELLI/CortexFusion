@@ -8,6 +8,8 @@ pub mod graph;
 pub mod knowledge;
 pub mod mcp;
 pub mod publication;
+pub mod readiness;
 pub mod server;
 pub mod snapshot;
+pub mod sources;
 pub mod terminus;

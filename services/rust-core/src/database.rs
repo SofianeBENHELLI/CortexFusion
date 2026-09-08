@@ -63,6 +63,16 @@ impl Database {
         p: &Principal,
         domain: &str,
     ) -> Result<Transaction<'_, Postgres>, CoreError> {
+        self.locked_permission_transaction(p, domain, &["owner"], "Domain owner required")
+            .await
+    }
+    pub async fn locked_permission_transaction(
+        &self,
+        p: &Principal,
+        domain: &str,
+        roles: &[&str],
+        message: &'static str,
+    ) -> Result<Transaction<'_, Postgres>, CoreError> {
         p.check_fresh()?;
         let mut tx = self.pool.begin().await.map_err(CoreError::sql)?;
         sqlx::query("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
@@ -85,8 +95,13 @@ impl Database {
             return Err(CoreError::not_found());
         }
         let role:Option<String>=sqlx::query_scalar("SELECT role FROM cf_memberships WHERE tenant_id=$1 AND domain_id=$2 AND subject=$3 FOR SHARE").bind(&p.tenant).bind(domain).bind(&p.subject).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?;
-        if role.as_deref() != Some("owner") {
-            return Err(CoreError::not_found());
+        let role = role.ok_or_else(CoreError::not_found)?;
+        if !roles.contains(&role.as_str()) {
+            return Err(CoreError {
+                code: "NOT_AUTHORIZED",
+                message,
+                status: http::StatusCode::FORBIDDEN,
+            });
         }
         p.check_fresh()?;
         Ok(tx)

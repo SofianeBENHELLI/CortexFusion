@@ -20,11 +20,13 @@ pub struct StateData {
 
 pub fn router(state: StateData) -> Router {
     Router::new().route("/health",get(||async{Json(json!({"status":"ok","version":"0.1.0","mode":"extractive"}))}))
+        .route("/ready",get(crate::readiness::ready))
         .route("/v1/me",get(identity))
         .route("/v1/domains/{domain}/version",get(version))
         .route("/v1/domains/{domain}/concepts",get(concepts))
         .route("/v1/domains/{domain}/concepts/{concept_id}",get(concept))
         .route("/v1/domains/{domain}/proposals/{proposal_id}/publish",axum::routing::post(publish_target))
+        .merge(crate::sources::routes())
         .fallback(||async{(StatusCode::NOT_IMPLEMENTED,Json(json!({"error":"MIGRATION_NOT_IMPLEMENTED","message":"This operation is not yet served by the native Rust candidate"})))})
         .with_state(state)
 }

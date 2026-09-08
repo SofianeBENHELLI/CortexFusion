@@ -10,6 +10,8 @@ on:
       - 'scripts/verify_rust_graph.py'
       - 'scripts/verify_rust_mcp.py'
       - 'scripts/verify_rust_publication.py'
+      - 'scripts/verify_rust_sources.py'
+      - 'packages/contracts/interactions.json'
       - 'packages/contracts/mcp-tools.json'
       - 'services/core/migrations/**'
       - '.github/workflows/rust.yml'
