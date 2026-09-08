@@ -27,6 +27,7 @@ def verify_mcp(client, headers, domain):
     assert initialized.status_code == 200, initialized.text
     result = rpc("tools/list", {}).json()["result"]
     expected_names = {
+        "api_interactions_list",
         "api_system_health",
         "api_system_ready",
         "api_identity_read",
@@ -72,6 +73,8 @@ def verify_mcp(client, headers, domain):
         "api_concepts_read",
         "api_proposals_publish",
         "api_proposals_create",
+        "api_proposals_revise",
+        "api_sources_propose",
         "api_proposals_diff",
         "api_proposals_list",
         "api_proposals_read",
@@ -79,10 +82,31 @@ def verify_mcp(client, headers, domain):
         "api_proposals_review",
         "api_proposals_reviews",
         "api_sources_create",
+        "api_sources_access",
         "api_sources_read",
         "api_sources_list",
         "api_sources_chunks",
     }
+    expected_names.update(
+        {
+            "query",
+            "inspect_concept",
+            "propose",
+            "feedback",
+            "describe_actions",
+            "my_workspace",
+            "list_sources",
+            "read_source_chunks",
+            "list_proposals",
+            "proposal_diff",
+            "list_conversations",
+            "create_conversation",
+            "conversation_query",
+            "conversation_messages",
+            "list_issues",
+            "decide_issue",
+        }
+    )
     assert {t["name"] for t in result["tools"]} == expected_names
     expected = json.loads(
         (Path(__file__).parents[1] / "packages/contracts/mcp-tools.json").read_text()
@@ -90,7 +114,7 @@ def verify_mcp(client, headers, domain):
     for tool in result["tools"]:
         original = next(t for t in expected if t["name"] == tool["name"])
         assert tool["inputSchema"] == original["inputSchema"]
-        assert tool["outputSchema"] == original["outputSchema"]
+        assert tool.get("outputSchema") == original.get("outputSchema")
     for name, arguments, path in [
         ("api_system_health", {}, "/health"),
         ("api_system_ready", {}, "/ready"),

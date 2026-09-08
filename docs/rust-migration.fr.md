@@ -4,7 +4,7 @@ Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La
 
 ## Couverture native actuelle
 
-Cinquante-cinq opérations HTTP et cinquante-cinq outils MCP sont implémentés :
+Cinquante-neuf opérations HTTP, leurs cinquante-neuf outils MCP et seize outils de compatibilité (75 au total) sont implémentés :
 
 | Fonction | HTTP | Outil MCP |
 |---|---|---|
@@ -59,12 +59,16 @@ Cinquante-cinq opérations HTTP et cinquante-cinq outils MCP sont implémentés 
 | Lire le journal des accès | GET /v1/domains/{domain}/membership-events | api_members_history |
 | Lire les commits et leur publication | GET /v1/domains/{domain}/commits | api_commits_list |
 | Préparer le brief propriétaire | GET /v1/domains/{domain}/brief | api_domain_brief |
+| Réviser une proposition et conserver ses preuves | POST /v1/domains/{domain}/proposals/{ident}/revise | api_proposals_revise |
+| Proposer le contenu entier d’une source | POST /v1/domains/{domain}/sources/{source_id}/propose | api_sources_propose |
+| Modifier les lecteurs d’une source | PUT /v1/domains/{domain}/sources/{source_id}/access | api_sources_access |
+| Découvrir les interactions natives | GET /v1/interactions | api_interactions_list |
 | Créer une source textuelle | POST /v1/domains/{domain}/sources | api_sources_create |
 | Chercher et paginer les sources accessibles | GET /v1/domains/{domain}/sources | api_sources_list |
 | Lire une source et son contenu | GET /v1/domains/{domain}/sources/{source_id} | api_sources_read |
 | Parcourir ses extraits déterministes | GET /v1/domains/{domain}/sources/{source_id}/chunks | api_sources_chunks |
 
-Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Réviser une proposition, les fichiers binaires, les fonctions de modèles et certaines actions de publication restent à migrer. `/v1/me` annonce query, inspect, personal_history, feedback et personal_issues ; les rôles rédacteurs reçoivent propose/read_proposals. Un owner reçoit review/approve/manage_members si les confirmations sont configurées, et publish si TerminusDB est également configuré. Aucun fournisseur d’extraction n’est annoncé.
+Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Les fichiers binaires, les fonctions de modèles et certaines actions de publication restent à migrer. `/v1/me` annonce query, inspect, personal_history, feedback et personal_issues ; les rôles rédacteurs reçoivent propose/read_proposals. Un owner reçoit review/approve/manage_members/source_acl si les confirmations sont configurées, et publish si TerminusDB est également configuré. Aucun fournisseur d’extraction n’est annoncé.
 
 ## Fonctionnement et intégration frontend
 
@@ -99,8 +103,8 @@ La commande interne `cortex-rust-core --import-published <domainUUID>` utilise `
 ## Preuves et limites de vérification
 
 - Formatage, Clippy sans avertissement et20 tests Rust passent localement. Le test Terminus réel est explicitement ignoré hors moteur isolé et exécuté séparément en CI.
-- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques : cinquante-deux routes directement testables sans moteur et cinquante-cinq schémas/outils MCP annoncés. Les scénarios source contrôlent ACL, rôle, déduplication, pagination et découpe Unicode comparée à Python.
-- Le lot sources et pont MCP générique a passé la CI avec le moteur TerminusDB12.0.7 épinglé par digest : onze opérations HTTP/MCP, publication signée, rejeu ciblé et lectures avec droits. Le lot propositions a ensuite validé dix-huit HTTP/MCP et le cycle complet source → création → revue → approbation → publication avec TerminusDB réel. Le lot recherche/feedback a ensuite passé sa CI avec TerminusDB réel, citations et épisodes privés (vingt-deux opérations). Les lots signaux/préférences puis compagnons ont passé leurs trois workflows, dont TerminusDB réel (trente opérations). Le lot conversations a également passé les contrôles Rust avec TerminusDB réel (trente-sept opérations). Les lots issues, collections et CORS ont passé les trois workflows (quarante-quatre opérations). Les imports textuels et la gouvernance attendent leur CI dédiée.
+- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques : cinquante-six routes directement testables sans moteur et soixante-quinze schémas/outils MCP annoncés. Les scénarios source contrôlent ACL, rôle, déduplication, pagination et découpe Unicode comparée à Python.
+- Le lot sources et pont MCP générique a passé la CI avec le moteur TerminusDB12.0.7 épinglé par digest : onze opérations HTTP/MCP, publication signée, rejeu ciblé et lectures avec droits. Le lot propositions a ensuite validé dix-huit HTTP/MCP et le cycle complet source → création → revue → approbation → publication avec TerminusDB réel. Le lot recherche/feedback a ensuite passé sa CI avec TerminusDB réel, citations et épisodes privés (vingt-deux opérations). Les lots signaux/préférences puis compagnons ont passé leurs trois workflows, dont TerminusDB réel (trente opérations). Le lot conversations a également passé les contrôles Rust avec TerminusDB réel (trente-sept opérations). Les lots issues, collections et CORS ont passé les trois workflows (quarante-quatre opérations). Les imports textuels et la gouvernance ont passé les trois workflows (cinquante-cinq opérations). Le lot révisions, droits de sources et alias MCP attend sa CI dédiée.
 - La suite historique sur la migration0020 passe :514 tests Python et11 Node. Elle protège la référence, sans prouver que ses79 routes ont été portées en Rust.
 - Le vérificateur indépendant a exécuté100018 vecteurs de JSON canonique sans divergence après correction Ryu ;2044 cas de changements de graphe concordent avec Python ;23 cas de confirmations concordent. Ses campagnes de concurrence couvrent isolation tenant, révocation, expiration pendant réseau/verrou SQL, publication concurrente et retour arrière atomique après panne SQL injectée.
 - Les courses sont déclenchées avec un moteur contrôlé, distinct du test TerminusDB réel. Les NumericDate sous forme de chaînes exotiques restent plus restrictifs que Python. Les autres confirmations personnelles, opérations non portées, performances, haute disponibilité et perte d’accusé de commit PostgreSQL ne sont pas déclarées validées.
@@ -186,3 +190,17 @@ Le propriétaire peut paginer les membres et le journal d’accès. Une modifica
 Le journal des commits est réservé au propriétaire et filtre les preuves avant pagination. Il distingue commit accepté et publication effective, avec auteur de publication et date lorsqu’ils existent. Le brief retourne les propositions ready visibles, les versions et uniquement les problèmes personnels du propriétaire ; il ne révèle pas l’activité privée des autres utilisateurs et ne fait aucun appel modèle.
 
 Pour un prévol demandant une méthode ou un en-tête interdit, le middleware CORS peut répondre200 sans l’autorisation correspondante : le navigateur bloque alors la requête réelle. Cela diffère du403 explicite sur une origine interdite. La configuration d’origine est validée avant l’annonce d’écoute du candidat.
+
+## Réviser et proposer depuis une source
+
+L’auteur ou un owner peut réviser une proposition ready, deferred ou changes_requested. Une nouvelle proposition est créée avec replaces_id ; l’ancienne devient superseded et sa révision de revue augmente, dans la même transaction. La nouvelle validation conserve les preuves anciennes et nouvelles. Le replay exact retourne la même proposition ; une clé appartenant à une autre opération ou à un autre parent est refusée. Les droits et la base publiée sont revérifiés après la lecture Terminus.
+
+Proposer une source utilise son texte entier, au plus30000 points de code Unicode, sans appel modèle. L’identifiant du concept est déterministe et compatible UUIDv5 Python ; la source et sa plage entière restent les preuves. Le header Idempotency-Key permet de retrouver la base historique lors d’un replay après publication. Ce parcours ne remplace pas une extraction intelligente et n’accepte aucune preuve inaccessible.
+
+Les ACL de source sont modifiables par un owner possédant déjà l’accès, avec confirmation signée sur les lecteurs exacts. La liste enregistrée est triée et dédupliquée, tous les lecteurs doivent être membres. Retirer son propre accès est permis, mais une relecture ou nouvelle commande ultérieure peut répondre404. Les questions/conversations en cours revérifient ces droits après le réseau : la campagne indépendante utilise la véritable route signée pour prouver ce comportement.
+
+## Découverte des contrats et outils de compatibilité
+
+`/v1/interactions` est authentifié et liste exclusivement les opérations natives ; `/openapi.json` expose leurs schémas publics. Les métadonnées ne donnent aucun droit. Les16 alias historiques restent disponibles : query, inspect_concept, propose, feedback, describe_actions, my_workspace, list_sources, read_source_chunks, list_proposals, proposal_diff, list_conversations, create_conversation, conversation_query, conversation_messages, list_issues et decide_issue.
+
+Les alias conservent leurs arguments, schémas et annotations historiques, puis appellent les mêmes routes Rust. Leur succès retourne directement les données métier ; les outils api_* utilisent l’enveloppe http_status/data. Les propriétés supplémentaires permises par certains anciens schémas ne changent jamais le tenant ou le sujet authentifié. Aucun alias ne contourne une décision signée. Les outils non portés ne sont pas annoncés.

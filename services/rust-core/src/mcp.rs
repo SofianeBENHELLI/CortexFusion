@@ -26,6 +26,7 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 pub const NATIVE: &[&str] = &[
+    "api_interactions_list",
     "api_system_health",
     "api_system_ready",
     "api_identity_read",
@@ -71,6 +72,8 @@ pub const NATIVE: &[&str] = &[
     "api_concepts_read",
     "api_proposals_publish",
     "api_proposals_create",
+    "api_proposals_revise",
+    "api_sources_propose",
     "api_proposals_diff",
     "api_proposals_list",
     "api_proposals_read",
@@ -78,10 +81,96 @@ pub const NATIVE: &[&str] = &[
     "api_proposals_review",
     "api_proposals_reviews",
     "api_sources_create",
+    "api_sources_access",
     "api_sources_list",
     "api_sources_read",
     "api_sources_chunks",
 ];
+pub const ALIASES: &[(&str, &str)] = &[
+    ("query", "api_knowledge_query"),
+    ("inspect_concept", "api_concepts_read"),
+    ("propose", "api_proposals_create"),
+    ("feedback", "api_episodes_feedback"),
+    ("describe_actions", "api_interactions_list"),
+    ("my_workspace", "api_identity_read"),
+    ("list_sources", "api_sources_list"),
+    ("read_source_chunks", "api_sources_chunks"),
+    ("list_proposals", "api_proposals_list"),
+    ("proposal_diff", "api_proposals_diff"),
+    ("list_conversations", "api_conversations_list"),
+    ("create_conversation", "api_conversations_create"),
+    ("conversation_query", "api_conversations_query"),
+    ("conversation_messages", "api_conversations_messages"),
+    ("list_issues", "api_issues_list"),
+    ("decide_issue", "api_issues_decide"),
+];
+fn alias_arguments(name: &str, v: &Value) -> Result<Value, CoreError> {
+    let mut path = json!({});
+    if let Some(d) = v.get("domain_id") {
+        path["domain"] = d.clone()
+    }
+    let mut body = None;
+    let mut query = serde_json::Map::new();
+    match name {
+        "query" => {
+            body = Some(
+                json!({"question":v["question"],"max_chars":v.get("max_chars").cloned().unwrap_or(json!(8000))}),
+            )
+        }
+        "inspect_concept" => path["concept_id"] = v["concept_id"].clone(),
+        "propose" => body = Some(v["proposal"].clone()),
+        "feedback" => {
+            path["episode_id"] = v["episode_id"].clone();
+            body = Some(v["feedback"].clone())
+        }
+        "describe_actions" | "my_workspace" => {}
+        "list_sources" | "list_proposals" | "list_conversations" | "list_issues" => {
+            for key in ["q", "limit", "after", "archived", "status"] {
+                if let Some(value) = v.get(key).filter(|v| !v.is_null()) {
+                    query.insert(key.into(), value.clone());
+                }
+            }
+        }
+        "read_source_chunks" => {
+            path["source_id"] = v["source_id"].clone();
+            query.insert(
+                "offset".into(),
+                v.get("offset").cloned().unwrap_or(json!(0)),
+            );
+            query.insert("limit".into(), v.get("limit").cloned().unwrap_or(json!(3)));
+        }
+        "proposal_diff" => path["ident"] = v["proposal_id"].clone(),
+        "create_conversation" => body = Some(v["conversation"].clone()),
+        "conversation_query" => {
+            path["ident"] = v["conversation_id"].clone();
+            body = Some(v["question"].clone())
+        }
+        "conversation_messages" => {
+            path["ident"] = v["conversation_id"].clone();
+            for key in ["limit", "after"] {
+                if let Some(value) = v.get(key) {
+                    query.insert(key.into(), value.clone());
+                }
+            }
+        }
+        "decide_issue" => {
+            path["ident"] = v["issue_id"].clone();
+            body = Some(v["decision"].clone())
+        }
+        _ => return Err(invalid()),
+    }
+    let mut result = json!({});
+    if !path.as_object().ok_or_else(invalid)?.is_empty() {
+        result["path"] = path
+    }
+    if let Some(body) = body {
+        result["body"] = body
+    }
+    if !query.is_empty() {
+        result["query"] = Value::Object(query)
+    }
+    Ok(result)
+}
 struct Operation {
     tool: Tool,
     schema: jsonschema::Validator,
@@ -89,6 +178,7 @@ struct Operation {
     path: String,
     action: String,
     sensitive: bool,
+    alias: Option<&'static str>,
 }
 #[derive(Clone)]
 struct NativeMcp {
@@ -113,6 +203,11 @@ fn request_for(
     if !operation.schema.is_valid(arguments) {
         return Err(invalid());
     }
+    let mapped = operation
+        .alias
+        .map(|name| alias_arguments(name, arguments))
+        .transpose()?;
+    let arguments = mapped.as_ref().unwrap_or(arguments);
     let mut path = operation.path.clone();
     if let Some(params) = arguments["path"].as_object() {
         for (key, value) in params {
@@ -222,7 +317,9 @@ impl ServerHandler for NativeMcp {
         Ok(ListToolsResult {
             tools: NATIVE
                 .iter()
-                .map(|name| self.operations[*name].tool.clone())
+                .copied()
+                .chain(ALIASES.iter().map(|(name, _)| *name))
+                .map(|name| self.operations[name].tool.clone())
                 .collect(),
             ..Default::default()
         })
@@ -321,6 +418,9 @@ impl ServerHandler for NativeMcp {
             .map_err(|_| ErrorData::internal_error("Native response exceeded bound", None))?;
         let mut data: Value = serde_json::from_slice(&bytes)
             .map_err(|_| ErrorData::internal_error("Invalid native response", None))?;
+        if operation.alias.is_some() && status < 400 {
+            return Ok(CallToolResult::structured(data).into());
+        }
         let confirmation = data
             .as_object_mut()
             .and_then(|v| v.remove("confirmation_request"));
@@ -393,6 +493,7 @@ fn operations() -> Result<BTreeMap<String, Operation>, CoreError> {
             Operation {
                 tool,
                 schema,
+                alias: None,
                 method,
                 path: meta["path"]
                     .as_str()
@@ -405,6 +506,35 @@ fn operations() -> Result<BTreeMap<String, Operation>, CoreError> {
                 sensitive: meta["confirmation_policy"] == "explicit_user_decision",
             },
         );
+    }
+    for (name, target) in ALIASES {
+        let base = result.get(*target).ok_or_else(CoreError::database)?;
+        let raw = tools["tools"]
+            .as_array()
+            .ok_or_else(CoreError::database)?
+            .iter()
+            .find(|t| t["name"] == *name)
+            .ok_or_else(CoreError::database)?;
+        let tool: Tool = serde_json::from_value(raw.clone()).map_err(|_| CoreError::database())?;
+        let schema = jsonschema::options()
+            .should_validate_formats(true)
+            .with_format("uuid", |value: &str| Uuid::parse_str(value).is_ok())
+            .build(&raw["inputSchema"])
+            .map_err(|_| CoreError::database())?;
+        let op = Operation {
+            tool,
+            schema,
+            method: base.method.clone(),
+            path: base.path.clone(),
+            action: base.action.clone(),
+            sensitive: base.sensitive,
+            alias: Some(name),
+        };
+        // Historical convenience aliases never bypass a signed decision route.
+        if op.sensitive {
+            return Err(CoreError::database());
+        }
+        result.insert((*name).into(), op);
     }
     Ok(result)
 }

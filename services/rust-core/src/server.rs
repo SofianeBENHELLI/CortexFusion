@@ -36,6 +36,8 @@ pub fn router(state: StateData) -> Router {
         .merge(crate::collections::routes())
         .merge(crate::imports::routes())
         .merge(crate::governance::routes())
+        .merge(crate::source_access::routes())
+        .merge(crate::discovery::routes())
         .fallback(||async{(StatusCode::NOT_IMPLEMENTED,Json(json!({"error":"MIGRATION_NOT_IMPLEMENTED","message":"This operation is not yet served by the native Rust candidate"})))})
         .with_state(state)
 }
@@ -96,7 +98,7 @@ async fn identity(
             capabilities.extend(["propose", "read_proposals"]);
         }
         if role == "owner" && s.confirmation.is_some() {
-            capabilities.extend(["review", "approve", "manage_members"]);
+            capabilities.extend(["review", "approve", "manage_members", "source_acl"]);
             if s.graph.is_some() {
                 capabilities.push("publish");
             }

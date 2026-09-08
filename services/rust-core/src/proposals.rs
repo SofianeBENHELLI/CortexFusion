@@ -206,9 +206,18 @@ async fn existing(
     domain: &str,
     input: &ProposalInput,
     fingerprint: &str,
+    replacement: Option<&str>,
 ) -> Result<Option<Value>, CoreError> {
     let found=sqlx::query("SELECT * FROM cf_proposals WHERE tenant_id=$1 AND domain_id=$2 AND author=$3 AND idempotency_key=$4").bind(&p.tenant).bind(domain).bind(&p.subject).bind(&input.idempotency_key).fetch_optional(&mut **tx).await.map_err(CoreError::sql)?;
     if let Some(r) = found {
+        if replacement.is_some()
+            && r.get::<Option<String>, _>("replaces_id").as_deref() != replacement
+        {
+            return Err(conflict(
+                "IDEMPOTENCY_CONFLICT",
+                "Proposal key belongs to another operation",
+            ));
+        }
         if r.get::<&str, _>("request_hash") != fingerprint {
             return Err(conflict(
                 "IDEMPOTENCY_CONFLICT",
@@ -226,6 +235,14 @@ pub fn routes() -> Router<StateData> {
     Router::new()
         .route("/v1/domains/{domain}/proposals", get(list).post(create))
         .route("/v1/domains/{domain}/proposals/{proposal_id}", get(read))
+        .route(
+            "/v1/domains/{domain}/proposals/{ident}/revise",
+            axum::routing::post(revise),
+        )
+        .route(
+            "/v1/domains/{domain}/sources/{source_id}/propose",
+            axum::routing::post(ingest),
+        )
         .route(
             "/v1/domains/{domain}/proposals/{proposal_id}/diff",
             get(diff),
@@ -256,25 +273,40 @@ async fn create(
     let domain = uuid(&domain)?;
     let Json(raw) = body.map_err(|_| invalid())?;
     let input = parse_proposal(raw)?;
+    let value = propose_service(&s, &p, &domain, input, None).await?;
+    Ok((StatusCode::CREATED, Json(value)))
+}
+async fn propose_service(
+    s: &StateData,
+    p: &Principal,
+    domain: &str,
+    input: ProposalInput,
+    replacement: Option<&str>,
+) -> Result<Value, CoreError> {
+    input.validate()?;
     let normalized = serde_json::to_value(&input).map_err(|_| invalid())?;
     let fingerprint = hash(&normalized)?;
-    let mut tx = transaction(&s, &p, &domain).await?;
-    if let Some(v) = existing(&mut tx, &p, &domain, &input, &fingerprint).await? {
-        return Ok((StatusCode::CREATED, Json(v)));
+    let mut tx = transaction(s, p, domain).await?;
+    let old = replacement_access(&mut tx, p, domain, replacement).await?;
+    if let Some(v) = existing(&mut tx, p, domain, &input, &fingerprint, replacement).await? {
+        return Ok(v);
     }
+    validate_replace_state(old.as_ref())?;
     tx.commit().await.map_err(CoreError::sql)?;
-    let state = base(&s, &p, &domain, input.base_version).await?;
-    let mut tx = transaction(&s, &p, &domain).await?;
-    if let Some(v) = existing(&mut tx, &p, &domain, &input, &fingerprint).await? {
-        return Ok((StatusCode::CREATED, Json(v)));
+    let state = base(s, p, domain, input.base_version).await?;
+    let mut tx = transaction(s, p, domain).await?;
+    let old = replacement_access(&mut tx, p, domain, replacement).await?;
+    if let Some(v) = existing(&mut tx, p, domain, &input, &fingerprint, replacement).await? {
+        return Ok(v);
     }
-    if published(&mut tx, &p, &domain).await? != input.base_version {
+    validate_replace_state(old.as_ref())?;
+    if published(&mut tx, p, domain).await? != input.base_version {
         return Err(conflict(
             "STALE_BASE",
             "Refresh the published knowledge version",
         ));
     }
-    let accessible = sources(&mut tx, &p, &domain).await?;
+    let accessible = sources(&mut tx, p, domain).await?;
     let validated = apply_checked(&state, &input.changes, &accessible)?;
     let mut evidence = BTreeSet::new();
     for change in &input.changes {
@@ -297,13 +329,40 @@ async fn create(
     let digest = hash(
         &json!({"tenant":p.tenant,"domain":domain,"base":input.base_version,"changes":normalized["changes"],"reason":input.reason}),
     )?;
+    if let Some(old) = &old
+        && let Some(ids) = old.get::<Value, _>("validation")["source_ids"].as_array()
+    {
+        for id in ids {
+            evidence.insert(
+                Uuid::parse_str(id.as_str().ok_or_else(CoreError::database)?)
+                    .map_err(|_| CoreError::database())?,
+            );
+        }
+    }
     let validation = json!({"status":"passed","source_support":"verbatim_v1","graph":"acyclic","policy":"owner_low_risk_v1","risk":"low","source_ids":evidence});
     let id = Uuid::new_v4().to_string();
-    sqlx::query("INSERT INTO cf_proposals(tenant_id,domain_id,id,author,base_version,payload,digest,reason,validation,idempotency_key,request_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)").bind(&p.tenant).bind(&domain).bind(&id).bind(&p.subject).bind(input.base_version).bind(&normalized["changes"]).bind(digest).bind(&input.reason).bind(validation).bind(&input.idempotency_key).bind(fingerprint).execute(&mut *tx).await.map_err(CoreError::sql)?;
-    let value = view(&row(&mut tx, &p, &domain, &id).await?);
+    sqlx::query("INSERT INTO cf_proposals(tenant_id,domain_id,id,author,base_version,payload,digest,reason,validation,idempotency_key,request_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)").bind(&p.tenant).bind(domain).bind(&id).bind(&p.subject).bind(input.base_version).bind(&normalized["changes"]).bind(digest).bind(&input.reason).bind(validation).bind(&input.idempotency_key).bind(fingerprint).execute(&mut *tx).await.map_err(CoreError::sql)?;
+    if let Some(old) = &old {
+        let revision = old
+            .get::<i32, _>("review_revision")
+            .checked_add(1)
+            .ok_or_else(|| conflict("STALE_REVIEW", "Review revision exhausted"))?;
+        sqlx::query(
+            "UPDATE cf_proposals SET replaces_id=$1 WHERE tenant_id=$2 AND domain_id=$3 AND id=$4",
+        )
+        .bind(replacement)
+        .bind(&p.tenant)
+        .bind(domain)
+        .bind(&id)
+        .execute(&mut *tx)
+        .await
+        .map_err(CoreError::sql)?;
+        sqlx::query("UPDATE cf_proposals SET status='superseded',review_revision=$1 WHERE tenant_id=$2 AND domain_id=$3 AND id=$4").bind(revision).bind(&p.tenant).bind(domain).bind(replacement).execute(&mut *tx).await.map_err(CoreError::sql)?;
+    }
+    let value = view(&row(&mut tx, p, domain, &id).await?);
     p.check_fresh()?;
     tx.commit().await.map_err(CoreError::sql)?;
-    Ok((StatusCode::CREATED, Json(value)))
+    Ok(value)
 }
 async fn read(
     State(s): State<StateData>,
@@ -817,6 +876,113 @@ async fn diff(
     Ok(Json(
         json!({"proposal_id":id,"base_version":base,"published_version":served,"comparison":if committed.is_some(){"accepted_before_state"}else{"current_published_state"},"stale_base":committed.is_none() && base!=served,"items":items}),
     ))
+}
+
+async fn replacement_access(
+    tx: &mut Transaction<'_, Postgres>,
+    p: &Principal,
+    d: &str,
+    id: Option<&str>,
+) -> Result<Option<PgRow>, CoreError> {
+    let Some(id) = id else { return Ok(None) };
+    let old = row(tx, p, d, id).await?;
+    let accessible = sources(tx, p, d).await?;
+    check_access(tx, p, d, &old, &accessible).await?;
+    let role: String = sqlx::query_scalar(
+        "SELECT role FROM cf_memberships WHERE tenant_id=$1 AND domain_id=$2 AND subject=$3",
+    )
+    .bind(&p.tenant)
+    .bind(d)
+    .bind(&p.subject)
+    .fetch_one(&mut **tx)
+    .await
+    .map_err(CoreError::sql)?;
+    if old.get::<String, _>("author") != p.subject && role != "owner" {
+        return Err(CoreError {
+            code: "NOT_AUTHORIZED",
+            message: "Only author or owner can revise",
+            status: StatusCode::FORBIDDEN,
+        });
+    }
+    Ok(Some(old))
+}
+fn validate_replace_state(old: Option<&PgRow>) -> Result<(), CoreError> {
+    if old.is_some_and(|r| {
+        !matches!(
+            r.get::<&str, _>("status"),
+            "ready" | "deferred" | "changes_requested"
+        )
+    }) {
+        return Err(conflict(
+            "INVALID_TRANSITION",
+            "This proposal cannot be revised",
+        ));
+    }
+    Ok(())
+}
+async fn revise(
+    State(s): State<StateData>,
+    Path((d, id)): Path<(String, String)>,
+    h: HeaderMap,
+    input: Result<Json<Value>, axum::extract::rejection::JsonRejection>,
+) -> Result<(StatusCode, Json<Value>), CoreError> {
+    let p = s.auth.authenticate(&h)?;
+    let d = uuid(&d)?;
+    let id = uuid(&id)?;
+    let Json(raw) = input.map_err(|_| invalid())?;
+    let input = parse_proposal(raw)?;
+    Ok((
+        StatusCode::CREATED,
+        Json(propose_service(&s, &p, &d, input, Some(&id)).await?),
+    ))
+}
+async fn ingest(
+    State(s): State<StateData>,
+    Path((d, id)): Path<(String, String)>,
+    h: HeaderMap,
+) -> Result<Json<Value>, CoreError> {
+    use sha1::{Digest, Sha1};
+    let p = s.auth.authenticate(&h)?;
+    let d = uuid(&d)?;
+    let id = uuid(&id)?;
+    if h.get_all("idempotency-key").iter().count() != 1 {
+        return Err(invalid());
+    }
+    let key = h
+        .get("idempotency-key")
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(invalid)?;
+    if !(8..=128).contains(&key.chars().count()) {
+        return Err(invalid());
+    }
+    let mut tx = transaction(&s, &p, &d).await?;
+    let source=sqlx::query("SELECT title,content FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND id=$3 AND allowed_subjects ? $4").bind(&p.tenant).bind(&d).bind(&id).bind(&p.subject).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?.ok_or_else(CoreError::not_found)?;
+    let content: String = source.get("content");
+    if content.chars().count() > 30000 {
+        return Err(invalid());
+    }
+    let previous:Option<i64>=sqlx::query_scalar("SELECT base_version FROM cf_proposals WHERE tenant_id=$1 AND domain_id=$2 AND author=$3 AND idempotency_key=$4").bind(&p.tenant).bind(&d).bind(&p.subject).bind(key).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?;
+    let base = if let Some(v) = previous {
+        v
+    } else {
+        published(&mut tx, &p, &d).await?
+    };
+    p.check_fresh()?;
+    tx.commit().await.map_err(CoreError::sql)?;
+    // RFC UUIDv5, matching Python uuid5(NAMESPACE_URL, name); identity only, not a security digest.
+    let mut digest = Sha1::new();
+    digest.update(Uuid::NAMESPACE_URL.as_bytes());
+    digest.update(format!("cortex:{}:{d}:{id}", p.tenant).as_bytes());
+    let bytes = digest.finalize();
+    let mut ident = [0u8; 16];
+    ident.copy_from_slice(&bytes[..16]);
+    ident[6] = (ident[6] & 15) | 0x50;
+    ident[8] = (ident[8] & 63) | 0x80;
+    let ident = Uuid::from_bytes(ident);
+    let input = parse_proposal(
+        json!({"base_version":base,"changes":[{"kind":"put_concept","concept":{"concept_id":ident,"title":source.get::<String,_>("title"),"body":content,"maturity":"emerging","sources":[{"source_id":id,"start":0,"end":content.chars().count()}],"links":[]}}],"reason":"Verbatim file import; owner review required","idempotency_key":key}),
+    )?;
+    Ok(Json(propose_service(&s, &p, &d, input, None).await?))
 }
 
 #[cfg(test)]
