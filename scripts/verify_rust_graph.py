@@ -102,6 +102,22 @@ def verify_graph(binary, env, client, headers, token, admin, tenant, domain):
     assert owner.status_code == 200 and owner.json() == concepts
     viewer = client.get(url, headers=headers(sub="bob"))
     assert viewer.status_code == 200 and viewer.json() == [{**concepts[0], "links": []}]
+    for subject in ("alice", "bob"):
+        mcp = client.post(
+            "/mcp/",
+            headers={**headers(sub=subject), "Accept": "application/json, text/event-stream"},
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {"name": "api_concepts_list", "arguments": {"path": {"domain": domain}}},
+            },
+        )
+        assert mcp.status_code == 200, mcp.text
+        assert mcp.json()["result"]["structuredContent"] == {
+            "http_status": 200,
+            "data": client.get(url, headers=headers(sub=subject)).json(),
+        }
     assert client.get(url + "/" + private_concept, headers=headers(sub="bob")).status_code == 404
     assert client.get(url + "/" + public_concept, headers=headers(sub="bob")).json() == {
         **concepts[0],

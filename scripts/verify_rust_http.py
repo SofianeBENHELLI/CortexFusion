@@ -96,7 +96,11 @@ def run(binary, rust_url, admin_url):
 
             checks = []
             with httpx.Client(base_url=base, timeout=5, trust_env=False) as client:
-                assert client.get("/health").json() == {"status": "ok"}
+                assert client.get("/health").json() == {
+                    "status": "ok",
+                    "version": "0.1.0",
+                    "mode": "extractive",
+                }
                 for h in [
                     {},
                     {"Authorization": "Bearer invalid", "X-Tenant-ID": tenant},
@@ -171,6 +175,9 @@ def run(binary, rust_url, admin_url):
                     == 501
                 )
                 checks.append("unported_operation_explicit")
+                from verify_rust_mcp import verify_mcp
+
+                checks.extend(verify_mcp(client, headers, domain))
                 if os.environ.get("CORTEX_TERMINUS_URL"):
                     from verify_rust_graph import verify_graph
 
@@ -181,7 +188,7 @@ def run(binary, rust_url, admin_url):
                 "status": "passed",
                 "checks": checks,
                 "native_http_operations": 5 if os.environ.get("CORTEX_TERMINUS_URL") else 3,
-                "native_mcp_operations": 0,
+                "native_mcp_operations": 5,
                 "terminus_application_integration": bool(os.environ.get("CORTEX_TERMINUS_URL")),
                 "model_calls": 0,
             }

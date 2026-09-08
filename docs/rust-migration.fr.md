@@ -62,3 +62,13 @@ Les deux routesRust `GET /v1/domains/{domain}/concepts` et `GET /v1/domains/{dom
 La revue indépendante a déclenché trois corrections avant activation : accès aux preuves lors du rejeu, expirationJWT pendant les appels réseau et synchronisation de la finalisation avec les révocations/publications concurrentes. Les contre-tests dynamiques et le testHTTP+Terminus réel doivent confirmer ce lot.
 
 Contre-vérificationR07–R09 : six scénarios indépendants passent avec le vrai binaireRust et PostgreSQL, moteurHTTP volontairement simulé pour imposer les courses. Source ou appartenance révoquée pendant staging, expiration pendant staging/lecture, perte de preuve avant rejeu et attente réelle du verrou domaine : aucun manifeste indu et aucune seconde mutation moteur au retry. Cette preuve de concurrence reste distincte du testTerminusDB réel. La suite historique complète passe après migration0019 (514Python et11Node).
+
+## MCP natif — premier sous-ensemble
+
+Le candidat utilise le SDK officielRust `rmcp3.2.0`, verrouillé dansCargo.lock. Le transportStreamableHTTP est sans session et vérifie l’identité sur chaque requête. Il annonce cinq outils natifs : `api_system_health`, `api_identity_read`, `api_domain_version`, `api_concepts_list`, `api_concepts_read`. Leurs schémas sont repris de l’inventaire historique. Les autres outils ne sont pas encore annoncés dans le candidatRust ; les95outils restent disponibles dans le servicePython existant.
+
+Les appelsMCP invoquent en mémoire les routesRust, avec la même identitéHTTP et les mêmes services, sans délégation àPython. Les arguments ne peuvent ni fixer le tenant, ni déclarer un rôle, ni choisir une URL. Le candidatlocal refuse les origines navigateur et les hôtes horsloopback. Le corpsMCP est limité à64000octets et la réponse native à4Mo. Les clientsdistants et la configurationCORS restent à intégrer avant basculefrontend.
+
+`scripts/verify_rust_mcp.py` compare schémas et réponsesHTTP/MCP, contrôle identité, arguments superflus, Host etOrigin. Le testgrapheCI compare aussi les résultatsMCP/HTTP pourowner/viewer. SantéHTTP a été alignée sur les trois champs du contrat historique : status, version, mode. Les descriptions annoncent explicitement le candidat de migration et ses limites.
+
+Source du transport : [SDKMCP officielRust](https://github.com/modelcontextprotocol/rust-sdk).

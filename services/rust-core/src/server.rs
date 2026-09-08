@@ -18,7 +18,7 @@ pub struct StateData {
 }
 
 pub fn router(state: StateData) -> Router {
-    Router::new().route("/health",get(||async{Json(json!({"status":"ok"}))}))
+    Router::new().route("/health",get(||async{Json(json!({"status":"ok","version":"0.1.0","mode":"extractive"}))}))
         .route("/v1/me",get(identity))
         .route("/v1/domains/{domain}/version",get(version))
         .route("/v1/domains/{domain}/concepts",get(concepts))

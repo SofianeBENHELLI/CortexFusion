@@ -8,6 +8,8 @@ on:
       - 'services/rust-core/**'
       - 'scripts/verify_rust_http.py'
       - 'scripts/verify_rust_graph.py'
+      - 'scripts/verify_rust_mcp.py'
+      - 'packages/contracts/mcp-tools.json'
       - 'services/core/migrations/**'
       - '.github/workflows/rust.yml'
 permissions:
