@@ -15,6 +15,7 @@ pub struct StateData {
     pub auth: Authenticator,
     pub db: Database,
     pub graph: Option<crate::graph::GraphService>,
+    pub confirmation: Option<crate::confirmation::ConfirmationVerifier>,
 }
 
 pub fn router(state: StateData) -> Router {
@@ -23,6 +24,7 @@ pub fn router(state: StateData) -> Router {
         .route("/v1/domains/{domain}/version",get(version))
         .route("/v1/domains/{domain}/concepts",get(concepts))
         .route("/v1/domains/{domain}/concepts/{concept_id}",get(concept))
+        .route("/v1/domains/{domain}/proposals/{proposal_id}/publish",axum::routing::post(publish_target))
         .fallback(||async{(StatusCode::NOT_IMPLEMENTED,Json(json!({"error":"MIGRATION_NOT_IMPLEMENTED","message":"This operation is not yet served by the native Rust candidate"})))})
         .with_state(state)
 }
@@ -113,4 +115,78 @@ async fn concept(
     Ok(Json(
         serde_json::to_value(c).map_err(|_| CoreError::database())?,
     ))
+}
+
+async fn publish_target(
+    State(s): State<StateData>,
+    Path((domain, id)): Path<(String, String)>,
+    headers: HeaderMap,
+    axum::extract::RawQuery(query): axum::extract::RawQuery,
+    proof: Option<axum::Extension<crate::confirmation::ConfirmedAction>>,
+    body: axum::body::Bytes,
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    let action = "proposals.publish";
+    let body_json = serde_json::from_slice::<Value>(&body);
+    let arguments = json!({"path":{"domain":domain,"proposal_id":id},"body":body_json.as_ref().unwrap_or(&Value::Null)});
+    let outcome: Result<Value, CoreError> = async {
+        let p = s.auth.authenticate(&headers)?;
+        let domain = Uuid::parse_str(&domain)
+            .map_err(|_| CoreError::invalid_uuid())?
+            .to_string();
+        let id = Uuid::parse_str(&id)
+            .map_err(|_| CoreError::invalid_uuid())?
+            .to_string();
+        let invalid = || CoreError {
+            code: "VALIDATION_FAILED",
+            message: "Arguments do not match the action contract",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+        };
+        let data = body_json.map_err(|_| invalid())?;
+        if query.is_some_and(|q| !q.is_empty()) || data.as_object().is_none_or(|o| o.len() != 1) {
+            return Err(invalid());
+        }
+        let expected = data["expected_published_version"]
+            .as_i64()
+            .or_else(|| {
+                data["expected_published_version"]
+                    .as_f64()
+                    .filter(|n| n.fract() == 0.0 && *n >= 0.0 && *n < 9223372036854775808.0)
+                    .map(|n| n as i64)
+            })
+            .filter(|n| *n >= 0)
+            .ok_or_else(invalid)?;
+        let tx = s.db.locked_owner_transaction(&p, &domain).await?;
+        tx.commit().await.map_err(CoreError::sql)?;
+        let confirmed = proof
+            .as_ref()
+            .is_some_and(|x| x.subject == p.subject && x.tenant == p.tenant && x.action == action);
+        if !confirmed {
+            if headers.get_all("x-cortex-confirmation").iter().count() > 1 {
+                return Err(invalid());
+            }
+            let token = headers
+                .get("x-cortex-confirmation")
+                .and_then(|h| h.to_str().ok());
+            s.confirmation
+                .as_ref()
+                .ok_or_else(crate::confirmation::required)?
+                .consume(&p, &domain, action, &arguments, token)
+                .await?;
+        }
+        s.graph
+            .as_ref()
+            .ok_or_else(CoreError::database)?
+            .publish_target(&p, &domain, &id, expected)
+            .await
+    }
+    .await;
+    match outcome {
+        Ok(data) => Json(data).into_response(),
+        Err(error) if error.code == "CONFIRMATION_REQUIRED" => {
+            let hash = crate::confirmation::command_hash(action, &arguments).unwrap_or_default();
+            (error.status,Json(json!({"error":error.code,"message":error.message,"confirmation_request":{"action":action,"command_hash":hash,"transport_header":"X-Cortex-Confirmation","max_lifetime_seconds":300}}))).into_response()
+        }
+        Err(error) => error.into_response(),
+    }
 }

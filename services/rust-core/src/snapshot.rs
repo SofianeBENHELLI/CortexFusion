@@ -16,9 +16,14 @@ pub struct Concept {
     pub concept_id: Uuid,
     pub title: String,
     pub body: String,
+    #[serde(default = "emerging")]
     pub maturity: String,
     pub sources: Vec<SourceRef>,
+    #[serde(default)]
     pub links: Vec<Link>,
+}
+fn emerging() -> String {
+    "emerging".into()
 }
 impl Concept {
     pub fn validate(&self) -> Result<(), EngineError> {
@@ -122,7 +127,47 @@ fn digest(concepts: &[Concept]) -> Result<String, EngineError> {
     canonical::digest(&serde_json::to_value(concepts).map_err(|_| EngineError::InvalidResponse)?)
         .map_err(|_| EngineError::InvalidResponse)
 }
+pub fn content_identity(concepts: Vec<Concept>) -> Result<(String, usize), EngineError> {
+    let concepts = ordered(concepts)?;
+    Ok((digest(&concepts)?, concepts.len()))
+}
 impl Terminus {
+    /// Inspect a reserved staging branch, then verify its immutable commit. No mutation.
+    pub async fn reconcile_snapshot(
+        &self,
+        reservation: Uuid,
+        digest: String,
+        count: usize,
+    ) -> Result<Snapshot, EngineError> {
+        let database = format!("cf_snapshot_{}", reservation.simple());
+        let (_, version) = self
+            .request(
+                Method::GET,
+                &["document", "admin", &database, "local", "branch", "main"],
+                None,
+                &[
+                    ("as_list", "true"),
+                    ("compress_ids", "true"),
+                    ("type", "CortexConcept"),
+                ],
+            )
+            .await?;
+        let commit = version
+            .as_deref()
+            .and_then(|s| s.strip_prefix("branch:"))
+            .filter(|s| !s.is_empty())
+            .ok_or(EngineError::InvalidResponse)?
+            .to_owned();
+        let snapshot = Snapshot {
+            database,
+            commit,
+            digest,
+            count,
+        };
+        self.read_snapshot(&snapshot).await?;
+        Ok(snapshot)
+    }
+
     /// Create a fresh private staging database; failure never advances a product version.
     /// Database-per-snapshot is deliberately conservative for the first integration.
     pub async fn stage_snapshot(&self, concepts: Vec<Concept>) -> Result<Snapshot, EngineError> {

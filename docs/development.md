@@ -106,7 +106,7 @@ Migration 0016 creates forced-RLS immutable personal attempts/outcomes. Explicit
 
 ## Liveness and database readiness
 
-GET /health remains process liveness. GET /ready checks the exact expected Alembic revision (currently 0019), required table inventory, role restrictions, table SELECT access and enabled/forced RLS flags; it returns only ready/schema_revision or a safe NOT_READY 503. It uses a dedicated NullPool connection with a two-second driver socket timeout and 1.5-second statement timeout, with no provider calls. Update the revision and inventory in readiness.py when introducing a migration; the ready-path database test must pass on a fresh CI migration. This is not a policy-body audit or a production recovery proof.
+GET /health remains process liveness. GET /ready checks the exact expected Alembic revision (currently 0020), required table inventory, role restrictions, table SELECT access and enabled/forced RLS flags; it returns only ready/schema_revision or a safe NOT_READY 503. It uses a dedicated NullPool connection with a two-second driver socket timeout and 1.5-second statement timeout, with no provider calls. Update the revision and inventory in readiness.py when introducing a migration; the ready-path database test must pass on a fresh CI migration. This is not a policy-body audit or a production recovery proof.
 
 ## Backend synthesis SDK demo
 

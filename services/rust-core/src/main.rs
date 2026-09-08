@@ -25,6 +25,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     db.verify_role()
         .await
         .map_err(|_| "Database role is not permitted")?;
+    let confirmation = match env::var("CORTEX_CONFIRMATION_PUBLIC_KEY_FILE") {
+        Ok(path) => Some(
+            cortex_rust_core::confirmation::ConfirmationVerifier::new(
+                &std::fs::read(path)?,
+                db.clone(),
+            )
+            .map_err(|_| "Invalid confirmation configuration")?,
+        ),
+        Err(_) => None,
+    };
     let graph = match env::var("CORTEX_TERMINUS_URL") {
         Ok(base) => Some(cortex_rust_core::graph::GraphService {
             db: db.clone(),
@@ -80,10 +90,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = cortex_rust_core::mcp::mount(
         server::router(StateData {
             auth: auth.clone(),
-            db,
+            db: db.clone(),
             graph,
+            confirmation: confirmation.clone(),
         }),
         auth,
+        confirmation,
+        db,
     )
     .map_err(|_| "MCP initialization failed")?;
     axum::serve(listener, app)

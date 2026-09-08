@@ -32,6 +32,7 @@ def verify_mcp(client, headers, domain):
         "api_domain_version",
         "api_concepts_list",
         "api_concepts_read",
+        "api_proposals_publish",
     }
     assert {t["name"] for t in result["tools"]} == expected_names
     expected = json.loads(

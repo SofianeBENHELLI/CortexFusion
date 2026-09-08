@@ -26,6 +26,12 @@ async fn immutable_typed_snapshot_round_trip() {
         .await
         .expect("stage real typed graph");
     let baseline = engine.read_snapshot(&snapshot).await.unwrap();
+    let reservation = Uuid::parse_str(&snapshot.database[12..]).unwrap();
+    let reconciled = engine
+        .reconcile_snapshot(reservation, snapshot.digest.clone(), snapshot.count)
+        .await
+        .unwrap();
+    assert_eq!(reconciled.commit, snapshot.commit);
     assert_eq!(baseline.len(), 2);
     assert!(
         baseline
@@ -37,6 +43,12 @@ async fn immutable_typed_snapshot_round_trip() {
     assert_eq!(
         serde_json::to_value(engine.read_snapshot(&snapshot).await.unwrap()).unwrap(),
         serde_json::to_value(baseline).unwrap()
+    );
+    assert!(
+        engine
+            .reconcile_snapshot(reservation, snapshot.digest.clone(), snapshot.count)
+            .await
+            .is_err()
     );
     let mut tampered = snapshot.clone();
     tampered.digest = "0".repeat(64);

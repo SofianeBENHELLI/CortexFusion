@@ -1,10 +1,13 @@
 pub mod auth;
 pub mod canonical;
+pub mod changes;
+pub mod confirmation;
 pub mod database;
 pub mod error;
 pub mod graph;
 pub mod knowledge;
 pub mod mcp;
+pub mod publication;
 pub mod server;
 pub mod snapshot;
 pub mod terminus;

@@ -26,11 +26,15 @@ const NATIVE: &[&str] = &[
     "api_domain_version",
     "api_concepts_list",
     "api_concepts_read",
+    "api_proposals_publish",
 ];
 #[derive(Clone)]
 struct NativeMcp {
     http: Router,
     tools: Arc<Vec<Tool>>,
+    auth: Authenticator,
+    db: crate::database::Database,
+    confirmation: Option<crate::confirmation::ConfirmationVerifier>,
 }
 fn argument_error() -> ErrorData {
     ErrorData::invalid_params(
@@ -40,6 +44,35 @@ fn argument_error() -> ErrorData {
 }
 fn route(name: &str, args: Value) -> Result<String, ErrorData> {
     let object = args.as_object().ok_or_else(argument_error)?;
+    if name == "api_proposals_publish" {
+        if object.len() != 2 {
+            return Err(argument_error());
+        }
+        let path = args["path"].as_object().ok_or_else(argument_error)?;
+        let body = args["body"].as_object().ok_or_else(argument_error)?;
+        if path.len() != 2 || body.len() != 1 {
+            return Err(argument_error());
+        }
+        let domain = Uuid::parse_str(
+            path.get("domain")
+                .and_then(Value::as_str)
+                .ok_or_else(argument_error)?,
+        )
+        .map_err(|_| argument_error())?;
+        let id = Uuid::parse_str(
+            path.get("proposal_id")
+                .and_then(Value::as_str)
+                .ok_or_else(argument_error)?,
+        )
+        .map_err(|_| argument_error())?;
+        let expected = body
+            .get("expected_published_version")
+            .and_then(Value::as_f64)
+            .filter(|v| v.fract() == 0.0 && *v >= 0.0 && *v < 9223372036854775808.0)
+            .ok_or_else(argument_error)?;
+        let _ = expected;
+        return Ok(format!("/v1/domains/{domain}/proposals/{id}/publish"));
+    }
     if matches!(name, "api_system_health" | "api_identity_read") {
         if !object.is_empty() {
             return Err(argument_error());
@@ -85,7 +118,7 @@ fn route(name: &str, args: Value) -> Result<String, ErrorData> {
 impl ServerHandler for NativeMcp {
     fn get_info(&self) -> ServerInfo {
         ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
-            .with_instructions("CortexFusion native Rust migration candidate. Only listed operations are implemented; all are read-only. Knowledge remains subject to current source access.")
+            .with_instructions("CortexFusion native Rust migration candidate. Only listed operations are implemented; Publication requires a trusted-host signed confirmation. Knowledge remains subject to current source access.")
     }
     async fn list_tools(
         &self,
@@ -108,10 +141,8 @@ impl ServerHandler for NativeMcp {
         request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
-        let path = route(
-            &request.name,
-            Value::Object(request.arguments.unwrap_or_default()),
-        )?;
+        let arguments = Value::Object(request.arguments.unwrap_or_default());
+        let path = route(&request.name, arguments.clone())?;
         let parts = context
             .extensions
             .get::<http::request::Parts>()
@@ -121,6 +152,68 @@ impl ServerHandler for NativeMcp {
             .body(Body::empty())
             .map_err(|_| argument_error())?;
         *http_request.headers_mut() = parts.headers.clone();
+        if request.name == "api_proposals_publish" {
+            let action = "proposals.publish";
+            let result: Result<crate::auth::Principal, CoreError> = async {
+                let p = self.auth.authenticate(&parts.headers)?;
+                let domain = Uuid::parse_str(
+                    arguments["path"]["domain"]
+                        .as_str()
+                        .ok_or_else(CoreError::invalid_uuid)?,
+                )
+                .map_err(|_| CoreError::invalid_uuid())?
+                .to_string();
+                if parts
+                    .headers
+                    .get_all("x-cortex-confirmation")
+                    .iter()
+                    .count()
+                    > 1
+                {
+                    return Err(CoreError::auth());
+                }
+                let tx = self.db.locked_owner_transaction(&p, &domain).await?;
+                tx.commit().await.map_err(CoreError::sql)?;
+                let verifier = self
+                    .confirmation
+                    .as_ref()
+                    .ok_or_else(crate::confirmation::required)?;
+                verifier
+                    .consume(
+                        &p,
+                        &domain,
+                        action,
+                        &arguments,
+                        parts
+                            .headers
+                            .get("x-cortex-confirmation")
+                            .and_then(|h| h.to_str().ok()),
+                    )
+                    .await?;
+                Ok(p)
+            }
+            .await;
+            let p = match result {
+                Ok(p) => p,
+                Err(e) => {
+                    let mut value = json!({"http_status":e.status.as_u16(),"data":{"error":e.code,"message":e.message}});
+                    if e.code == "CONFIRMATION_REQUIRED" {
+                        value["confirmation_request"] = json!({"action":action,"command_hash":crate::confirmation::command_hash(action,&arguments).map_err(|_|argument_error())?,"transport_header":"X-Cortex-Confirmation","max_lifetime_seconds":300});
+                    }
+                    return Ok(CallToolResult::structured_error(value).into());
+                }
+            };
+            *http_request.method_mut() = http::Method::POST;
+            *http_request.body_mut() =
+                Body::from(serde_json::to_vec(&arguments["body"]).map_err(|_| argument_error())?);
+            http_request
+                .extensions_mut()
+                .insert(crate::confirmation::ConfirmedAction {
+                    subject: p.subject,
+                    tenant: p.tenant,
+                    action,
+                });
+        }
         let response = self
             .http
             .clone()
@@ -152,7 +245,12 @@ async fn authenticate(State(auth): State<Authenticator>, request: Request, next:
     }
     next.run(request).await
 }
-pub fn mount(http: Router, auth: Authenticator) -> Result<Router, CoreError> {
+pub fn mount(
+    http: Router,
+    auth: Authenticator,
+    confirmation: Option<crate::confirmation::ConfirmationVerifier>,
+    db: crate::database::Database,
+) -> Result<Router, CoreError> {
     let value: Value =
         serde_json::from_str(include_str!("../../../packages/contracts/mcp-tools.json"))
             .map_err(|_| CoreError::database())?;
@@ -170,6 +268,9 @@ pub fn mount(http: Router, auth: Authenticator) -> Result<Router, CoreError> {
     let handler = NativeMcp {
         http: http.clone(),
         tools: Arc::new(tools),
+        auth: auth.clone(),
+        db,
+        confirmation,
     };
     let config = StreamableHttpServerConfig::default()
         .with_legacy_session_mode(false)

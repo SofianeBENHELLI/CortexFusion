@@ -5,7 +5,7 @@ from sqlalchemy.pool import NullPool
 
 from .auth import CoreError
 
-SCHEMA_REVISION = "0019"
+SCHEMA_REVISION = "0020"
 REQUIRED_TABLES = frozenset(
     """
 cf_collection_sources cf_collections cf_commits cf_companion_responses cf_concepts

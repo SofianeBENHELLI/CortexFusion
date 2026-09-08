@@ -52,12 +52,25 @@ def run(binary, rust_url, admin_url):
     with tempfile.TemporaryDirectory(prefix="cortex-rust-http-") as temp:
         public_path = Path(temp) / "public.pem"
         public_path.write_bytes(public)
+        confirmation_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        confirmation_private = confirmation_key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        )
+        confirmation_path = Path(temp) / "confirmation-public.pem"
+        confirmation_path.write_bytes(
+            confirmation_key.public_key().public_bytes(
+                serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+            )
+        )
         env = {
             **os.environ,
             "CORTEX_RUST_DATABASE_URL": rust_url,
             "CORTEX_JWT_PUBLIC_KEY_FILE": str(public_path),
             "CORTEX_JWT_ISSUER": "https://identity.test",
             "CORTEX_JWT_AUDIENCE": "cortex-core",
+            "CORTEX_CONFIRMATION_PUBLIC_KEY_FILE": str(confirmation_path),
             "CORTEX_RUST_BIND": "127.0.0.1:0",
         }
         process = subprocess.Popen(
@@ -180,6 +193,11 @@ def run(binary, rust_url, admin_url):
                 checks.extend(verify_mcp(client, headers, domain))
                 if os.environ.get("CORTEX_TERMINUS_URL"):
                     from verify_rust_graph import verify_graph
+                    from verify_rust_publication import verify_publication
+
+                    checks.extend(
+                        verify_publication(client, headers, admin, tenant, confirmation_private)
+                    )
 
                     checks.extend(
                         verify_graph(binary, env, client, headers, token, admin, tenant, domain)
@@ -187,8 +205,8 @@ def run(binary, rust_url, admin_url):
             return {
                 "status": "passed",
                 "checks": checks,
-                "native_http_operations": 5 if os.environ.get("CORTEX_TERMINUS_URL") else 3,
-                "native_mcp_operations": 5,
+                "native_http_operations": 6 if os.environ.get("CORTEX_TERMINUS_URL") else 3,
+                "native_mcp_operations": 6,
                 "terminus_application_integration": bool(os.environ.get("CORTEX_TERMINUS_URL")),
                 "model_calls": 0,
             }
