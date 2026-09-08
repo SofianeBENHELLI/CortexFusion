@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import subprocess
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -80,6 +81,8 @@ def start_graph(upstream):
                         status = 404
                     else:
                         body = json.dumps(state["documents"][database]).encode()
+            if instance and (callback := state.pop("after_instance", None)):
+                callback()
             if instance and state["mode"] == "complete" and status < 300:
                 self.respond(503, b"{}")
             else:
@@ -414,7 +417,104 @@ def verify_publication_recovery(binary, env, headers, admin, tenant, private):
                 command(d, p, {**fresh, "idempotency_key": str(uuid4())}, retry=True)[1]["error"]
                 == "PUBLICATION_ALREADY_PUBLISHED"
             )
+            # An old projection repair can change SQL content without changing its version.
+            d, p, _ = seed()
+            with admin.begin() as conn:
+                canonical = conn.execute(
+                    text(
+                        "SELECT changes->0->'concept' FROM cf_commits WHERE tenant_id=:t AND domain_id=:d AND sequence=1"
+                    ),
+                    {"t": tenant, "d": d},
+                ).scalar_one()
+                obsolete = {**canonical, "title": "Ancienne projection à réparer"}
+                conn.execute(
+                    text(
+                        "INSERT INTO cf_concepts(tenant_id,domain_id,id,payload,version) VALUES(:t,:d,:id,CAST(:payload AS jsonb),1)"
+                    ),
+                    {
+                        "t": tenant,
+                        "d": d,
+                        "id": canonical["concept_id"],
+                        "payload": json.dumps(obsolete),
+                    },
+                )
+                conn.execute(
+                    text("UPDATE cf_proposals SET status='published' WHERE tenant_id=:t AND id=:p"),
+                    {"t": tenant, "p": p},
+                )
+                conn.execute(
+                    text("UPDATE cf_domains SET published_version=1 WHERE tenant_id=:t AND id=:d"),
+                    {"t": tenant, "d": d},
+                )
+
+            def repair_projection():
+                with admin.begin() as conn:
+                    conn.execute(
+                        text(
+                            "UPDATE cf_concepts SET payload=CAST(:payload AS jsonb) WHERE tenant_id=:t AND domain_id=:d AND id=:id"
+                        ),
+                        {
+                            "t": tenant,
+                            "d": d,
+                            "id": canonical["concept_id"],
+                            "payload": json.dumps(canonical),
+                        },
+                    )
+
+            engine["after_instance"] = repair_projection
+            cli_env = {
+                **env,
+                "CORTEX_TERMINUS_URL": f"http://127.0.0.1:{server.server_port}",
+                "CORTEX_TERMINUS_USER": env.get("CORTEX_TERMINUS_USER", "admin"),
+                "CORTEX_TERMINUS_PASSWORD": env.get("CORTEX_TERMINUS_PASSWORD", "synthetic-test"),
+                "CORTEX_MIGRATION_BEARER": headers()["Authorization"].removeprefix("Bearer "),
+                "CORTEX_MIGRATION_TENANT": tenant,
+            }
+            result = subprocess.run(
+                [str(binary.resolve()), "--import-published", d],
+                env=cli_env,
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            assert result.returncode != 0 and "GRAPH_IMPORT_STATE_CHANGED" in result.stderr
+            with admin.begin() as conn:
+                assert (
+                    conn.execute(
+                        text(
+                            "SELECT count(*) FROM cf_graph_manifests WHERE tenant_id=:t AND domain_id=:d"
+                        ),
+                        {"t": tenant, "d": d},
+                    ).scalar_one()
+                    == 0
+                )
+                assert (
+                    conn.execute(
+                        text(
+                            "SELECT status FROM cf_graph_preparations WHERE tenant_id=:t AND domain_id=:d"
+                        ),
+                        {"t": tenant, "d": d},
+                    ).scalar_one()
+                    == "stale"
+                )
+                assert (
+                    conn.execute(
+                        text("SELECT payload FROM cf_concepts WHERE tenant_id=:t AND domain_id=:d"),
+                        {"t": tenant, "d": d},
+                    ).scalar_one()
+                    == canonical
+                )
+                assert (
+                    conn.execute(
+                        text(
+                            "SELECT published_version FROM cf_domains WHERE tenant_id=:t AND id=:d"
+                        ),
+                        {"t": tenant, "d": d},
+                    ).scalar_one()
+                    == 1
+                )
             return [
+                "native_import_rechecks_projection_digest_after_engine_IO",
                 "native_recovery_signed_MCP_new_generation_publication",
                 "native_recovery_idempotency_conflict_and_replay_no_POST",
                 "native_recovery_attempt_event_pagination_schema_HTTP_MCP_parity",

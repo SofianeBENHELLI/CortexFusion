@@ -81,9 +81,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             .ok_or("Graph must be configured")?
             .import_published(&principal, &domain)
             .await
-            .map_err(
-                |_| "Graph migration did not complete; inspect durable preparation before retry",
-            )?;
+            .map_err(|error| format!("Graph migration did not complete; inspect durable preparation before retry ({})", error.code))?;
         println!(
             "{}",
             serde_json::json!({"status":"prepared","concepts":snapshot.count})

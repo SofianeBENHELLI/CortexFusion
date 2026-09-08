@@ -164,6 +164,31 @@ impl GraphService {
             tx.commit().await.map_err(CoreError::sql)?;
             return Err(CoreError::database());
         }
+        // A legacy journal replay can repair this projection without advancing its version.
+        // The sealed import must still identify exactly the SQL state being migrated.
+        let current_raw: Vec<Value> = sqlx::query_scalar(
+            "SELECT payload FROM cf_concepts WHERE tenant_id=$1 AND domain_id=$2 ORDER BY id",
+        )
+        .bind(&p.tenant)
+        .bind(domain)
+        .fetch_all(&mut *tx)
+        .await
+        .map_err(CoreError::sql)?;
+        let current_concepts = current_raw
+            .into_iter()
+            .map(|v| serde_json::from_value::<Concept>(v).map_err(|_| CoreError::database()))
+            .collect::<Result<Vec<_>, _>>()?;
+        let (current_digest, current_count) = crate::snapshot::content_identity(current_concepts)
+            .map_err(|_| CoreError::database())?;
+        if intent["digest"] != current_digest || intent["count"] != current_count {
+            crate::graph_attempts::mark(&mut tx, p, domain, served, &attempt, "stale").await?;
+            tx.commit().await.map_err(CoreError::sql)?;
+            return Err(CoreError {
+                code: "GRAPH_IMPORT_STATE_CHANGED",
+                message: "The SQL projection changed during graph import; inspect and reconcile its state",
+                status: http::StatusCode::CONFLICT,
+            });
+        }
         crate::graph_attempts::manifest(&mut tx, p, domain, served, &attempt, &snapshot).await?;
         crate::graph_attempts::mark(&mut tx, p, domain, served, &attempt, "ready").await?;
         p.check_fresh()?;
