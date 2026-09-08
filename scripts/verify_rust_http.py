@@ -202,6 +202,7 @@ def run(binary, rust_url, admin_url):
                             "read_proposals",
                             "review",
                             "approve",
+                            "manage_members",
                         ]
                         + (["publish"] if os.environ.get("CORTEX_TERMINUS_URL") else []),
                     }
@@ -231,6 +232,14 @@ def run(binary, rust_url, admin_url):
                 from verify_rust_collections import verify_collections
 
                 checks.extend(verify_collections(client, headers, domain))
+                from verify_rust_imports import verify_imports
+
+                checks.extend(verify_imports(client, headers, domain))
+                from verify_rust_governance import verify_governance
+
+                checks.extend(
+                    verify_governance(client, headers, domain, tenant, confirmation_private)
+                )
                 from verify_rust_proposals import verify_proposals
 
                 checks.extend(
@@ -272,8 +281,8 @@ def run(binary, rust_url, admin_url):
             return {
                 "status": "passed",
                 "checks": checks,
-                "native_http_operations": 44 if os.environ.get("CORTEX_TERMINUS_URL") else 41,
-                "native_mcp_operations": 44,
+                "native_http_operations": 55 if os.environ.get("CORTEX_TERMINUS_URL") else 52,
+                "native_mcp_operations": 55,
                 "terminus_application_integration": bool(os.environ.get("CORTEX_TERMINUS_URL")),
                 "model_calls": 0,
             }

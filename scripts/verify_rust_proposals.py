@@ -232,6 +232,9 @@ def verify_proposals(client, headers, admin, tenant, confirmation_private):
     from verify_rust_issues import verify_issues
 
     checks.extend(verify_issues(client, headers, domain, id, published=False))
+    from verify_rust_governance import verify_commit_brief
+
+    checks.extend(verify_commit_brief(client, headers, domain, id, published=False))
     if os.environ.get("CORTEX_TERMINUS_URL"):
         args = {
             "path": {"domain": domain, "proposal_id": id},
@@ -244,6 +247,7 @@ def verify_proposals(client, headers, admin, tenant, confirmation_private):
         checks.extend(verify_retrieval(client, headers, admin, tenant, domain, published=True))
         checks.extend(verify_conversations(client, headers, domain, published=True))
         checks.extend(verify_issues(client, headers, domain, id, published=True))
+        checks.extend(verify_commit_brief(client, headers, domain, id, published=True))
         revised = {
             **normalized,
             "base_version": 1,

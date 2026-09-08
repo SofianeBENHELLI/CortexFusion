@@ -82,14 +82,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if !address.ip().is_loopback() {
         return Err("Initial migration candidate must bind loopback".into());
     }
+    let origins = cortex_rust_core::browser::Origins::parse(
+        &env::var("CORTEX_CORS_ORIGINS").unwrap_or_else(|_| "[]".into()),
+    )?;
     let listener = tokio::net::TcpListener::bind(address).await?;
     println!(
         "CortexFusion Rust migration candidate listening on {}",
         listener.local_addr()?
     );
-    let origins = cortex_rust_core::browser::Origins::parse(
-        &env::var("CORTEX_CORS_ORIGINS").unwrap_or_else(|_| "[]".into()),
-    )?;
     let app = cortex_rust_core::mcp::mount(
         server::router(StateData {
             auth: auth.clone(),

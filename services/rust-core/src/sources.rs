@@ -60,12 +60,12 @@ struct ChunkInput {
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct SourceInput {
-    title: String,
-    location: String,
-    content: String,
-    allowed_subjects: Vec<String>,
-    supersedes: Option<Uuid>,
+pub(crate) struct SourceInput {
+    pub(crate) title: String,
+    pub(crate) location: String,
+    pub(crate) content: String,
+    pub(crate) allowed_subjects: Vec<String>,
+    pub(crate) supersedes: Option<Uuid>,
 }
 pub fn routes() -> Router<StateData> {
     Router::new()
@@ -226,12 +226,23 @@ async fn create(
             "Corpus management permission required",
         )
         .await?;
+    let result = create_in_transaction(&mut tx, &p, &domain, input).await?;
+    p.check_fresh()?;
+    tx.commit().await.map_err(CoreError::sql)?;
+    Ok((StatusCode::CREATED, Json(result)))
+}
+pub(crate) async fn create_in_transaction(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    p: &crate::auth::Principal,
+    domain: &str,
+    input: SourceInput,
+) -> Result<Value, CoreError> {
     let members: Vec<String> = sqlx::query_scalar(
         "SELECT subject FROM cf_memberships WHERE tenant_id=$1 AND domain_id=$2 FOR SHARE",
     )
     .bind(&p.tenant)
-    .bind(&domain)
-    .fetch_all(&mut *tx)
+    .bind(domain)
+    .fetch_all(&mut **tx)
     .await
     .map_err(CoreError::sql)?;
     let acl: BTreeSet<String> = input.allowed_subjects.into_iter().collect();
@@ -243,13 +254,13 @@ async fn create(
     }
     let supersedes = input.supersedes.map(|id| id.to_string());
     if let Some(id) = &supersedes {
-        let exists:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND id=$3 AND allowed_subjects ? $4)").bind(&p.tenant).bind(&domain).bind(id).bind(&p.subject).fetch_one(&mut *tx).await.map_err(CoreError::sql)?;
+        let exists:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND id=$3 AND allowed_subjects ? $4)").bind(&p.tenant).bind(domain).bind(id).bind(&p.subject).fetch_one(&mut **tx).await.map_err(CoreError::sql)?;
         if !exists {
             return Err(missing());
         }
     }
     let hash = format!("{:x}", Sha256::digest(input.content.as_bytes()));
-    let existing=sqlx::query("SELECT * FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND location=$3 AND content_hash=$4").bind(&p.tenant).bind(&domain).bind(&input.location).bind(&hash).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?;
+    let existing=sqlx::query("SELECT * FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND location=$3 AND content_hash=$4").bind(&p.tenant).bind(domain).bind(&input.location).bind(&hash).fetch_optional(&mut **tx).await.map_err(CoreError::sql)?;
     if let Some(row) = existing {
         let old: Vec<String> = serde_json::from_value(row.get("allowed_subjects"))
             .map_err(|_| CoreError::database())?;
@@ -267,14 +278,13 @@ async fn create(
             });
         }
         p.check_fresh()?;
-        return Ok((StatusCode::CREATED, Json(summary(&row))));
+        return Ok(summary(&row));
     }
     let id = Uuid::new_v4().to_string();
-    let row=sqlx::query("INSERT INTO cf_sources(tenant_id,domain_id,id,title,location,content,content_hash,allowed_subjects,supersedes) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *").bind(&p.tenant).bind(&domain).bind(id).bind(input.title).bind(input.location).bind(input.content).bind(hash).bind(json!(acl)).bind(supersedes).fetch_one(&mut *tx).await.map_err(CoreError::sql)?;
+    let row=sqlx::query("INSERT INTO cf_sources(tenant_id,domain_id,id,title,location,content,content_hash,allowed_subjects,supersedes) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *").bind(&p.tenant).bind(domain).bind(id).bind(input.title).bind(input.location).bind(input.content).bind(hash).bind(json!(acl)).bind(supersedes).fetch_one(&mut **tx).await.map_err(CoreError::sql)?;
     let result = summary(&row);
     p.check_fresh()?;
-    tx.commit().await.map_err(CoreError::sql)?;
-    Ok((StatusCode::CREATED, Json(result)))
+    Ok(result)
 }
 #[cfg(test)]
 mod tests {

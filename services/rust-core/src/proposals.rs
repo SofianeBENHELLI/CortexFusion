@@ -48,7 +48,7 @@ fn uuid(s: &str) -> Result<String, CoreError> {
 fn hash(v: &Value) -> Result<String, CoreError> {
     canonical::digest(v).map_err(|_| CoreError::database())
 }
-fn view(r: &PgRow) -> Value {
+pub(crate) fn view(r: &PgRow) -> Value {
     json!({"id":r.get::<String,_>("id"),"base_version":r.get::<i64,_>("base_version"),"digest":r.get::<String,_>("digest"),"reason":r.get::<String,_>("reason"),"status":r.get::<String,_>("status"),"validation":r.get::<Value,_>("validation"),"payload":r.get::<Value,_>("payload"),"review_revision":r.get::<i32,_>("review_revision"),"replaces_id":r.get::<Option<String>,_>("replaces_id")})
 }
 #[derive(Serialize, Deserialize)]

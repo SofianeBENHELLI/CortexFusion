@@ -4,7 +4,7 @@ Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La
 
 ## Couverture native actuelle
 
-Quarante-quatre opérations HTTP et quarante-quatre outils MCP sont implémentés :
+Cinquante-cinq opérations HTTP et cinquante-cinq outils MCP sont implémentés :
 
 | Fonction | HTTP | Outil MCP |
 |---|---|---|
@@ -48,12 +48,23 @@ Quarante-quatre opérations HTTP et quarante-quatre outils MCP sont implémenté
 | Créer une collection de corpus | POST /v1/domains/{domain}/collections | api_collections_create |
 | Chercher ses collections accessibles | GET /v1/domains/{domain}/collections | api_collections_list |
 | Lire une collection accessible | GET /v1/domains/{domain}/collections/{collection_id} | api_collections_read |
+| Soumettre un lot de textes à une collection | POST /v1/domains/{domain}/collections/{collection_id}/imports | api_imports_create |
+| Lister ses imports visibles | GET /v1/domains/{domain}/imports | api_imports_list |
+| Lire la progression de son import | GET /v1/domains/{domain}/imports/{import_id} | api_imports_read |
+| Traiter un nombre borné d’éléments | POST /v1/domains/{domain}/imports/{import_id}/process | api_imports_process |
+| Annuler les éléments en attente | POST /v1/domains/{domain}/imports/{import_id}/cancel | api_imports_cancel |
+| Remettre les échecs en attente | POST /v1/domains/{domain}/imports/{import_id}/retry | api_imports_retry |
+| Lister les membres du domaine | GET /v1/domains/{domain}/members | api_members_list |
+| Ajouter, modifier ou retirer un membre | POST /v1/domains/{domain}/members | api_members_change |
+| Lire le journal des accès | GET /v1/domains/{domain}/membership-events | api_members_history |
+| Lire les commits et leur publication | GET /v1/domains/{domain}/commits | api_commits_list |
+| Préparer le brief propriétaire | GET /v1/domains/{domain}/brief | api_domain_brief |
 | Créer une source textuelle | POST /v1/domains/{domain}/sources | api_sources_create |
 | Chercher et paginer les sources accessibles | GET /v1/domains/{domain}/sources | api_sources_list |
 | Lire une source et son contenu | GET /v1/domains/{domain}/sources/{source_id} | api_sources_read |
 | Parcourir ses extraits déterministes | GET /v1/domains/{domain}/sources/{source_id}/chunks | api_sources_chunks |
 
-Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Réviser une proposition, les imports de fichiers et l’administration restent à migrer. `/v1/me` annonce query, inspect, personal_history, feedback et personal_issues ; les rôles rédacteurs reçoivent propose/read_proposals. Un owner reçoit review/approve si les confirmations sont configurées, et publish si TerminusDB est également configuré. Aucun fournisseur d’extraction n’est annoncé.
+Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Réviser une proposition, les fichiers binaires, les fonctions de modèles et certaines actions de publication restent à migrer. `/v1/me` annonce query, inspect, personal_history, feedback et personal_issues ; les rôles rédacteurs reçoivent propose/read_proposals. Un owner reçoit review/approve/manage_members si les confirmations sont configurées, et publish si TerminusDB est également configuré. Aucun fournisseur d’extraction n’est annoncé.
 
 ## Fonctionnement et intégration frontend
 
@@ -88,8 +99,8 @@ La commande interne `cortex-rust-core --import-published <domainUUID>` utilise `
 ## Preuves et limites de vérification
 
 - Formatage, Clippy sans avertissement et20 tests Rust passent localement. Le test Terminus réel est explicitement ignoré hors moteur isolé et exécuté séparément en CI.
-- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques : quarante et une routes directement testables sans moteur et quarante-quatre schémas/outils MCP annoncés. Les scénarios source contrôlent ACL, rôle, déduplication, pagination et découpe Unicode comparée à Python.
-- Le lot sources et pont MCP générique a passé la CI avec le moteur TerminusDB12.0.7 épinglé par digest : onze opérations HTTP/MCP, publication signée, rejeu ciblé et lectures avec droits. Le lot propositions a ensuite validé dix-huit HTTP/MCP et le cycle complet source → création → revue → approbation → publication avec TerminusDB réel. Le lot recherche/feedback a ensuite passé sa CI avec TerminusDB réel, citations et épisodes privés (vingt-deux opérations). Les lots signaux/préférences puis compagnons ont passé leurs trois workflows, dont TerminusDB réel (trente opérations). Le lot conversations a également passé les contrôles Rust avec TerminusDB réel (trente-sept opérations). Les lots issues, collections et CORS attendent leur CI dédiée.
+- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques : cinquante-deux routes directement testables sans moteur et cinquante-cinq schémas/outils MCP annoncés. Les scénarios source contrôlent ACL, rôle, déduplication, pagination et découpe Unicode comparée à Python.
+- Le lot sources et pont MCP générique a passé la CI avec le moteur TerminusDB12.0.7 épinglé par digest : onze opérations HTTP/MCP, publication signée, rejeu ciblé et lectures avec droits. Le lot propositions a ensuite validé dix-huit HTTP/MCP et le cycle complet source → création → revue → approbation → publication avec TerminusDB réel. Le lot recherche/feedback a ensuite passé sa CI avec TerminusDB réel, citations et épisodes privés (vingt-deux opérations). Les lots signaux/préférences puis compagnons ont passé leurs trois workflows, dont TerminusDB réel (trente opérations). Le lot conversations a également passé les contrôles Rust avec TerminusDB réel (trente-sept opérations). Les lots issues, collections et CORS ont passé les trois workflows (quarante-quatre opérations). Les imports textuels et la gouvernance attendent leur CI dédiée.
 - La suite historique sur la migration0020 passe :514 tests Python et11 Node. Elle protège la référence, sans prouver que ses79 routes ont été portées en Rust.
 - Le vérificateur indépendant a exécuté100018 vecteurs de JSON canonique sans divergence après correction Ryu ;2044 cas de changements de graphe concordent avec Python ;23 cas de confirmations concordent. Ses campagnes de concurrence couvrent isolation tenant, révocation, expiration pendant réseau/verrou SQL, publication concurrente et retour arrière atomique après panne SQL injectée.
 - Les courses sont déclenchées avec un moteur contrôlé, distinct du test TerminusDB réel. Les NumericDate sous forme de chaînes exotiques restent plus restrictifs que Python. Les autres confirmations personnelles, opérations non portées, performances, haute disponibilité et perte d’accusé de commit PostgreSQL ne sont pas déclarées validées.
@@ -152,10 +163,26 @@ Un signalement reste personnel à travers son épisode, même pour un owner. Dé
 
 Une correction facultative peut accompagner démarrer ou résoudre. Elle exige le droit courant de lire la proposition et ses preuves. Résoudre avec correction exige son statut published et enregistre sa version publiée et son digest. Les corrections rejetées, différées, superseded ou changes_requested sont refusées. Le journal filtre les preuves des corrections avant pagination ; un replay dont la correction est désormais masquée renvoie404. Les révisions sont BIGINT et la concurrence est sérialisée.
 
-Les collections regroupent le corpus : création owner/corpus_manager, lecteurs membres et accès conservé par le créateur. La clé de création porte les arguments normalisés ; changer leur ordre ou leurs doublons change cette empreinte, même si l’ACL enregistrée est triée et dédupliquée. Nom, description et ACL sont immuables dans le modèle actuel ; aucune modification d’ACL de collection n’est annoncée. Lecture et recherche filtrent l’appartenance et les lecteurs ; la recherche utilise lower PostgreSQL, donc ses règles de collation. Les imports associés restent à porter.
+Les collections regroupent le corpus : création owner/corpus_manager, lecteurs membres et accès conservé par le créateur. La clé de création porte les arguments normalisés ; changer leur ordre ou leurs doublons change cette empreinte, même si l’ACL enregistrée est triée et dédupliquée. Nom, description et ACL sont immuables dans le modèle actuel ; aucune modification d’ACL de collection n’est annoncée. Lecture et recherche filtrent l’appartenance et les lecteurs ; la recherche utilise lower PostgreSQL, donc ses règles de collation. Les imports textuels associés sont maintenant natifs ; le traitement des fichiers binaires reste à porter.
 
 ## Connexion navigateur locale
 
 Définir par exemple `CORTEX_CORS_ORIGINS='["http://localhost:5173"]'` pour le frontend Vite. La liste contient au plus20 origines canoniques uniques, HTTPS ou HTTP loopback explicite, sans chemin, wildcard, identifiants ni slash final. Par défaut elle est vide. Les origines absentes restent utilisables par les clients API ; une origine présente non autorisée ou répétée est refusée403 avant exécution.
 
 Les prévols OPTIONS sont sans bearer et ne déclenchent aucune action métier. Les requêtes réelles restent authentifiées par Authorization et X-Tenant-ID ; aucune authentification par cookie n’est activée. GET/POST/PUT/DELETE/OPTIONS et les en-têtes de confirmation, idempotence, SSE et MCP sont déclarés. HTTP et MCP partagent la liste, le SDK MCP conserve son contrôle d’hôte loopback. Le binaire reste lié à loopback : un déploiement distant ne fait pas partie de ce lot.
+
+## Imports textuels durables
+
+Le lot contient1 à20 éléments textuels, chacun au plus30000 caractères avec nom sans séparateur de chemin et lecteurs inclus dans ceux de la collection. Il est privé au déposant, intersecté avec les droits de collection, les lecteurs originaux et les sources déjà créées. Un owner ne récupère pas l’import personnel d’un corpus_manager.
+
+La création202 enregistre un travail pending, sans lancer un worker ni appeler un modèle. Le client appelle process (1 élément par défaut,20 au plus), puis lit le reçu. Seuls .txt, .md et .markdown sont acceptés au traitement ; un format inexploitable produit un échec explicite par élément. La source, son rattachement à la collection et le succès de l’élément sont atomiques. Une erreur SQL inattendue annule toute la requête et laisse les éléments en attente, ce que confirme une injection indépendante sur le deuxième élément.
+
+Retry remet uniquement les éléments failed en pending. Cancel annule uniquement les éléments encore pending et conserve les sources réussies ; un lot terminé reste terminé. Un lot annulé refuse process/retry409. Les tentatives ne sont incrémentées que pour les traitements enregistrés. Le rejeu de création retourne la progression courante sous les mêmes contrôles d’accès.
+
+## Gouvernance et brief
+
+Le propriétaire peut paginer les membres et le journal d’accès. Une modification de membre exige une confirmation signée exacte, un motif, une clé idempotente et la révision attendue (null pour une nouvelle appartenance). Supprimer puis réajouter un membre ne remet pas sa révision à zéro : le journal empêche une ancienne commande de correspondre à la nouvelle appartenance. Le dernier owner ne peut être retiré ou rétrogradé. La modification et son reçu sont atomiques, avec invalidation des anciens snapshots de droits.
+
+Le journal des commits est réservé au propriétaire et filtre les preuves avant pagination. Il distingue commit accepté et publication effective, avec auteur de publication et date lorsqu’ils existent. Le brief retourne les propositions ready visibles, les versions et uniquement les problèmes personnels du propriétaire ; il ne révèle pas l’activité privée des autres utilisateurs et ne fait aucun appel modèle.
+
+Pour un prévol demandant une méthode ou un en-tête interdit, le middleware CORS peut répondre200 sans l’autorisation correspondante : le navigateur bloque alors la requête réelle. Cela diffère du403 explicite sur une origine interdite. La configuration d’origine est validée avant l’annonce d’écoute du candidat.
