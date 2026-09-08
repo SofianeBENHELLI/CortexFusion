@@ -294,3 +294,14 @@ Les métadonnées et le guide sont générés depuis la référence Python et co
 ## Contrôle final de l’identité après attente SQL
 
 La vérification indépendante a détecté une lecture de version qui conservait un jeton expiré pendant l’attente du pool SQL. Les transactions recontrôlent maintenant l’expiration après acquisition de connexion, et la route version avant et après son commit de lecture. Le même contre-test indépendant reçoit401 après correctif. Une régression produit sature uniquement les dix connexions de son processus de test, attend l’expiration puis exige le refus ; elle ne modifie aucune configuration globale PostgreSQL.
+
+
+## Reprise R11 — socle de protection des tentatives
+
+Les migrations0021/0022 introduisent un journal immuable de tentatives et d’événements, un UUID/génération actifs et un manifeste lié à cette identité. Le transfert des réservations historiques vérifie leurs liens et, quand l’intention est connue, leur digest/nombre de concepts ; il ne contacte pas le moteur. Une incohérence interrompt la migration transactionnelle.
+
+Un domaine enrôlé dans le protocole Terminus possède aussi un marqueur persistant sur sa ligne SQL. Cela bloque les anciens publishers Python, y compris si leur transaction REPEATABLE READ précède l’enrôlement. Les domaines Python non enrôlés continuent leur fonctionnement historique. Un domaine avec import ancien incomplet peut être enrôlé mais indisponible ; ce marqueur ne prouve pas que son import est terminé. Aucun retour implicite vers une publication Python n’est autorisé.
+
+Le backend Rust fournit des preuves transactionnelles contenant l’UUID, la génération et l’acteur courant lors des changements de préparation. Le moteur SQL vérifie ces valeurs contre la tentative active ; un ancien manifeste sans identité explicite est refusé. L’identité et l’intention des tentatives sont immuables, et les changements de préparation ajoutent leurs événements. Les nouvelles importations scellent leur propre intention et peuvent rapprocher un snapshot complet par lecture ; les anciennes importations sans intention demeurent bloquées.
+
+Ce premier socle ne ferme pas encore R11 : la commande utilisateur de remplacement d’une préparation incomplète et ses contre-tests HTTP/MCP sont le lot suivant. Les tests indépendants ont reproduit une publication Python sans manifeste sous REPEATABLE READ avant0022, puis ont confirmé40001 et aucune publication après correction. Les refus des anciens binaires et les barrières de génération ont aussi été exercés sur PostgreSQL réel avec données synthétiques et moteur contrôlé.

@@ -129,26 +129,27 @@ impl GraphService {
             p.check_fresh()?;
             return serde_json::from_value(raw).map_err(|_| CoreError::database());
         }
-        let id = Uuid::new_v4().to_string();
-        let reserved=sqlx::query("INSERT INTO cf_graph_preparations(tenant_id,domain_id,version,id,subject,status) VALUES($1,$2,$3,$4,$5,'preparing') ON CONFLICT DO NOTHING")
-            .bind(&p.tenant).bind(domain).bind(served).bind(&id).bind(&p.subject).execute(&mut *tx).await.map_err(CoreError::sql)?.rows_affected();
-        if reserved != 1 {
-            return Err(CoreError::database());
-        }
+        let (digest, count) = crate::snapshot::content_identity(concepts.clone())
+            .map_err(|_| CoreError::database())?;
+        let intent = serde_json::json!({"kind":"import","base_version":served,"digest":digest,"count":count});
+        let (attempt, reconcile) =
+            crate::graph_attempts::reserve(&mut tx, p, domain, served, &intent).await?;
         tx.commit().await.map_err(CoreError::sql)?;
-        let prepared = self
-            .engine
-            .stage_snapshot_reserved(
-                Uuid::parse_str(&id).map_err(|_| CoreError::database())?,
-                concepts.clone(),
-            )
-            .await;
+        let prepared = if reconcile {
+            self.engine
+                .reconcile_snapshot(attempt.id, digest, count)
+                .await
+        } else {
+            self.engine
+                .stage_snapshot_reserved(attempt.id, concepts.clone())
+                .await
+        };
         let mut tx = self.db.locked_owner_transaction(p, domain).await?;
         let snapshot = match prepared {
             Ok(s) => s,
             Err(_) => {
-                sqlx::query("UPDATE cf_graph_preparations SET status='uncertain' WHERE tenant_id=$1 AND domain_id=$2 AND version=$3 AND id=$4")
-                    .bind(&p.tenant).bind(domain).bind(served).bind(&id).execute(&mut *tx).await.map_err(CoreError::sql)?;
+                crate::graph_attempts::mark(&mut tx, p, domain, served, &attempt, "uncertain")
+                    .await?;
                 tx.commit().await.map_err(CoreError::sql)?;
                 return Err(CoreError::database());
             }
@@ -159,15 +160,12 @@ impl GraphService {
                 .iter()
                 .any(|c| c.sources.iter().any(|s| !sources.contains(&s.source_id)))
         {
-            sqlx::query("UPDATE cf_graph_preparations SET status='stale' WHERE tenant_id=$1 AND domain_id=$2 AND version=$3 AND id=$4")
-                .bind(&p.tenant).bind(domain).bind(served).bind(&id).execute(&mut *tx).await.map_err(CoreError::sql)?;
+            crate::graph_attempts::mark(&mut tx, p, domain, served, &attempt, "stale").await?;
             tx.commit().await.map_err(CoreError::sql)?;
             return Err(CoreError::database());
         }
-        sqlx::query("INSERT INTO cf_graph_manifests(tenant_id,domain_id,version,snapshot) VALUES($1,$2,$3,$4)")
-            .bind(&p.tenant).bind(domain).bind(served).bind(serde_json::to_value(&snapshot).map_err(|_|CoreError::database())?).execute(&mut *tx).await.map_err(CoreError::sql)?;
-        sqlx::query("UPDATE cf_graph_preparations SET status='ready' WHERE tenant_id=$1 AND domain_id=$2 AND version=$3 AND id=$4")
-            .bind(&p.tenant).bind(domain).bind(served).bind(&id).execute(&mut *tx).await.map_err(CoreError::sql)?;
+        crate::graph_attempts::manifest(&mut tx, p, domain, served, &attempt, &snapshot).await?;
+        crate::graph_attempts::mark(&mut tx, p, domain, served, &attempt, "ready").await?;
         p.check_fresh()?;
         tx.commit().await.map_err(CoreError::sql)?;
         Ok(snapshot)

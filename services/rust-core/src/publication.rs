@@ -4,6 +4,7 @@ use crate::{
     changes::{Change, apply_checked},
     error::CoreError,
     graph::GraphService,
+    graph_attempts::{self, Attempt},
     snapshot::{Concept, Snapshot},
 };
 use http::StatusCode;
@@ -121,6 +122,16 @@ impl GraphService {
         id: &str,
         expected: i64,
     ) -> Result<Value, CoreError> {
+        self.publish_attempt(p, domain, id, expected, None).await
+    }
+    pub(crate) async fn publish_attempt(
+        &self,
+        p: &Principal,
+        domain: &str,
+        id: &str,
+        expected: i64,
+        stage: Option<Attempt>,
+    ) -> Result<Value, CoreError> {
         if expected < 0 {
             return Err(failure(
                 "STALE_PUBLICATION",
@@ -174,29 +185,22 @@ impl GraphService {
         let (expected_digest, expected_count) = crate::snapshot::content_identity(concepts.clone())
             .map_err(|_| CoreError::database())?;
         let intent = json!({"kind":"publish","proposal_id":id,"base_version":expected,"digest":expected_digest,"count":expected_count});
-        let prior=sqlx::query("SELECT id,intent FROM cf_graph_preparations WHERE tenant_id=$1 AND domain_id=$2 AND version=$3 FOR UPDATE").bind(&p.tenant).bind(domain).bind(current.sequence).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?;
-        let (reservation, reconcile) = if let Some(row) = prior {
-            let saved: Option<Value> = row.get("intent");
-            if saved.as_ref() != Some(&intent) {
-                return Err(CoreError::database());
-            }
-            (
-                Uuid::parse_str(row.get::<&str, _>("id")).map_err(|_| CoreError::database())?,
-                true,
-            )
-        } else {
-            let reservation = Uuid::new_v4();
-            sqlx::query("INSERT INTO cf_graph_preparations(tenant_id,domain_id,version,id,subject,status,intent) VALUES($1,$2,$3,$4,$5,'preparing',$6)").bind(&p.tenant).bind(domain).bind(current.sequence).bind(reservation.to_string()).bind(&p.subject).bind(intent).execute(&mut *tx).await.map_err(CoreError::sql)?;
-            (reservation, false)
-        };
+        let (reservation, reconcile) =
+            graph_attempts::reserve(&mut tx, p, domain, current.sequence, &intent).await?;
+        if stage
+            .as_ref()
+            .is_some_and(|requested| requested != &reservation)
+        {
+            return Err(graph_attempts::replaced());
+        }
         tx.commit().await.map_err(CoreError::sql)?;
-        let prepared = if reconcile {
+        let prepared = if reconcile && stage.is_none() {
             self.engine
-                .reconcile_snapshot(reservation, expected_digest, expected_count)
+                .reconcile_snapshot(reservation.id, expected_digest, expected_count)
                 .await
         } else {
             self.engine
-                .stage_snapshot_reserved(reservation, concepts)
+                .stage_snapshot_reserved(reservation.id, concepts)
                 .await
         };
         let mut tx = self.db.locked_owner_transaction(p, domain).await?;
@@ -216,14 +220,30 @@ impl GraphService {
         let snapshot = match prepared {
             Ok(s) => s,
             Err(_) => {
-                sqlx::query("UPDATE cf_graph_preparations SET status='uncertain' WHERE tenant_id=$1 AND domain_id=$2 AND version=$3 AND id=$4").bind(&p.tenant).bind(domain).bind(current.sequence).bind(reservation.to_string()).execute(&mut *tx).await.map_err(CoreError::sql)?;
+                graph_attempts::mark(
+                    &mut tx,
+                    p,
+                    domain,
+                    current.sequence,
+                    &reservation,
+                    "uncertain",
+                )
+                .await?;
                 tx.commit().await.map_err(CoreError::sql)?;
                 return Err(CoreError::database());
             }
         };
         // Immutable accepted changes and source content cannot change between checks.
         // Current permissions are freshly locked by recipe before any activation.
-        sqlx::query("INSERT INTO cf_graph_manifests(tenant_id,domain_id,version,snapshot) VALUES($1,$2,$3,$4)").bind(&p.tenant).bind(domain).bind(current.sequence).bind(serde_json::to_value(snapshot).map_err(|_|CoreError::database())?).execute(&mut *tx).await.map_err(CoreError::sql)?;
+        graph_attempts::manifest(
+            &mut tx,
+            p,
+            domain,
+            current.sequence,
+            &reservation,
+            &snapshot,
+        )
+        .await?;
         for change in &current.changes {
             match change {
                 Change::PutConcept { concept } => {
@@ -252,7 +272,7 @@ impl GraphService {
             .execute(&mut *tx)
             .await
             .map_err(CoreError::sql)?;
-        sqlx::query("UPDATE cf_graph_preparations SET status='ready' WHERE tenant_id=$1 AND domain_id=$2 AND version=$3 AND id=$4").bind(&p.tenant).bind(domain).bind(current.sequence).bind(reservation.to_string()).execute(&mut *tx).await.map_err(CoreError::sql)?;
+        graph_attempts::mark(&mut tx, p, domain, current.sequence, &reservation, "ready").await?;
         p.check_fresh()?;
         tx.commit().await.map_err(CoreError::sql)?;
         Ok(

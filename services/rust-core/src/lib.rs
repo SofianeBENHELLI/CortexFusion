@@ -7,6 +7,7 @@ pub mod conversations;
 pub mod database;
 pub mod error;
 pub mod graph;
+mod graph_attempts;
 pub mod knowledge;
 pub mod lexical;
 pub mod mcp;
