@@ -67,6 +67,8 @@ jobs:
       - name: Measure synthetic immutable graph workloads
         run: |
           timeout --signal=TERM --kill-after=45s 900s uv run python scripts/benchmark_rust_graph.py --synthetic-only --build-profile release --output "$RUNNER_TEMP/graph-volume.json"
+      - name: Measure native Unicode excerpt allocations
+        run: cargo run --release --locked --example benchmark_excerpt
       - name: Report measurements and qualification limits
         if: always()
         run: |

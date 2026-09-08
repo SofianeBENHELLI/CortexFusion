@@ -44,11 +44,20 @@ impl TryFrom<SourceRefWire> for SourceRef {
 }
 impl SourceRef {
     pub fn excerpt(&self, source: &str) -> Result<String, RuleError> {
-        let chars: Vec<char> = source.chars().collect();
-        if self.start >= self.end || self.end > chars.len() {
+        if self.start >= self.end {
             return Err(RuleError::InvalidRange);
         }
-        Ok(chars[self.start..self.end].iter().collect())
+        // Keep Unicode code-point offsets while borrowing the UTF-8 range.
+        // Only the returned excerpt is allocated, not every source character.
+        let mut chars = source.chars();
+        if self.start > 0 {
+            chars.nth(self.start - 1).ok_or(RuleError::InvalidRange)?;
+        }
+        let tail = chars.as_str();
+        chars
+            .nth(self.end - self.start - 1)
+            .ok_or(RuleError::InvalidRange)?;
+        Ok(tail[..tail.len() - chars.as_str().len()].to_owned())
     }
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -140,6 +149,42 @@ pub fn validate_acyclic(edges: &BTreeMap<Uuid, Vec<Uuid>>) -> Result<(), RuleErr
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn source_ranges_match_unicode_codepoint_slices_and_extreme_bounds() {
+        for source in ["", "a", "a🧠e\u{301}z", "\r\n你好אב🙂"] {
+            let chars: Vec<char> = source.chars().collect();
+            for start in 0..chars.len() + 3 {
+                for end in 0..chars.len() + 3 {
+                    let span = SourceRef {
+                        source_id: Uuid::nil(),
+                        start,
+                        end,
+                    };
+                    let expected = if start < end && end <= chars.len() {
+                        Ok(chars[start..end].iter().collect::<String>())
+                    } else {
+                        Err(RuleError::InvalidRange)
+                    };
+                    assert_eq!(span.excerpt(source), expected);
+                }
+            }
+            for (start, end) in [
+                (usize::MAX, usize::MAX),
+                (0, usize::MAX),
+                (usize::MAX - 1, usize::MAX),
+            ] {
+                assert_eq!(
+                    SourceRef {
+                        source_id: Uuid::nil(),
+                        start,
+                        end
+                    }
+                    .excerpt(source),
+                    Err(RuleError::InvalidRange)
+                );
+            }
+        }
+    }
     #[test]
     fn evidence_uses_code_points_not_bytes_or_utf16() {
         let span = SourceRef {
