@@ -4,7 +4,7 @@ Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La
 
 ## Couverture native actuelle
 
-Vingt-sept opérations HTTP et vingt-sept outils MCP sont implémentés :
+Trente opérations HTTP et trente outils MCP sont implémentés :
 
 | Fonction | HTTP | Outil MCP |
 |---|---|---|
@@ -31,12 +31,15 @@ Vingt-sept opérations HTTP et vingt-sept outils MCP sont implémentés :
 | Déclarer un signal lié à son épisode | POST /v1/domains/{domain}/episodes/{episode_id}/signals | api_feedback_record_signal |
 | Parcourir ses signaux visibles | GET /v1/domains/{domain}/feedback-signals | api_feedback_signals |
 | Résumer ses signaux sur une fenêtre bornée | GET /v1/domains/{domain}/feedback-summary | api_feedback_summary |
+| Enregistrer une réponse de compagnon | POST /v1/domains/{domain}/episodes/{episode_id}/companion-responses | api_responses_create |
+| Relire sa réponse de compagnon | GET /v1/domains/{domain}/companion-responses/{response_id} | api_responses_read |
+| Lister ses réponses de compagnons | GET /v1/domains/{domain}/companion-responses | api_responses_list |
 | Créer une source textuelle | POST /v1/domains/{domain}/sources | api_sources_create |
 | Chercher et paginer les sources accessibles | GET /v1/domains/{domain}/sources | api_sources_list |
 | Lire une source et son contenu | GET /v1/domains/{domain}/sources/{source_id} | api_sources_read |
 | Parcourir ses extraits déterministes | GET /v1/domains/{domain}/sources/{source_id}/chunks | api_sources_chunks |
 
-Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Réviser une proposition, les conversations, les réponses de compagnons, les imports de fichiers, les collections et l’administration restent à migrer. `/v1/me` annonce prudemment uniquement `inspect` et aucun fournisseur d’extraction ; ses capacités seront étendues avec les parcours complets.
+Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Réviser une proposition, les conversations, les imports de fichiers, les collections et l’administration restent à migrer. `/v1/me` annonce prudemment uniquement `inspect` et aucun fournisseur d’extraction ; ses capacités seront étendues avec les parcours complets.
 
 ## Fonctionnement et intégration frontend
 
@@ -71,7 +74,7 @@ La commande interne `cortex-rust-core --import-published <domainUUID>` utilise `
 ## Preuves et limites de vérification
 
 - Formatage, Clippy sans avertissement et18 tests Rust passent localement. Le test Terminus réel est explicitement ignoré hors moteur isolé et exécuté séparément en CI.
-- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques : vingt-quatre routes directement testables sans moteur et vingt-sept schémas/outils MCP annoncés. Les scénarios source contrôlent ACL, rôle, déduplication, pagination et découpe Unicode comparée à Python.
+- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques : vingt-sept routes directement testables sans moteur et trente schémas/outils MCP annoncés. Les scénarios source contrôlent ACL, rôle, déduplication, pagination et découpe Unicode comparée à Python.
 - Le lot sources et pont MCP générique a passé la CI avec le moteur TerminusDB12.0.7 épinglé par digest : onze opérations HTTP/MCP, publication signée, rejeu ciblé et lectures avec droits. Le lot propositions a ensuite validé dix-huit HTTP/MCP et le cycle complet source → création → revue → approbation → publication avec TerminusDB réel. Le lot recherche/feedback a ensuite passé sa CI avec TerminusDB réel, citations et épisodes privés (vingt-deux opérations). Le lot signaux/préférences nécessite encore sa propre CI.
 - La suite historique sur la migration0020 passe :514 tests Python et11 Node. Elle protège la référence, sans prouver que ses79 routes ont été portées en Rust.
 - Le vérificateur indépendant a exécuté100018 vecteurs de JSON canonique sans divergence après correction Ryu ;2044 cas de changements de graphe concordent avec Python ;23 cas de confirmations concordent. Ses campagnes de concurrence couvrent isolation tenant, révocation, expiration pendant réseau/verrou SQL, publication concurrente et retour arrière atomique après panne SQL injectée.
@@ -110,3 +113,11 @@ Les signaux et synthèses restent personnels. Une référence à une réponse de
 La synthèse utilise une fenêtre avec fuseau horaire, croissante et limitée à31 jours (30 par défaut), puis filtre les droits avant son plafond de10000 signaux. Au-delà, elle exige une fenêtre plus étroite et ne renvoie aucun total partiel. Elle distingue les compteurs par origine, les épisodes aux pouces contradictoires et les indices d’itération déclarés. Ces indices ne sont pas des mesures du nombre réel de tentatives ; l’absence de signal ne signifie pas satisfaction. Le feedback historique simple est exclu de cette synthèse pour éviter un double comptage.
 
 Le vérificateur indépendant confirme224 cas de validation de provenance face à Pydantic, les confirmations personnelles HTTP/MCP, le maintien du rôleowner pour publier, l’idempotence, les préférencesBIGINT et les références de compagnons privées. Les contre-tests de synthèse passent : filtre conversation propre/autre auteur, fenêtres invalides et31 jours, plafond de10001 signaux refusé sans résultat partiel, puis même fenêtre après révocation des preuves donnant zéro signal visible. Une erreur de colonne du filtre conversation (R13) a été corrigée et le test indépendant confirme le correctif.
+
+## Réponses de compagnons natives — lot en vérification
+
+Un compagnon peut enregistrer sa réponse personnelle après interrogation : texte, nature (réponse, abstention ou clarification), citations, identifiant du compagnon et modèle déclaré facultatif. Une réponse au corpus doit citer au moins un passage exactement renvoyé dans cet épisode. Une référence étrangère, une sous-plage différente ou un doublon est refusé. Les références sont vérifiées, mais le texte généré n’est pas certifié : `semantic_validation=not_performed` reste explicite et cet enregistrement ne publie aucune connaissance.
+
+Le reçu est immuable et idempotent par utilisateur/domaine/clé. Il reste privé, même vis-à-vis d’un owner, et devient inaccessible si les preuves de l’épisode ne sont plus accessibles. La liste accepte pagination et filtre d’épisode. Les signaux peuvent se rattacher à ce reçu pour distinguer le contexte fourni par CortexFusion de la réponse réellement montrée par le compagnon.
+
+La vérification indépendante couvre180 cas de validation/références face à l’oracle, deux créations concurrentes, rejouabilité HTTP/MCP, confidentialité, pagination et révocation. Le scénario produit relie également recherche, reçu et signal ; la CI moteur réel complète ce lot.

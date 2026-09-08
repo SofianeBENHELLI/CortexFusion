@@ -14,6 +14,7 @@ on:
       - 'scripts/verify_rust_proposals.py'
       - 'scripts/verify_rust_retrieval.py'
       - 'scripts/verify_rust_signals.py'
+      - 'scripts/verify_rust_companions.py'
       - 'scripts/generate_rust_lexical.py'
       - 'packages/contracts/interactions.json'
       - 'packages/contracts/mcp-tools.json'

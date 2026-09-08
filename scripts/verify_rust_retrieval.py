@@ -74,7 +74,10 @@ def verify_retrieval(client, headers, admin, tenant, domain, *, published):
         root + "/episodes", headers=h, params={"limit": 1, "after": page["next_after"]}
     ).json()
     assert len(later["items"]) == 1 and later["items"][0]["id"] != page["items"][0]["id"]
-    return [
+    from verify_rust_companions import verify_companions
+
+    companion_checks = verify_companions(client, headers, domain, result)
+    return companion_checks + [
         "native_retrieval_real_graph_citations"
         if published
         else "native_empty_graph_knowledge_gap",

@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod canonical;
 pub mod changes;
+pub mod companions;
 pub mod confirmation;
 pub mod database;
 pub mod error;

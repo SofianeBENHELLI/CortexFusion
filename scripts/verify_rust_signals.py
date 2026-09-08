@@ -12,6 +12,7 @@ from sqlalchemy import text
 def verify_signals(client, headers, admin, tenant, domain, confirmation_private):
     root = f"/v1/domains/{domain}"
     h = headers(sub="bob")
+    baseline = client.get(root + "/feedback-summary", headers=h).json()
     episode = client.post(
         root + "/query", headers=h, json={"question": "signal synthétique"}
     ).json()["episode_id"]
@@ -141,7 +142,10 @@ def verify_signals(client, headers, admin, tenant, domain, confirmation_private)
     assert len(page["items"]) == 2 and page["next_after"] is not None
     assert client.get(root + "/feedback-signals", headers=headers()).json()["items"] == []
     summary = client.get(root + "/feedback-summary", headers=h).json()
-    assert summary["signal_count"] == 3 and summary["episode_count"] == 1, summary
+    assert (
+        summary["signal_count"] == baseline["signal_count"] + 3
+        and summary["episode_count"] == baseline["episode_count"] + 1
+    ), summary
     assert (
         summary["explicit"]["thumbs_down"] == 1
         and summary["observed"]["maximum_declared_iteration"] == 3

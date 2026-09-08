@@ -30,6 +30,7 @@ pub fn router(state: StateData) -> Router {
         .merge(crate::proposals::routes())
         .merge(crate::retrieval::routes())
         .merge(crate::signals::routes())
+        .merge(crate::companions::routes())
         .fallback(||async{(StatusCode::NOT_IMPLEMENTED,Json(json!({"error":"MIGRATION_NOT_IMPLEMENTED","message":"This operation is not yet served by the native Rust candidate"})))})
         .with_state(state)
 }
