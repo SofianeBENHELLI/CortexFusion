@@ -376,6 +376,9 @@ def run(binary, rust_url, admin_url):
                 from verify_rust_jwks import verify_jwks
 
                 checks.extend(verify_jwks(binary, env, admin))
+                from verify_corpus_worker import verify_corpus_worker
+
+                checks.extend(verify_corpus_worker(client, headers, admin, binary))
                 if os.environ.get("CORTEX_TERMINUS_URL"):
                     from verify_rust_graph import verify_graph
                     from verify_rust_publication import verify_publication

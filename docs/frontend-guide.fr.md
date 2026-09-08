@@ -438,3 +438,8 @@ Après une commande, invalider les diagnostics et événements d’import ; les 
 ## Interruption lors d’un redémarrage backend
 
 Le serveur peut fermer son admission pendant qu’il termine les requêtes acceptées. Si le transport HTTP/MCP ou un flux se coupe, conserver la décision et sa clé d’idempotence ; relire son état après reconnexion avant de proposer une reprise. La coupure ne prouve ni un échec métier ni un succès. Les signaux d’arrêt et leur délai sont des paramètres du processus opérateur, pas des actions de l’utilisateur ou de son compagnon.
+
+
+## Traitement du corpus hors du frontend
+
+Un [worker Rust optionnel](corpus-worker.fr.md) peut traiter les fichiers et imports en attente via les opérations existantes. Le frontend conserve les reçus comme source de vérité et les relit par polling ; aucun nouveau schéma ou outil MCP n’est nécessaire. Les lots de textes restent personnels à leur auteur, les fichiers suivent leurs ACL. Les échecs nécessitent toujours une décision explicite de reprise ; la fermeture du frontend ne vaut pas annulation du worker configuré par l’opérateur.

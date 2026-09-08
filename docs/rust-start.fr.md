@@ -102,7 +102,7 @@ Pour l’extraction locale, configurer `CORTEX_MODEL_PROVIDER=ollama`, `CORTEX_L
 
 ## Ce qui reste à qualifier
 
-La surface HTTP/MCP est portée. La reprise explicite des préparations Terminus et la restauration complète à froid sont testées ; les [limites de restauration](coordinated-restore.fr.md) restent précises. Restent notamment le nettoyage des snapshots orphelins, la sauvegarde à chaud, le déploiement TLS/IdP réel, les performances, la haute disponibilité et l’évaluation sur corpus autorisé. Un worker autonome Rust n’est pas livré : les clients déclenchent `process` et relisent les reçus. Le [bilan technique](rust-migration.fr.md) détaille les autres limites des parseurs, du SSE et de la validation sémantique.
+La surface HTTP/MCP est portée. La reprise explicite des préparations Terminus et la restauration complète à froid sont testées ; les [limites de restauration](coordinated-restore.fr.md) restent précises. Restent notamment le nettoyage des snapshots orphelins, la sauvegarde à chaud, le déploiement TLS/IdP réel, les performances, la haute disponibilité et l’évaluation sur corpus autorisé. Un [worker corpus Rust optionnel](corpus-worker.fr.md) traite les éléments en attente sous une identité explicitement configurée ; les clients peuvent aussi déclencher `process` et relire les reçus. Le [bilan technique](rust-migration.fr.md) détaille les autres limites des parseurs, du SSE et de la validation sémantique.
 
 ## Import initial du graphe publié
 
@@ -117,3 +117,6 @@ Le service ne corrige pas silencieusement une projection divergente. Il vérifie
 Le serveur intercepte `SIGTERM` et `SIGINT`, ferme son admission HTTP/MCP et laisse les requêtes acceptées terminer. `CORTEX_SHUTDOWN_GRACE_SECONDS` fixe le délai de drainage, de1 à300 secondes,75 par défaut. Une seconde interruption ou l’expiration du délai produit une sortie en erreur. Le journal de processus signale le début et la fin du drainage sans contenu de requête ni identifiant secret.
 
 Prévoir un délai d’arrêt du superviseur supérieur à cette grâce. Les parseurs de documents sont eux-mêmes bornés ; leur terminaison peut ajouter le temps de nettoyage d’un sous-processus. Ne pas déduire d’une coupure réseau que la décision n’a pas été enregistrée : après redémarrage, relire les reçus durables et reprendre avec la même intention/clé. Les contrôles de droits et d’expiration restent actifs pendant le drainage. Aucune nouvelle tentative moteur n’est créée automatiquement par l’arrêt.
+
+
+Le binaire séparé `cortex-corpus-worker` permet de traiter les reçus du corpus sans garder un frontend ouvert. Sa [configuration et son périmètre](corpus-worker.fr.md) sont distincts de ceux du serveur ; il utilise uniquement les API publiques et ne demande pas d’accès aux bases.

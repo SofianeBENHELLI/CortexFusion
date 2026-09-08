@@ -11,6 +11,7 @@ on:
       - 'scripts/verify_rust_graph_import.py'
       - 'scripts/verify_rust_shutdown.py'
       - 'scripts/verify_rust_jwks.py'
+      - 'scripts/verify_corpus_worker.py'
       - 'scripts/verify_coordinated_restore.py'
       - 'scripts/verify_rust_mcp.py'
       - 'scripts/verify_rust_publication.py'

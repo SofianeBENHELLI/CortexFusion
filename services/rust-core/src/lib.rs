@@ -56,3 +56,5 @@ mod publication_recovery;
 pub mod shutdown;
 
 mod jwks;
+
+pub mod corpus_worker;
