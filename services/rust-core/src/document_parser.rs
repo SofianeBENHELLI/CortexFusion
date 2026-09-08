@@ -40,7 +40,9 @@ fn decode_xml(raw: &[u8]) -> Result<String, &'static str> {
         return Err("PARSE_FAILED");
     };
     let units: Vec<u16> = bytes
-        .as_chunks::<2>().0.iter()
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|b| {
             if little {
                 u16::from_le_bytes([b[0], b[1]])
