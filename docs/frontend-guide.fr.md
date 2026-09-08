@@ -446,3 +446,8 @@ Le serveur peut fermer son admission pendant qu’il termine les requêtes accep
 ## Traitement du corpus hors du frontend
 
 Un [worker Rust optionnel](corpus-worker.fr.md) peut traiter les fichiers et imports en attente via les opérations existantes. Le frontend conserve les reçus comme source de vérité et les relit par polling ; aucun nouveau schéma ou outil MCP n’est nécessaire. Les lots de textes restent personnels à leur auteur, les fichiers suivent leurs ACL. Les échecs nécessitent toujours une décision explicite de reprise ; la fermeture du frontend ne vaut pas annulation du worker configuré par l’opérateur.
+
+
+## Tailles et erreurs du pont MCP natif
+
+Le [guide des limites de transport](transport-limits.fr.md) distingue les octets du corps HTTP interne et ceux du JSON-RPC transmis, les refus HTTP, les erreurs protocolaires et les reçus métier. Une réponse HTTP directe volumineuse peut nécessiter des pages plus petites via MCP. Une erreur de réponse ne prouve jamais qu’une mutation n’a pas eu lieu : relire le reçu avant toute reprise.

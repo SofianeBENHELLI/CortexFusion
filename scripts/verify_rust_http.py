@@ -292,6 +292,9 @@ def run(binary, rust_url, admin_url):
                 from verify_rust_onboarding import verify_onboarding
 
                 checks.extend(verify_onboarding(client, headers, domain))
+                from verify_rust_transport_bounds import verify_transport_bounds
+
+                checks.extend(verify_transport_bounds(client, headers, domain))
                 from verify_rust_model_receipts import verify_model_receipts
 
                 checks.extend(verify_model_receipts(client, headers, admin, tenant, domain))
@@ -394,7 +397,10 @@ def run(binary, rust_url, admin_url):
                 "status": "passed",
                 "checks": checks,
                 "native_http_operations": 86 if os.environ.get("CORTEX_TERMINUS_URL") else 82,
+                "http_inventory_operations": 86,
+                "native_http_count_scope": "Scenario surface: four engine-dependent operations require the real TerminusDB integration; not exhaustive branch coverage",
                 "native_mcp_operations": 102,
+                "native_mcp_count_scope": "Advertised native tools; not exhaustive branch coverage",
                 "publication_recovery_engine": "real TerminusDB with ACK-loss gateway"
                 if os.environ.get("CORTEX_TERMINUS_URL")
                 else "controlled HTTP simulator",
