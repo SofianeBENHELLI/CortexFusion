@@ -49,18 +49,33 @@ async fn allowed(
 }
 impl GraphService {
     pub async fn concepts(&self, p: &Principal, domain: &str) -> Result<Vec<Concept>, CoreError> {
+        Ok(self.published_concepts(p, domain).await?.1)
+    }
+    pub async fn published_concepts(
+        &self,
+        p: &Principal,
+        domain: &str,
+    ) -> Result<(i64, Vec<Concept>), CoreError> {
         let mut tx = self.db.transaction(p, domain, false).await?;
         let served = version(&mut tx, p, domain).await?;
         let raw:Option<Value>=sqlx::query_scalar("SELECT snapshot FROM cf_graph_manifests WHERE tenant_id=$1 AND domain_id=$2 AND version=$3")
             .bind(&p.tenant).bind(domain).bind(served).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?;
-        let snapshot: Snapshot = serde_json::from_value(raw.ok_or_else(CoreError::database)?)
+        let snapshot: Option<Snapshot> = raw
+            .map(serde_json::from_value)
+            .transpose()
             .map_err(|_| CoreError::database())?;
+        if served != 0 && snapshot.is_none() {
+            return Err(CoreError::database());
+        }
         tx.commit().await.map_err(CoreError::sql)?;
-        let concepts = self
-            .engine
-            .read_snapshot(&snapshot)
-            .await
-            .map_err(|_| CoreError::database())?;
+        let concepts = match snapshot {
+            Some(snapshot) => self
+                .engine
+                .read_snapshot(&snapshot)
+                .await
+                .map_err(|_| CoreError::database())?,
+            None => Vec::new(),
+        };
         // Re-authorize after network IO; no stale ACL or membership snapshot is reused.
         let mut tx = self.db.transaction(p, domain, false).await?;
         if version(&mut tx, p, domain).await? != served {
@@ -78,7 +93,7 @@ impl GraphService {
         visible.sort_by(|a, b| (&a.title, a.concept_id).cmp(&(&b.title, b.concept_id)));
         tx.commit().await.map_err(CoreError::sql)?;
         p.check_fresh()?;
-        Ok(visible)
+        Ok((served, visible))
     }
     /// Internal migration operation. Caller must authenticate the principal first.
     /// Reservation commits before engine IO; an incomplete reservation is never retried.

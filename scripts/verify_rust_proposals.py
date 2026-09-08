@@ -220,6 +220,9 @@ def verify_proposals(client, headers, admin, tenant, confirmation_private):
         "native_signed_review_and_revision",
         "native_signed_approval_separate_from_publication",
     ]
+    from verify_rust_retrieval import verify_retrieval
+
+    checks.extend(verify_retrieval(client, headers, admin, tenant, domain, published=False))
     if os.environ.get("CORTEX_TERMINUS_URL"):
         args = {
             "path": {"domain": domain, "proposal_id": id},
@@ -229,6 +232,7 @@ def verify_proposals(client, headers, admin, tenant, confirmation_private):
         assert published["http_status"] == 200 and published["data"]["changed"], published
         concepts = client.get(root + "/concepts", headers=headers(sub="bob")).json()
         assert concepts == [normalized["changes"][0]["concept"]], concepts
+        checks.extend(verify_retrieval(client, headers, admin, tenant, domain, published=True))
         revised = {
             **normalized,
             "base_version": 1,

@@ -12,6 +12,8 @@ on:
       - 'scripts/verify_rust_publication.py'
       - 'scripts/verify_rust_sources.py'
       - 'scripts/verify_rust_proposals.py'
+      - 'scripts/verify_rust_retrieval.py'
+      - 'scripts/generate_rust_lexical.py'
       - 'packages/contracts/interactions.json'
       - 'packages/contracts/mcp-tools.json'
       - 'services/core/migrations/**'
@@ -65,6 +67,8 @@ jobs:
               conn.execute(text("CREATE ROLE cortex_app LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD 'synthetic-app-password'"))
           PYCODE
           uv run alembic upgrade head
+          uv run python scripts/generate_rust_lexical.py
+          git diff --exit-code -- services/rust-core/src/lexical-unicode.json
       - name: Verify native HTTP with real tenant isolation
         run: |
           cargo build --workspace --locked
