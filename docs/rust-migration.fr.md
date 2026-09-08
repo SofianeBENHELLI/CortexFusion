@@ -4,7 +4,7 @@ Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La
 
 ## Couverture native actuelle
 
-Onze opérations HTTP et onze outils MCP sont implémentés :
+Dix-huit opérations HTTP et dix-huit outils MCP sont implémentés :
 
 | Fonction | HTTP | Outil MCP |
 |---|---|---|
@@ -15,12 +15,19 @@ Onze opérations HTTP et onze outils MCP sont implémentés :
 | Concepts publiés et relations visibles | GET /v1/domains/{domain}/concepts | api_concepts_list |
 | Un concept publié | GET /v1/domains/{domain}/concepts/{concept_id} | api_concepts_read |
 | Publier une proposition déjà acceptée | POST /v1/domains/{domain}/proposals/{proposal_id}/publish | api_proposals_publish |
+| Créer une proposition avec preuves | POST /v1/domains/{domain}/proposals | api_proposals_create |
+| Lister les propositions visibles | GET /v1/domains/{domain}/proposals | api_proposals_list |
+| Lire une proposition | GET /v1/domains/{domain}/proposals/{proposal_id} | api_proposals_read |
+| Comparer avant/après | GET /v1/domains/{domain}/proposals/{ident}/diff | api_proposals_diff |
+| Accepter une proposition | POST /v1/domains/{domain}/proposals/{proposal_id}/approve | api_proposals_approve |
+| Rejeter, différer, demander des changements ou rouvrir | POST /v1/domains/{domain}/proposals/{ident}/reviews | api_proposals_review |
+| Lire le journal des revues | GET /v1/domains/{domain}/proposals/{ident}/reviews | api_proposals_reviews |
 | Créer une source textuelle | POST /v1/domains/{domain}/sources | api_sources_create |
 | Chercher et paginer les sources accessibles | GET /v1/domains/{domain}/sources | api_sources_list |
 | Lire une source et son contenu | GET /v1/domains/{domain}/sources/{source_id} | api_sources_read |
 | Parcourir ses extraits déterministes | GET /v1/domains/{domain}/sources/{source_id}/chunks | api_sources_chunks |
 
-Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Proposer, approuver, revoir, interroger le corpus, les conversations, le feedback, les imports de fichiers, les collections et l’administration restent à migrer. `/v1/me` annonce prudemment uniquement `inspect` et aucun fournisseur d’extraction ; ses capacités seront étendues avec les parcours complets.
+Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Réviser une proposition, interroger le corpus, les conversations, le feedback, les imports de fichiers, les collections et l’administration restent à migrer. `/v1/me` annonce prudemment uniquement `inspect` et aucun fournisseur d’extraction ; ses capacités seront étendues avec les parcours complets.
 
 ## Fonctionnement et intégration frontend
 
@@ -54,11 +61,23 @@ La commande interne `cortex-rust-core --import-published <domainUUID>` utilise `
 
 ## Preuves et limites de vérification
 
-- Formatage, Clippy sans avertissement et16 tests Rust passent localement. Le test Terminus réel est explicitement ignoré hors moteur isolé et exécuté séparément en CI.
-- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques : huit routes directement testables sans moteur et onze schémas/outils MCP annoncés. Les scénarios source contrôlent ACL, rôle, déduplication, pagination et découpe Unicode comparée à Python.
-- Le lot précédent de publication a passé la CI avec le moteur TerminusDB12.0.7 épinglé par digest : six opérations HTTP/MCP, publication signée, rejeu ciblé et lectures avec droits. Le nouveau pont MCP et les sources nécessitent leur propre résultat CI avant de considérer cette version vérifiée avec le moteur réel.
+- Formatage, Clippy sans avertissement et17 tests Rust passent localement. Le test Terminus réel est explicitement ignoré hors moteur isolé et exécuté séparément en CI.
+- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques : quinze routes directement testables sans moteur et dix-huit schémas/outils MCP annoncés. Les scénarios source contrôlent ACL, rôle, déduplication, pagination et découpe Unicode comparée à Python.
+- Le lot sources et pont MCP générique a passé la CI avec le moteur TerminusDB12.0.7 épinglé par digest : onze opérations HTTP/MCP, publication signée, rejeu ciblé et lectures avec droits. Le lot propositions nécessite son propre résultat CI pour valider le cycle complet avec le moteur réel.
 - La suite historique sur la migration0020 passe :514 tests Python et11 Node. Elle protège la référence, sans prouver que ses79 routes ont été portées en Rust.
 - Le vérificateur indépendant a exécuté100018 vecteurs de JSON canonique sans divergence après correction Ryu ;2044 cas de changements de graphe concordent avec Python ;23 cas de confirmations concordent. Ses campagnes de concurrence couvrent isolation tenant, révocation, expiration pendant réseau/verrou SQL, publication concurrente et retour arrière atomique après panne SQL injectée.
 - Les courses sont déclenchées avec un moteur contrôlé, distinct du test TerminusDB réel. Les NumericDate sous forme de chaînes exotiques restent plus restrictifs que Python. Les confirmations personnelles, opérations non portées, performances, haute disponibilité et perte d’accusé de commit PostgreSQL ne sont pas déclarées validées.
 
 Aucun corpus d’entreprise ni appel modèle payant n’est utilisé dans ces campagnes. Les rapports détaillés et contre-exemples indépendants restent dans les livrables locaux.
+
+## Cycle de validation natif — lot en vérification
+
+Un owner, corpus_manager, contributor ou agent peut créer une proposition ; le viewer ne peut pas accéder à la file de propositions. Les changements s’appuient sur le snapshot Terminus publié, avec nouvelle vérification de version, appartenance et preuves après lecture réseau. Le corps conserve uniquement des passages verbatim. Les contraintes de graphe, les preuves des anciennes valeurs et des cibles liées sont conservées dans la validation. La normalisation des UUID, des valeurs par défaut et des empreintes est comparée à Pydantic/Python.
+
+La liste filtre les droits avant pagination et accepte état, source, limite et curseur. Le détail avant/après utilise l’état publié courant pour une proposition non acceptée, ou le before_state immuable du commit accepté. Il indique la base périmée et masque une comparaison dont les preuves ou cibles liées ne sont plus accessibles.
+
+Les revues owner exigent une décision signée, le digest et la révision attendue. Différer augmente la révision et passe à deferred ; rouvrir remet ready ; demander des changements passe à changes_requested ; rejeter rend rejected. Les transitions interdites répondent409 et aucune revue ne publie du savoir. Une approbation exige ready, la révision/digest exacts et une base publiée courante. Une seule approbation peut attendre sa publication : sinon409/PUBLICATION_PENDING. L’approbation crée atomiquement commit, état avant, outbox et version acceptée, sans modifier le manifeste publié.
+
+Les replays de création/revue/approbation contrôlent l’empreinte d’idempotence. Le candidat recontrôle aussi les preuves avant un replay d’approbation, restriction volontaire plus forte que le raccourci historique Python. Le vérificateur indépendant confirme les hashes normalisés, permissions, révisions, signatures et révocation sur données synthétiques ; concurrence et moteur réel complètent cette preuve.
+
+Contre-vérification des décisions : neuf groupes supplémentaires passent avec PostgreSQL réel et moteur contrôlé, dont concurrence des approbations, révocation pendant lecture moteur, comparaisons historiques et cible liée masquée. Un écart de désérialisation des poids flottants explicites (R12) a été corrigé et le script indépendant inchangé confirme le correctif ; une régression HTTP avec lien implicite puis normalisé est conservée dans la CI.

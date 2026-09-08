@@ -11,6 +11,7 @@ on:
       - 'scripts/verify_rust_mcp.py'
       - 'scripts/verify_rust_publication.py'
       - 'scripts/verify_rust_sources.py'
+      - 'scripts/verify_rust_proposals.py'
       - 'packages/contracts/interactions.json'
       - 'packages/contracts/mcp-tools.json'
       - 'services/core/migrations/**'

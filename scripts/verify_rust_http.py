@@ -77,7 +77,7 @@ def run(binary, rust_url, admin_url):
             [str(binary.resolve())],
             env=env,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=None,
             text=True,
         )
         try:
@@ -172,6 +172,11 @@ def run(binary, rust_url, admin_url):
                 from verify_rust_sources import verify_sources
 
                 checks.extend(verify_sources(client, headers, admin, tenant, domain))
+                from verify_rust_proposals import verify_proposals
+
+                checks.extend(
+                    verify_proposals(client, headers, admin, tenant, confirmation_private)
+                )
                 with admin.begin() as conn:
                     conn.execute(
                         text(
@@ -208,8 +213,8 @@ def run(binary, rust_url, admin_url):
             return {
                 "status": "passed",
                 "checks": checks,
-                "native_http_operations": 11 if os.environ.get("CORTEX_TERMINUS_URL") else 8,
-                "native_mcp_operations": 11,
+                "native_http_operations": 18 if os.environ.get("CORTEX_TERMINUS_URL") else 15,
+                "native_mcp_operations": 18,
                 "terminus_application_integration": bool(os.environ.get("CORTEX_TERMINUS_URL")),
                 "model_calls": 0,
             }

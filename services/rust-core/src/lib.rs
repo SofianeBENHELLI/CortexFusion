@@ -7,6 +7,7 @@ pub mod error;
 pub mod graph;
 pub mod knowledge;
 pub mod mcp;
+pub mod proposals;
 pub mod publication;
 pub mod readiness;
 pub mod server;
