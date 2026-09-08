@@ -14,12 +14,15 @@ use uuid::Uuid;
 pub struct StateData {
     pub auth: Authenticator,
     pub db: Database,
+    pub graph: Option<crate::graph::GraphService>,
 }
 
 pub fn router(state: StateData) -> Router {
     Router::new().route("/health",get(||async{Json(json!({"status":"ok"}))}))
         .route("/v1/me",get(identity))
         .route("/v1/domains/{domain}/version",get(version))
+        .route("/v1/domains/{domain}/concepts",get(concepts))
+        .route("/v1/domains/{domain}/concepts/{concept_id}",get(concept))
         .fallback(||async{(StatusCode::NOT_IMPLEMENTED,Json(json!({"error":"MIGRATION_NOT_IMPLEMENTED","message":"This operation is not yet served by the native Rust candidate"})))})
         .with_state(state)
 }
@@ -72,5 +75,42 @@ async fn identity(
     tx.commit().await.map_err(CoreError::sql)?;
     Ok(Json(
         json!({"subject":p.subject,"tenant_id":p.tenant,"domains":domains,"extraction_provider":null}),
+    ))
+}
+
+async fn concepts(
+    State(s): State<StateData>,
+    Path(domain): Path<String>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, CoreError> {
+    let p = s.auth.authenticate(&headers)?;
+    let domain = Uuid::parse_str(&domain)
+        .map_err(|_| CoreError::invalid_uuid())?
+        .to_string();
+    let graph = s.graph.as_ref().ok_or_else(CoreError::database)?;
+    Ok(Json(
+        serde_json::to_value(graph.concepts(&p, &domain).await?)
+            .map_err(|_| CoreError::database())?,
+    ))
+}
+async fn concept(
+    State(s): State<StateData>,
+    Path((domain, id)): Path<(String, String)>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, CoreError> {
+    let p = s.auth.authenticate(&headers)?;
+    let domain = Uuid::parse_str(&domain)
+        .map_err(|_| CoreError::invalid_uuid())?
+        .to_string();
+    let id = Uuid::parse_str(&id).map_err(|_| CoreError::invalid_uuid())?;
+    let graph = s.graph.as_ref().ok_or_else(CoreError::database)?;
+    let c = graph
+        .concepts(&p, &domain)
+        .await?
+        .into_iter()
+        .find(|c| c.concept_id == id)
+        .ok_or_else(CoreError::concept_not_found)?;
+    Ok(Json(
+        serde_json::to_value(c).map_err(|_| CoreError::database())?,
     ))
 }

@@ -25,6 +25,7 @@ impl Database {
         domain: &str,
         owner: bool,
     ) -> Result<Transaction<'_, Postgres>, CoreError> {
+        p.check_fresh()?;
         let mut tx = self.pool.begin().await.map_err(CoreError::sql)?;
         sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
             .execute(&mut *tx)
@@ -52,6 +53,42 @@ impl Database {
                 status: http::StatusCode::FORBIDDEN,
             });
         }
+        Ok(tx)
+    }
+}
+
+impl Database {
+    pub async fn locked_owner_transaction(
+        &self,
+        p: &Principal,
+        domain: &str,
+    ) -> Result<Transaction<'_, Postgres>, CoreError> {
+        p.check_fresh()?;
+        let mut tx = self.pool.begin().await.map_err(CoreError::sql)?;
+        sqlx::query("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
+            .execute(&mut *tx)
+            .await
+            .map_err(CoreError::sql)?;
+        sqlx::query("SELECT set_config('cortex.tenant',$1,true)")
+            .bind(&p.tenant)
+            .execute(&mut *tx)
+            .await
+            .map_err(CoreError::sql)?;
+        let found: Option<String> =
+            sqlx::query_scalar("SELECT id FROM cf_domains WHERE tenant_id=$1 AND id=$2 FOR UPDATE")
+                .bind(&p.tenant)
+                .bind(domain)
+                .fetch_optional(&mut *tx)
+                .await
+                .map_err(CoreError::sql)?;
+        if found.is_none() {
+            return Err(CoreError::not_found());
+        }
+        let role:Option<String>=sqlx::query_scalar("SELECT role FROM cf_memberships WHERE tenant_id=$1 AND domain_id=$2 AND subject=$3 FOR SHARE").bind(&p.tenant).bind(domain).bind(&p.subject).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?;
+        if role.as_deref() != Some("owner") {
+            return Err(CoreError::not_found());
+        }
+        p.check_fresh()?;
         Ok(tx)
     }
 }

@@ -25,6 +25,47 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     db.verify_role()
         .await
         .map_err(|_| "Database role is not permitted")?;
+    let graph = match env::var("CORTEX_TERMINUS_URL") {
+        Ok(base) => Some(cortex_rust_core::graph::GraphService {
+            db: db.clone(),
+            engine: cortex_rust_core::terminus::Terminus::new(
+                &base,
+                env::var("CORTEX_TERMINUS_USER")?,
+                env::var("CORTEX_TERMINUS_PASSWORD")?,
+            )
+            .map_err(|_| "Invalid graph configuration")?,
+        }),
+        Err(_) => None,
+    };
+    let args: Vec<String> = env::args().skip(1).collect();
+    if !args.is_empty() {
+        if args.len() != 2 || args[0] != "--import-published" {
+            return Err("Unsupported migration command".into());
+        }
+        let domain = uuid::Uuid::parse_str(&args[1])?.to_string();
+        let mut headers = http::HeaderMap::new();
+        headers.insert(
+            "authorization",
+            format!("Bearer {}", env::var("CORTEX_MIGRATION_BEARER")?).parse()?,
+        );
+        headers.insert("x-tenant-id", env::var("CORTEX_MIGRATION_TENANT")?.parse()?);
+        let principal = auth
+            .authenticate(&headers)
+            .map_err(|_| "Migration identity rejected")?;
+        let snapshot = graph
+            .as_ref()
+            .ok_or("Graph must be configured")?
+            .import_published(&principal, &domain)
+            .await
+            .map_err(
+                |_| "Graph migration did not complete; inspect durable preparation before retry",
+            )?;
+        println!(
+            "{}",
+            serde_json::json!({"status":"prepared","concepts":snapshot.count})
+        );
+        return Ok(());
+    }
     let address: SocketAddr = env::var("CORTEX_RUST_BIND")
         .unwrap_or_else(|_| "127.0.0.1:8010".into())
         .parse()?;
@@ -36,7 +77,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "CortexFusion Rust migration candidate listening on {}",
         listener.local_addr()?
     );
-    axum::serve(listener, server::router(StateData { auth, db }))
+    axum::serve(listener, server::router(StateData { auth, db, graph }))
         .with_graceful_shutdown(async {
             let _ = tokio::signal::ctrl_c().await;
         })

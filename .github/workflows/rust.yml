@@ -7,6 +7,8 @@ on:
       - 'rust-toolchain.toml'
       - 'services/rust-core/**'
       - 'scripts/verify_rust_http.py'
+      - 'scripts/verify_rust_graph.py'
+      - 'services/core/migrations/**'
       - '.github/workflows/rust.yml'
 permissions:
   contents: read
@@ -71,3 +73,11 @@ jobs:
             sleep 2
           done
           cargo test --workspace --locked --test terminus_engine -- --ignored --nocapture
+      - name: Verify native graph HTTP, manifests and current source access
+        env:
+          CORTEX_TERMINUS_URL: http://127.0.0.1:6363
+          CORTEX_TERMINUS_USER: admin
+          CORTEX_TERMINUS_PASSWORD: synthetic-spike-password
+        run: |
+          uv run python scripts/verify_rust_http.py --output "$RUNNER_TEMP/rust-graph-http.json"
+          cat "$RUNNER_TEMP/rust-graph-http.json"

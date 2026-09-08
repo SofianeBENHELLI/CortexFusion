@@ -171,12 +171,18 @@ def run(binary, rust_url, admin_url):
                     == 501
                 )
                 checks.append("unported_operation_explicit")
+                if os.environ.get("CORTEX_TERMINUS_URL"):
+                    from verify_rust_graph import verify_graph
+
+                    checks.extend(
+                        verify_graph(binary, env, client, headers, token, admin, tenant, domain)
+                    )
             return {
                 "status": "passed",
                 "checks": checks,
-                "native_http_operations": 3,
+                "native_http_operations": 5 if os.environ.get("CORTEX_TERMINUS_URL") else 3,
                 "native_mcp_operations": 0,
-                "terminus_application_integration": False,
+                "terminus_application_integration": bool(os.environ.get("CORTEX_TERMINUS_URL")),
                 "model_calls": 0,
             }
         finally:

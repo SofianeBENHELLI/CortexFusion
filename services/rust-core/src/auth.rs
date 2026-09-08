@@ -16,6 +16,7 @@ pub struct Authenticator {
 pub struct Principal {
     pub subject: String,
     pub tenant: String,
+    pub expires_at: f64,
 }
 impl Authenticator {
     pub fn new(pem: &[u8], issuer: &str, audience: &str) -> Result<Self, CoreError> {
@@ -65,6 +66,7 @@ impl Authenticator {
         Ok(Principal {
             subject: subject.to_owned(),
             tenant,
+            expires_at: numeric_date(&claims["exp"])?,
         })
     }
 }
@@ -125,6 +127,20 @@ fn validate_claims<'a>(
     }
     Ok(subject)
 }
+
+impl Principal {
+    pub fn check_fresh(&self) -> Result<(), CoreError> {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|_| CoreError::auth())?
+            .as_secs_f64();
+        if !self.expires_at.is_finite() || self.expires_at <= now {
+            return Err(CoreError::auth());
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

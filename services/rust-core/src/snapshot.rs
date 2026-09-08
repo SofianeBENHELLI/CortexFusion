@@ -126,6 +126,14 @@ impl Terminus {
     /// Create a fresh private staging database; failure never advances a product version.
     /// Database-per-snapshot is deliberately conservative for the first integration.
     pub async fn stage_snapshot(&self, concepts: Vec<Concept>) -> Result<Snapshot, EngineError> {
+        self.stage_snapshot_reserved(Uuid::new_v4(), concepts).await
+    }
+    /// The caller persists this reservation before any engine mutation.
+    pub async fn stage_snapshot_reserved(
+        &self,
+        reservation: Uuid,
+        concepts: Vec<Concept>,
+    ) -> Result<Snapshot, EngineError> {
         let concepts = ordered(concepts)?;
         let content_digest = digest(&concepts)?;
         let documents = Value::Array(concepts.iter().map(encode).collect());
@@ -136,7 +144,7 @@ impl Terminus {
         {
             return Err(EngineError::TooLarge);
         }
-        let database = format!("cf_snapshot_{}", Uuid::new_v4().simple());
+        let database = format!("cf_snapshot_{}", reservation.simple());
         self.request(
             Method::POST,
             &["db", "admin", &database],

@@ -12,6 +12,20 @@ pub struct CoreError {
     pub status: StatusCode,
 }
 impl CoreError {
+    pub fn invalid_uuid() -> Self {
+        Self {
+            code: "VALIDATION_FAILED",
+            message: "Invalid UUID",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+        }
+    }
+    pub fn concept_not_found() -> Self {
+        Self {
+            code: "NOT_FOUND",
+            message: "Concept not found",
+            status: StatusCode::NOT_FOUND,
+        }
+    }
     pub fn auth() -> Self {
         Self {
             code: "NOT_AUTHORIZED",
