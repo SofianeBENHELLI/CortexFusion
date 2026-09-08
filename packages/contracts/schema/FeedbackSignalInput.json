@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "companion_response_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Companion Response Id"
+    },
+    "origin": {
+      "enum": [
+        "explicit",
+        "observed",
+        "inferred"
+      ],
+      "title": "Origin",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "thumbs_up",
+        "thumbs_down",
+        "comment",
+        "reformulation",
+        "correction",
+        "abandon",
+        "resolved",
+        "satisfaction"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "comment": {
+      "default": "",
+      "maxLength": 2000,
+      "title": "Comment",
+      "type": "string"
+    },
+    "companion": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Companion",
+      "type": "string"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confidence"
+    },
+    "sentiment": {
+      "anyOf": [
+        {
+          "enum": [
+            "positive",
+            "negative",
+            "neutral"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Sentiment"
+    },
+    "iteration_index": {
+      "anyOf": [
+        {
+          "maximum": 10000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Iteration Index"
+    },
+    "idempotency_key": {
+      "maxLength": 128,
+      "minLength": 8,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "origin",
+    "kind",
+    "companion",
+    "idempotency_key"
+  ],
+  "title": "FeedbackSignalInput",
+  "type": "object"
+}

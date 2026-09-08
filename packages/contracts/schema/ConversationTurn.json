@@ -1,0 +1,683 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Citation": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "location": {
+          "title": "Location",
+          "type": "string"
+        },
+        "content_hash": {
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "start": {
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "title": "End",
+          "type": "integer"
+        },
+        "excerpt": {
+          "title": "Excerpt",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "title",
+        "location",
+        "content_hash",
+        "start",
+        "end",
+        "excerpt"
+      ],
+      "title": "Citation",
+      "type": "object"
+    },
+    "CompanionResponseInput": {
+      "additionalProperties": false,
+      "properties": {
+        "answer_text": {
+          "maxLength": 12000,
+          "minLength": 1,
+          "title": "Answer Text",
+          "type": "string"
+        },
+        "answer_kind": {
+          "enum": [
+            "answer",
+            "abstention",
+            "clarification"
+          ],
+          "title": "Answer Kind",
+          "type": "string"
+        },
+        "citations": {
+          "items": {
+            "$ref": "#/$defs/SourceRef"
+          },
+          "maxItems": 50,
+          "title": "Citations",
+          "type": "array"
+        },
+        "companion": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Companion",
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 8,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer_text",
+        "answer_kind",
+        "companion",
+        "idempotency_key"
+      ],
+      "title": "CompanionResponseInput",
+      "type": "object"
+    },
+    "Concept": {
+      "additionalProperties": false,
+      "properties": {
+        "concept_id": {
+          "format": "uuid",
+          "title": "Concept Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "body": {
+          "maxLength": 30000,
+          "minLength": 1,
+          "title": "Body",
+          "type": "string"
+        },
+        "maturity": {
+          "$ref": "#/$defs/Maturity",
+          "default": "emerging"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceRef"
+          },
+          "maxItems": 30,
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/Link"
+          },
+          "maxItems": 100,
+          "title": "Links",
+          "type": "array"
+        }
+      },
+      "required": [
+        "concept_id",
+        "title",
+        "body",
+        "sources"
+      ],
+      "title": "Concept",
+      "type": "object"
+    },
+    "FeedbackSignalInput": {
+      "additionalProperties": false,
+      "properties": {
+        "companion_response_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Companion Response Id"
+        },
+        "origin": {
+          "enum": [
+            "explicit",
+            "observed",
+            "inferred"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "thumbs_up",
+            "thumbs_down",
+            "comment",
+            "reformulation",
+            "correction",
+            "abandon",
+            "resolved",
+            "satisfaction"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "comment": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Comment",
+          "type": "string"
+        },
+        "companion": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Companion",
+          "type": "string"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "sentiment": {
+          "anyOf": [
+            {
+              "enum": [
+                "positive",
+                "negative",
+                "neutral"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sentiment"
+        },
+        "iteration_index": {
+          "anyOf": [
+            {
+              "maximum": 10000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Iteration Index"
+        },
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 8,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "origin",
+        "kind",
+        "companion",
+        "idempotency_key"
+      ],
+      "title": "FeedbackSignalInput",
+      "type": "object"
+    },
+    "FeedbackSignalPage": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/FeedbackSignalView"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "next_after": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Next After"
+        }
+      },
+      "required": [
+        "items",
+        "next_after"
+      ],
+      "title": "FeedbackSignalPage",
+      "type": "object"
+    },
+    "FeedbackSignalView": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "episode_id": {
+          "format": "uuid",
+          "title": "Episode Id",
+          "type": "string"
+        },
+        "served_version": {
+          "title": "Served Version",
+          "type": "integer"
+        },
+        "source_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "signal": {
+          "$ref": "#/$defs/FeedbackSignalInput"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "episode_id",
+        "served_version",
+        "source_ids",
+        "signal",
+        "created_at"
+      ],
+      "title": "FeedbackSignalView",
+      "type": "object"
+    },
+    "IssuePage": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/IssueView"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "next_after": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Next After"
+        }
+      },
+      "required": [
+        "items",
+        "next_after"
+      ],
+      "title": "IssuePage",
+      "type": "object"
+    },
+    "IssueView": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "episode_id": {
+          "format": "uuid",
+          "title": "Episode Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "knowledge_gap",
+            "disputed_answer"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "open",
+            "in_progress",
+            "resolved",
+            "dismissed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "episode_id",
+        "kind",
+        "reason",
+        "status",
+        "revision",
+        "created_at"
+      ],
+      "title": "IssueView",
+      "type": "object"
+    },
+    "Link": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "structural",
+            "associative"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "primary": {
+          "default": false,
+          "title": "Primary",
+          "type": "boolean"
+        },
+        "weight": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "target_id",
+        "kind"
+      ],
+      "title": "Link",
+      "type": "object"
+    },
+    "Maturity": {
+      "enum": [
+        "emerging",
+        "observed",
+        "established",
+        "reference"
+      ],
+      "title": "Maturity",
+      "type": "string"
+    },
+    "QueryResult": {
+      "additionalProperties": false,
+      "properties": {
+        "episode_id": {
+          "format": "uuid",
+          "title": "Episode Id",
+          "type": "string"
+        },
+        "answer": {
+          "title": "Answer",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "evidence_found",
+            "knowledge_gap"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "mode": {
+          "const": "extractive",
+          "default": "extractive",
+          "title": "Mode",
+          "type": "string"
+        },
+        "served_version": {
+          "title": "Served Version",
+          "type": "integer"
+        },
+        "concepts": {
+          "items": {
+            "$ref": "#/$defs/Concept"
+          },
+          "title": "Concepts",
+          "type": "array"
+        },
+        "citations": {
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "title": "Citations",
+          "type": "array"
+        },
+        "processing": {
+          "const": "local_no_model",
+          "default": "local_no_model",
+          "title": "Processing",
+          "type": "string"
+        }
+      },
+      "required": [
+        "episode_id",
+        "answer",
+        "status",
+        "served_version",
+        "concepts",
+        "citations"
+      ],
+      "title": "QueryResult",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "start": {
+          "description": "Zero-based Unicode code point offset, inclusive",
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "description": "Unicode code point offset, exclusive; not UTF-16 units",
+          "exclusiveMinimum": 0,
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source_id",
+        "start",
+        "end"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    },
+    "TimelineResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "response": {
+          "$ref": "#/$defs/CompanionResponseInput"
+        },
+        "reference_validation": {
+          "enum": [
+            "episode_references_checked",
+            "no_references"
+          ],
+          "title": "Reference Validation",
+          "type": "string"
+        },
+        "semantic_validation": {
+          "const": "not_performed",
+          "default": "not_performed",
+          "title": "Semantic Validation",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "response",
+        "reference_validation",
+        "created_at"
+      ],
+      "title": "TimelineResponse",
+      "type": "object"
+    },
+    "TimelineResponsePage": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/TimelineResponse"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "next_after": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Next After"
+        }
+      },
+      "required": [
+        "items",
+        "next_after"
+      ],
+      "title": "TimelineResponsePage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "sequence": {
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "question": {
+      "title": "Question",
+      "type": "string"
+    },
+    "result": {
+      "$ref": "#/$defs/QueryResult"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "responses": {
+      "$ref": "#/$defs/TimelineResponsePage"
+    },
+    "signals": {
+      "$ref": "#/$defs/FeedbackSignalPage"
+    },
+    "issues": {
+      "$ref": "#/$defs/IssuePage"
+    }
+  },
+  "required": [
+    "sequence",
+    "question",
+    "result",
+    "created_at",
+    "responses",
+    "signals",
+    "issues"
+  ],
+  "title": "ConversationTurn",
+  "type": "object"
+}

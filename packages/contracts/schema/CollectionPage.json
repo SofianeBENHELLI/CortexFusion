@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "CollectionView": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "allowed_subjects": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Subjects",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "allowed_subjects"
+      ],
+      "title": "CollectionView",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "items": {
+        "$ref": "#/$defs/CollectionView"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "next_after": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Next After"
+    }
+  },
+  "required": [
+    "items",
+    "next_after"
+  ],
+  "title": "CollectionPage",
+  "type": "object"
+}

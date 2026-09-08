@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "published_version": {
+      "title": "Published Version",
+      "type": "integer"
+    },
+    "changed": {
+      "title": "Changed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "published_version",
+    "changed"
+  ],
+  "title": "PublicationReceipt",
+  "type": "object"
+}

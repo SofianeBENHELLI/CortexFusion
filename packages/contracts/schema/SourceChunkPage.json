@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "SourceChunk": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "exclusiveMinimum": 0,
+          "title": "End",
+          "type": "integer"
+        },
+        "content": {
+          "title": "Content",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "content",
+        "sha256"
+      ],
+      "title": "SourceChunk",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "source_id": {
+      "format": "uuid",
+      "title": "Source Id",
+      "type": "string"
+    },
+    "algorithm": {
+      "const": "unicode-2000-6000-v1",
+      "title": "Algorithm",
+      "type": "string"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/SourceChunk"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "next_offset": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Next Offset"
+    }
+  },
+  "required": [
+    "source_id",
+    "algorithm",
+    "items",
+    "next_offset"
+  ],
+  "title": "SourceChunkPage",
+  "type": "object"
+}

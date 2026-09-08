@@ -4,8 +4,19 @@ Cortex Fusion is the product name. The original French v0.5 dossier is preserved
 
 ## Working documents
 
+Start with the [development guide](development.md), [implementation status](implementation-status.md), and [executable-core decision](architecture/decisions/0001-executable-core.md).
+
 | Document | Purpose |
 |---|---|
+| [Guide frontend en français](frontend-guide.fr.md) et [endpoints](frontend-api.fr.md) | Parcours, fonctions, paramètres, droits, états et intégration React/HTTP/MCP |
+| [Synthèse backend durable — conception](backend-synthesis-design.fr.md) | Contrat de réalisation, reprise, confidentialité et tests du premier incrément |
+| [Reference MCP companion](reference-companion.md) | Cited synthesis, resumable receipts, feedback and optional comment assessment |
+| [Evaluation](../evals/README.md) | Synthetic accounting and synthesis scenarios, live findings and limitations |
+| [Restore rehearsal](restore-rehearsal.md) | Local backup/restore evidence and bounded recovery procedure |
+| [Companion responses](companion-responses.md) | Personal delivered-answer receipts and precise feedback targets |
+| [Model attempts](model-attempts.md) | Durable outcomes, safe retries and shared daily call allowance |
+| [MCP onboarding](mcp-onboarding.md) | Authenticated discovery, prompts and configured issuer metadata |
+| [Companion feedback](feedback-loop.md) | Personal feedback provenance, opt-in collection and correction workflow |
 | [Prototype scope](product/prototype-scope.md) | Bounded first release and observable acceptance criteria |
 | [Roadmap](product/roadmap.md) | Implementation sequence and later milestones |
 | [Architecture](architecture/README.md) | Component ownership and knowledge flow |

@@ -1,0 +1,45 @@
+{
+  "status": "passed",
+  "server_info": {
+    "@type": "api:InfoResponse",
+    "api:info": {
+      "authority": "terminusdb://system/data/User/admin",
+      "storage": {
+        "version": "2"
+      },
+      "terminusdb": {
+        "git_hash": "57f2093baeafd65e16004e84b7b58e0c5cf72858",
+        "version": "12.0.7"
+      },
+      "terminusdb_store": {
+        "version": "0.19.8"
+      }
+    },
+    "api:status": "api:success"
+  },
+  "source_reference": "57f2093baeafd65e16004e84b7b58e0c5cf72858",
+  "database": "cortex_spike_fbd6992db47d4f5fa6a9035fd4357899",
+  "checks": [
+    "typed_atoms_and_evidence",
+    "isolated_proposal_branch",
+    "structural_diff",
+    "apply_from_immutable_base",
+    "historical_read",
+    "field_conflict_atomicity",
+    "deterministic_semantic_rule"
+  ],
+  "not_validated": [
+    "product_authorization",
+    "approval_workflow",
+    "multi_store_atomicity",
+    "HA",
+    "backup",
+    "scale",
+    "GraphRAG",
+    "monetary_or_quality_claims"
+  ],
+  "model_calls": 0,
+  "ci_run": "https://github.com/SofianeBENHELLI/CortexFusion/actions/runs/34172543003",
+  "cortex_commit": "601300f4015eca0b1efdd6ae0d7f08e54348ce43",
+  "image_digest": "sha256:385faf298ad77aaf2d4d6df5e84a4cbe3596d01dab2e3b991af905639ae56388"
+}

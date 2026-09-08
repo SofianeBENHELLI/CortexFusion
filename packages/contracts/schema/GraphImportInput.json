@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GraphImportInput",
+  "type": "object",
+  "properties": {
+    "expected_published_version": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854775807
+    },
+    "expected_projection_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "required": [
+    "expected_published_version",
+    "expected_projection_digest"
+  ],
+  "additionalProperties": false
+}

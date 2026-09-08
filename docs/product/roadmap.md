@@ -1,6 +1,6 @@
 # Development roadmap
 
-Status: planned. Timing in the original dossier is a hypothesis; the milestones below track outcomes rather than promise dates.
+Status: foundation and an executable trusted-knowledge subset are delivered; see [implementation status](../implementation-status.md). Timing in the original dossier remains a hypothesis; the milestones below describe target outcomes.
 
 | Milestone | Deliverable | Completion evidence |
 |---|---|---|

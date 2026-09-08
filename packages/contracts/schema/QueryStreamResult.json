@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Citation": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "location": {
+          "title": "Location",
+          "type": "string"
+        },
+        "content_hash": {
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "start": {
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "title": "End",
+          "type": "integer"
+        },
+        "excerpt": {
+          "title": "Excerpt",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "title",
+        "location",
+        "content_hash",
+        "start",
+        "end",
+        "excerpt"
+      ],
+      "title": "Citation",
+      "type": "object"
+    },
+    "Concept": {
+      "additionalProperties": false,
+      "properties": {
+        "concept_id": {
+          "format": "uuid",
+          "title": "Concept Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "body": {
+          "maxLength": 30000,
+          "minLength": 1,
+          "title": "Body",
+          "type": "string"
+        },
+        "maturity": {
+          "$ref": "#/$defs/Maturity",
+          "default": "emerging"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceRef"
+          },
+          "maxItems": 30,
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/Link"
+          },
+          "maxItems": 100,
+          "title": "Links",
+          "type": "array"
+        }
+      },
+      "required": [
+        "concept_id",
+        "title",
+        "body",
+        "sources"
+      ],
+      "title": "Concept",
+      "type": "object"
+    },
+    "Link": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "structural",
+            "associative"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "primary": {
+          "default": false,
+          "title": "Primary",
+          "type": "boolean"
+        },
+        "weight": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "target_id",
+        "kind"
+      ],
+      "title": "Link",
+      "type": "object"
+    },
+    "Maturity": {
+      "enum": [
+        "emerging",
+        "observed",
+        "established",
+        "reference"
+      ],
+      "title": "Maturity",
+      "type": "string"
+    },
+    "QueryResult": {
+      "additionalProperties": false,
+      "properties": {
+        "episode_id": {
+          "format": "uuid",
+          "title": "Episode Id",
+          "type": "string"
+        },
+        "answer": {
+          "title": "Answer",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "evidence_found",
+            "knowledge_gap"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "mode": {
+          "const": "extractive",
+          "default": "extractive",
+          "title": "Mode",
+          "type": "string"
+        },
+        "served_version": {
+          "title": "Served Version",
+          "type": "integer"
+        },
+        "concepts": {
+          "items": {
+            "$ref": "#/$defs/Concept"
+          },
+          "title": "Concepts",
+          "type": "array"
+        },
+        "citations": {
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "title": "Citations",
+          "type": "array"
+        },
+        "processing": {
+          "const": "local_no_model",
+          "default": "local_no_model",
+          "title": "Processing",
+          "type": "string"
+        }
+      },
+      "required": [
+        "episode_id",
+        "answer",
+        "status",
+        "served_version",
+        "concepts",
+        "citations"
+      ],
+      "title": "QueryResult",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "start": {
+          "description": "Zero-based Unicode code point offset, inclusive",
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "description": "Unicode code point offset, exclusive; not UTF-16 units",
+          "exclusiveMinimum": 0,
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source_id",
+        "start",
+        "end"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "event": {
+      "const": "result",
+      "default": "result",
+      "title": "Event",
+      "type": "string"
+    },
+    "protocol_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Protocol Version",
+      "type": "string"
+    },
+    "result": {
+      "$ref": "#/$defs/QueryResult"
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "title": "QueryStreamResult",
+  "type": "object"
+}

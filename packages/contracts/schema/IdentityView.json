@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "AccessibleDomain": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "owner",
+            "corpus_manager",
+            "contributor",
+            "agent",
+            "viewer"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "role",
+        "capabilities"
+      ],
+      "title": "AccessibleDomain",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "extraction_provider": {
+      "anyOf": [
+        {
+          "enum": [
+            "ollama",
+            "openrouter"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Extraction Provider"
+    },
+    "subject": {
+      "title": "Subject",
+      "type": "string"
+    },
+    "tenant_id": {
+      "format": "uuid",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "domains": {
+      "items": {
+        "$ref": "#/$defs/AccessibleDomain"
+      },
+      "title": "Domains",
+      "type": "array"
+    }
+  },
+  "required": [
+    "subject",
+    "tenant_id",
+    "domains"
+  ],
+  "title": "IdentityView",
+  "type": "object"
+}

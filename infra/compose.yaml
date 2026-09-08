@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17.11-bookworm
+    environment:
+      POSTGRES_USER: cortex_migrator
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a local migration password}
+      POSTGRES_DB: cortex_test
+      CORTEX_APP_PASSWORD: ${CORTEX_APP_PASSWORD:?Set a distinct local application password}
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - cortex_postgres:/var/lib/postgresql/data
+      - ./postgres/init.sh:/docker-entrypoint-initdb.d/10-cortex.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cortex_migrator -d cortex_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  cortex_postgres:

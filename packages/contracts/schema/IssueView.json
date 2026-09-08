@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "episode_id": {
+      "format": "uuid",
+      "title": "Episode Id",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "knowledge_gap",
+        "disputed_answer"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "open",
+        "in_progress",
+        "resolved",
+        "dismissed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "revision": {
+      "title": "Revision",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "episode_id",
+    "kind",
+    "reason",
+    "status",
+    "revision",
+    "created_at"
+  ],
+  "title": "IssueView",
+  "type": "object"
+}

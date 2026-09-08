@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "domain_id": {
+      "format": "uuid",
+      "title": "Domain Id",
+      "type": "string"
+    },
+    "accepted_version": {
+      "title": "Accepted Version",
+      "type": "integer"
+    },
+    "published_version": {
+      "title": "Published Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "domain_id",
+    "accepted_version",
+    "published_version"
+  ],
+  "title": "DomainVersion",
+  "type": "object"
+}

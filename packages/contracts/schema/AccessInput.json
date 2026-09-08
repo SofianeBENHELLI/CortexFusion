@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "allowed_subjects": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Allowed Subjects",
+      "type": "array"
+    }
+  },
+  "required": [
+    "allowed_subjects"
+  ],
+  "title": "AccessInput",
+  "type": "object"
+}

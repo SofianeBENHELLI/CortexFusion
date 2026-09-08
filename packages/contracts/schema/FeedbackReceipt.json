@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "feedback_id": {
+      "format": "uuid",
+      "title": "Feedback Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "feedback_id"
+  ],
+  "title": "FeedbackReceipt",
+  "type": "object"
+}

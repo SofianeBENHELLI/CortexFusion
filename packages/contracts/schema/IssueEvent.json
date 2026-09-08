@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "issue_id": {
+      "format": "uuid",
+      "title": "Issue Id",
+      "type": "string"
+    },
+    "author": {
+      "title": "Author",
+      "type": "string"
+    },
+    "previous_status": {
+      "enum": [
+        "open",
+        "in_progress",
+        "resolved",
+        "dismissed"
+      ],
+      "title": "Previous Status",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "open",
+        "in_progress",
+        "resolved",
+        "dismissed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "revision": {
+      "title": "Revision",
+      "type": "integer"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "correction_proposal_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Correction Proposal Id"
+    },
+    "correction_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Correction Digest"
+    },
+    "correction_published_version": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Correction Published Version"
+    }
+  },
+  "required": [
+    "id",
+    "issue_id",
+    "author",
+    "previous_status",
+    "status",
+    "revision",
+    "reason",
+    "created_at"
+  ],
+  "title": "IssueEvent",
+  "type": "object"
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "status": {
+      "const": "ready",
+      "title": "Status",
+      "type": "string"
+    },
+    "schema_revision": {
+      "title": "Schema Revision",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "schema_revision"
+  ],
+  "title": "ReadinessView",
+  "type": "object"
+}

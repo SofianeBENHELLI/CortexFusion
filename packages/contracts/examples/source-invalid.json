@@ -1,0 +1,10 @@
+{
+  "contract": "SourceInput",
+  "valid": false,
+  "value": {
+    "title": "Synthetic runbook",
+    "location": "fixture://runbook",
+    "content": "Content",
+    "allowed_subjects": []
+  }
+}

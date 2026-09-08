@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "start": {
+          "description": "Zero-based Unicode code point offset, inclusive",
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "description": "Unicode code point offset, exclusive; not UTF-16 units",
+          "exclusiveMinimum": 0,
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source_id",
+        "start",
+        "end"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "answer_text": {
+      "maxLength": 12000,
+      "minLength": 1,
+      "title": "Answer Text",
+      "type": "string"
+    },
+    "answer_kind": {
+      "enum": [
+        "answer",
+        "abstention",
+        "clarification"
+      ],
+      "title": "Answer Kind",
+      "type": "string"
+    },
+    "citations": {
+      "items": {
+        "$ref": "#/$defs/SourceRef"
+      },
+      "maxItems": 50,
+      "title": "Citations",
+      "type": "array"
+    },
+    "companion": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Companion",
+      "type": "string"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model"
+    },
+    "idempotency_key": {
+      "maxLength": 128,
+      "minLength": 8,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "answer_text",
+    "answer_kind",
+    "companion",
+    "idempotency_key"
+  ],
+  "title": "CompanionResponseInput",
+  "type": "object"
+}

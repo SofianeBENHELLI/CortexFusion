@@ -1,0 +1,1302 @@
+{
+  "version": "1",
+  "openapi_url": "/openapi.json",
+  "authorization_notice": "This is an inventory, not an authorization grant. Use /v1/me for actual memberships; the server rechecks every operation.",
+  "items": [
+    {
+      "action_id": "system.mcp_discovery",
+      "roles": [],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Découvre le fournisseur d'identité configuré pour cette ressource MCP.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/.well-known/oauth-protected-resource",
+      "operation_id": "system.mcp_discovery"
+    },
+    {
+      "action_id": "responses.create",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "personal",
+      "effect_description": "Changes personal state or appends personal feedback/decision history.",
+      "intent_example": "Conserve la réponse de mon companion et ses références à cet épisode.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/episodes/{episode_id}/companion-responses",
+      "operation_id": "responses.create"
+    },
+    {
+      "action_id": "responses.read",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre cette réponse et les preuves de l'épisode associé.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/companion-responses/{response_id}",
+      "operation_id": "responses.read"
+    },
+    {
+      "action_id": "responses.list",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Retrouve les réponses personnelles de mes companions.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/companion-responses",
+      "operation_id": "responses.list"
+    },
+    {
+      "action_id": "syntheses.create",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "synthesis",
+      "effect_description": "Sends an episode question and cited excerpts to configured OpenRouter; may incur charges; records a personal response without publishing knowledge.",
+      "intent_example": "Génère une réponse citée à cet épisode via OpenRouter.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/episodes/{episode_id}/syntheses",
+      "operation_id": "syntheses.create"
+    },
+    {
+      "action_id": "syntheses.read",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre le résultat durable de cette synthèse personnelle.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/syntheses/{ident}",
+      "operation_id": "syntheses.read"
+    },
+    {
+      "action_id": "syntheses.list",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Retrouve mes tentatives de synthèse.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/syntheses",
+      "operation_id": "syntheses.list"
+    },
+    {
+      "action_id": "models.attempts",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Liste mes tentatives d'extraction et leurs résultats durables.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/model-attempts",
+      "operation_id": "models.attempts"
+    },
+    {
+      "action_id": "models.attempt",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Inspecte cette tentative sans relancer le fournisseur.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/model-attempts/{attempt_id}",
+      "operation_id": "models.attempt"
+    },
+    {
+      "action_id": "models.usage",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Quel quota de tentatives IA reste disponible aujourd'hui dans ce domaine ?",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/model-usage",
+      "operation_id": "models.usage"
+    },
+    {
+      "action_id": "conversations.create",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "personal",
+      "effect_description": "Changes personal state or appends personal feedback/decision history.",
+      "intent_example": "Crée une conversation sur les incidents.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/conversations",
+      "operation_id": "conversations.create"
+    },
+    {
+      "action_id": "conversations.list",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Retrouve mes conversations actives.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/conversations",
+      "operation_id": "conversations.list"
+    },
+    {
+      "action_id": "conversations.read",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Ouvre cette conversation.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/conversations/{ident}",
+      "operation_id": "conversations.read"
+    },
+    {
+      "action_id": "conversations.update",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "personal",
+      "effect_description": "Changes personal state or appends personal feedback/decision history.",
+      "intent_example": "Archive cette conversation.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "PUT",
+      "path": "/v1/domains/{domain}/conversations/{ident}",
+      "operation_id": "conversations.update"
+    },
+    {
+      "action_id": "conversations.messages",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre les messages précédents de cette conversation.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/conversations/{ident}/messages",
+      "operation_id": "conversations.messages"
+    },
+    {
+      "action_id": "conversations.timeline",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Ouvre les questions, réponses délivrées et retours de ma conversation.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/conversations/{ident}/timeline",
+      "operation_id": "conversations.timeline"
+    },
+    {
+      "action_id": "conversations.query",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "episode",
+      "effect_description": "Retrieves approved excerpts and records a private episode; a gap can create a personal issue.",
+      "intent_example": "Pose cette question dans ma conversation et cite les preuves.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/conversations/{ident}/query",
+      "operation_id": "conversations.query"
+    },
+    {
+      "action_id": "members.list",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Qui a accès à ce domaine ?",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/members",
+      "operation_id": "members.list"
+    },
+    {
+      "action_id": "members.change",
+      "roles": [
+        "owner"
+      ],
+      "effect": "access",
+      "effect_description": "Changes domain membership or source readers; may revoke access immediately.",
+      "intent_example": "Prépare le changement de rôle de ce membre.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/members",
+      "operation_id": "members.change"
+    },
+    {
+      "action_id": "members.history",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre les changements d'accès du domaine.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/membership-events",
+      "operation_id": "members.history"
+    },
+    {
+      "action_id": "commits.list",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre le journal des changements acceptés.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/commits",
+      "operation_id": "commits.list"
+    },
+    {
+      "action_id": "proposals.diff",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Compare cette proposition à la connaissance publiée.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/proposals/{ident}/diff",
+      "operation_id": "proposals.diff"
+    },
+    {
+      "action_id": "sources.chunks",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Découpe cette source en passages consultables.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/sources/{source_id}/chunks",
+      "operation_id": "sources.chunks"
+    },
+    {
+      "action_id": "collections.create",
+      "roles": [
+        "owner",
+        "corpus_manager"
+      ],
+      "effect": "corpus",
+      "effect_description": "Changes corpus/import/file state; does not publish trusted knowledge.",
+      "intent_example": "Crée une collection privée avec ces lecteurs.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/collections",
+      "operation_id": "collections.create"
+    },
+    {
+      "action_id": "collections.list",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Recherche mes collections accessibles.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/collections",
+      "operation_id": "collections.list"
+    },
+    {
+      "action_id": "collections.read",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre cette collection.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/collections/{collection_id}",
+      "operation_id": "collections.read"
+    },
+    {
+      "action_id": "sources.list",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Recherche les sources sur les incidents.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/sources",
+      "operation_id": "sources.list"
+    },
+    {
+      "action_id": "sources.create",
+      "roles": [
+        "owner",
+        "corpus_manager"
+      ],
+      "effect": "corpus",
+      "effect_description": "Changes corpus/import/file state; does not publish trusted knowledge.",
+      "intent_example": "Enregistre ce texte avec ces droits d'accès.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/sources",
+      "operation_id": "sources.create"
+    },
+    {
+      "action_id": "imports.create",
+      "roles": [
+        "owner",
+        "corpus_manager"
+      ],
+      "effect": "corpus",
+      "effect_description": "Changes corpus/import/file state; does not publish trusted knowledge.",
+      "intent_example": "Prépare l'import de ces textes dans cette collection.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/collections/{collection_id}/imports",
+      "operation_id": "imports.create"
+    },
+    {
+      "action_id": "imports.list",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Où en sont mes imports ?",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/imports",
+      "operation_id": "imports.list"
+    },
+    {
+      "action_id": "imports.read",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre le reçu de cet import.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/imports/{import_id}",
+      "operation_id": "imports.read"
+    },
+    {
+      "action_id": "imports.process",
+      "roles": [
+        "owner",
+        "corpus_manager"
+      ],
+      "effect": "corpus",
+      "effect_description": "Changes corpus/import/file state; does not publish trusted knowledge.",
+      "intent_example": "Traite les prochains éléments de cet import.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/imports/{import_id}/process",
+      "operation_id": "imports.process"
+    },
+    {
+      "action_id": "imports.cancel",
+      "roles": [
+        "owner",
+        "corpus_manager"
+      ],
+      "effect": "corpus",
+      "effect_description": "Changes corpus/import/file state; does not publish trusted knowledge.",
+      "intent_example": "Annule les éléments encore en attente.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/imports/{import_id}/cancel",
+      "operation_id": "imports.cancel"
+    },
+    {
+      "action_id": "imports.retry",
+      "roles": [
+        "owner",
+        "corpus_manager"
+      ],
+      "effect": "corpus",
+      "effect_description": "Changes corpus/import/file state; does not publish trusted knowledge.",
+      "intent_example": "Reprogramme les éléments de cet import en échec.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/imports/{import_id}/retry",
+      "operation_id": "imports.retry"
+    },
+    {
+      "action_id": "files.upload",
+      "roles": [
+        "owner",
+        "corpus_manager"
+      ],
+      "effect": "corpus",
+      "effect_description": "Changes corpus/import/file state; does not publish trusted knowledge.",
+      "intent_example": "Dépose ce fichier dans cette collection.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/collections/{collection}/files",
+      "operation_id": "files.upload"
+    },
+    {
+      "action_id": "files.list",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Liste les fichiers auxquels j'ai accès.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/files",
+      "operation_id": "files.list"
+    },
+    {
+      "action_id": "files.read",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre le résultat d'analyse de ce fichier.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/files/{ident}",
+      "operation_id": "files.read"
+    },
+    {
+      "action_id": "files.download",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Télécharge le fichier original.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/files/{ident}/download",
+      "operation_id": "files.download"
+    },
+    {
+      "action_id": "files.process",
+      "roles": [
+        "owner",
+        "corpus_manager"
+      ],
+      "effect": "corpus",
+      "effect_description": "Changes corpus/import/file state; does not publish trusted knowledge.",
+      "intent_example": "Extrais le texte de ce fichier.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/files/{ident}/process",
+      "operation_id": "files.process"
+    },
+    {
+      "action_id": "files.retry",
+      "roles": [
+        "owner",
+        "corpus_manager"
+      ],
+      "effect": "corpus",
+      "effect_description": "Changes corpus/import/file state; does not publish trusted knowledge.",
+      "intent_example": "Reprogramme l'analyse de ce fichier.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/files/{ident}/retry",
+      "operation_id": "files.retry"
+    },
+    {
+      "action_id": "files.cancel",
+      "roles": [
+        "owner",
+        "corpus_manager"
+      ],
+      "effect": "corpus",
+      "effect_description": "Changes corpus/import/file state; does not publish trusted knowledge.",
+      "intent_example": "Annule l'analyse de ce fichier.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/files/{ident}/cancel",
+      "operation_id": "files.cancel"
+    },
+    {
+      "action_id": "feedback.summary",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Résume mes signaux accessibles en séparant votes, observations et estimations.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/feedback-summary",
+      "operation_id": "feedback.summary"
+    },
+    {
+      "action_id": "feedback.preferences",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Quelles remontées automatiques ai-je autorisées ?",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/feedback-preferences",
+      "operation_id": "feedback.preferences"
+    },
+    {
+      "action_id": "feedback.configure",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "personal",
+      "effect_description": "Changes personal state or appends personal feedback/decision history.",
+      "intent_example": "Modifie mes préférences de remontée automatique avec mon accord explicite.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "PUT",
+      "path": "/v1/domains/{domain}/feedback-preferences",
+      "operation_id": "feedback.configure"
+    },
+    {
+      "action_id": "feedback.record_signal",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "personal",
+      "effect_description": "Changes personal state or appends personal feedback/decision history.",
+      "intent_example": "Enregistre ce signal de feedback avec son origine déclarée.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/episodes/{episode_id}/signals",
+      "operation_id": "feedback.record_signal"
+    },
+    {
+      "action_id": "feedback.signals",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre mes signaux de feedback accessibles.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/feedback-signals",
+      "operation_id": "feedback.signals"
+    },
+    {
+      "action_id": "issues.list",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Liste mes signalements ouverts.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/issues",
+      "operation_id": "issues.list"
+    },
+    {
+      "action_id": "issues.read",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre ce signalement personnel.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/issues/{ident}",
+      "operation_id": "issues.read"
+    },
+    {
+      "action_id": "issues.history",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre les décisions sur ce signalement.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/issues/{ident}/events",
+      "operation_id": "issues.history"
+    },
+    {
+      "action_id": "issues.decide",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "personal",
+      "effect_description": "Changes personal state or appends personal feedback/decision history.",
+      "intent_example": "Résous mon signalement avec cette justification.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/issues/{ident}/decisions",
+      "operation_id": "issues.decide"
+    },
+    {
+      "action_id": "identity.read",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Quels domaines et fonctions me sont accessibles ?",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/me",
+      "operation_id": "identity.read"
+    },
+    {
+      "action_id": "proposals.list",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Quelles propositions attendent une revue ?",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/proposals",
+      "operation_id": "proposals.list"
+    },
+    {
+      "action_id": "proposals.create",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent"
+      ],
+      "effect": "proposal",
+      "effect_description": "Creates or revises a proposal; does not publish trusted knowledge.",
+      "intent_example": "Prépare une proposition appuyée sur ces passages.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/proposals",
+      "operation_id": "proposals.create"
+    },
+    {
+      "action_id": "episodes.list",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Retrouve mes questions et les versions servies.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/episodes",
+      "operation_id": "episodes.list"
+    },
+    {
+      "action_id": "proposals.review",
+      "roles": [
+        "owner"
+      ],
+      "effect": "review",
+      "effect_description": "Records a review decision and changes proposal review status.",
+      "intent_example": "Demande une modification de cette proposition.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/proposals/{ident}/reviews",
+      "operation_id": "proposals.review"
+    },
+    {
+      "action_id": "proposals.reviews",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre les décisions de revue de cette proposition.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/proposals/{ident}/reviews",
+      "operation_id": "proposals.reviews"
+    },
+    {
+      "action_id": "proposals.revise",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent"
+      ],
+      "effect": "proposal",
+      "effect_description": "Creates or revises a proposal; does not publish trusted knowledge.",
+      "intent_example": "Crée une nouvelle révision de ma proposition.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/proposals/{ident}/revise",
+      "operation_id": "proposals.revise"
+    },
+    {
+      "action_id": "sources.extract_local",
+      "roles": [
+        "owner"
+      ],
+      "effect": "local_model",
+      "effect_description": "Sends source text to the configured loopback model and creates a proposal.",
+      "intent_example": "Sélectionne un passage de cette source avec le modèle local.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/sources/{source_id}/extract-local",
+      "operation_id": "sources.extract_local"
+    },
+    {
+      "action_id": "sources.extract",
+      "roles": [
+        "owner"
+      ],
+      "effect": "model",
+      "effect_description": "Sends the selected source span to the explicitly selected configured provider; may incur charges; creates a proposal.",
+      "intent_example": "Prépare l'extraction de ce passage avec le fournisseur configuré.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/sources/{source_id}/extract",
+      "operation_id": "sources.extract"
+    },
+    {
+      "action_id": "extractions.read",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre le reçu de mon extraction.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/extractions/{ident}",
+      "operation_id": "extractions.read"
+    },
+    {
+      "action_id": "system.ready",
+      "roles": [],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Vérifie que la base et son schéma permettent de servir le backend.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/ready",
+      "operation_id": "system.ready"
+    },
+    {
+      "action_id": "system.health",
+      "roles": [],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Vérifie que le service répond.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/health",
+      "operation_id": "system.health"
+    },
+    {
+      "action_id": "domain.version",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Quelle version de connaissance est publiée ?",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/version",
+      "operation_id": "domain.version"
+    },
+    {
+      "action_id": "sources.read",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre cette source et son empreinte.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/sources/{source_id}",
+      "operation_id": "sources.read"
+    },
+    {
+      "action_id": "sources.access",
+      "roles": [
+        "owner"
+      ],
+      "effect": "access",
+      "effect_description": "Changes domain membership or source readers; may revoke access immediately.",
+      "intent_example": "Prépare la modification des lecteurs de cette source.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "PUT",
+      "path": "/v1/domains/{domain}/sources/{source_id}/access",
+      "operation_id": "sources.access"
+    },
+    {
+      "action_id": "sources.propose",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent"
+      ],
+      "effect": "proposal",
+      "effect_description": "Creates or revises a proposal; does not publish trusted knowledge.",
+      "intent_example": "Transforme cette source en proposition à relire.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/sources/{source_id}/propose",
+      "operation_id": "sources.propose"
+    },
+    {
+      "action_id": "proposals.read",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre le contenu et l'état de cette proposition.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/proposals/{proposal_id}",
+      "operation_id": "proposals.read"
+    },
+    {
+      "action_id": "proposals.approve",
+      "roles": [
+        "owner"
+      ],
+      "effect": "trusted",
+      "effect_description": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
+      "intent_example": "Prépare l'approbation de cette version précise de la proposition.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/proposals/{proposal_id}/approve",
+      "operation_id": "proposals.approve"
+    },
+    {
+      "action_id": "proposals.publish",
+      "roles": [
+        "owner"
+      ],
+      "effect": "trusted",
+      "effect_description": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
+      "intent_example": "Publie cette proposition acceptée avec la version attendue.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/proposals/{proposal_id}/publish",
+      "operation_id": "proposals.publish"
+    },
+    {
+      "action_id": "domain.publish",
+      "roles": [
+        "owner"
+      ],
+      "effect": "trusted",
+      "effect_description": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
+      "intent_example": "Publie le changement accepté en attente.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/publish",
+      "operation_id": "domain.publish"
+    },
+    {
+      "action_id": "domain.replay",
+      "roles": [
+        "owner"
+      ],
+      "effect": "rebuild",
+      "effect_description": "Rebuilds the published projection from the journal.",
+      "intent_example": "Reconstruis la projection depuis le journal publié.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/replay",
+      "operation_id": "domain.replay"
+    },
+    {
+      "action_id": "commits.compensate",
+      "roles": [
+        "owner"
+      ],
+      "effect": "proposal",
+      "effect_description": "Creates or revises a proposal; does not publish trusted knowledge.",
+      "intent_example": "Prépare une proposition compensant ce changement.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/commits/{sequence}/compensate",
+      "operation_id": "commits.compensate"
+    },
+    {
+      "action_id": "concepts.list",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Liste les concepts publiés accessibles.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/concepts",
+      "operation_id": "concepts.list"
+    },
+    {
+      "action_id": "concepts.read",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre ce concept avec ses relations accessibles.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/concepts/{concept_id}",
+      "operation_id": "concepts.read"
+    },
+    {
+      "action_id": "knowledge.query",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "episode",
+      "effect_description": "Retrieves approved excerpts and records a private episode; a gap can create a personal issue.",
+      "intent_example": "Réponds à ma question avec les passages approuvés.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/query",
+      "operation_id": "knowledge.query"
+    },
+    {
+      "action_id": "episodes.read",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Retrouve la réponse citée à cette question passée.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/episodes/{episode_id}",
+      "operation_id": "episodes.read"
+    },
+    {
+      "action_id": "episodes.feedback",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "personal",
+      "effect_description": "Changes personal state or appends personal feedback/decision history.",
+      "intent_example": "Signale que cette réponse ne m'aide pas.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/episodes/{episode_id}/feedback",
+      "operation_id": "episodes.feedback"
+    },
+    {
+      "action_id": "domain.brief",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Résume les propositions en attente et mes signalements actifs.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/brief",
+      "operation_id": "domain.brief"
+    },
+    {
+      "action_id": "interactions.list",
+      "roles": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "agent",
+        "viewer"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Quelles actions puis-je préparer avec cette API ?",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Service checks membership, current evidence access and personal/author scope where applicable. Listed roles alone do not grant object access.",
+      "method": "GET",
+      "path": "/v1/interactions",
+      "operation_id": "interactions.list"
+    }
+  ]
+}

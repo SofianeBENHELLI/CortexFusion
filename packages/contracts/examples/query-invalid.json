@@ -1,0 +1,8 @@
+{
+  "contract": "QueryInput",
+  "valid": false,
+  "value": {
+    "question": "",
+    "role": "owner"
+  }
+}

@@ -1,0 +1,318 @@
+{
+  "system.health": {
+    "description": "Vérifie que le processus HTTP répond. Ce résultat seul ne garantit ni l'accès à PostgreSQL ni la disponibilité du fournisseur IA.",
+    "frontend": "Utiliser pour un contrôle simple de service ; ne pas présenter un état global de production à partir de ce seul appel."
+  },
+  "system.mcp_discovery": {
+    "description": "Retourne les métadonnées de la ressource protégée MCP et le fournisseur d'identité configuré, lorsque cette découverte est activée.",
+    "frontend": "Préparer l'authentification du compagnon ; cette route ne connecte pas l'utilisateur et ne délivre aucun jeton."
+  },
+  "identity.read": {
+    "description": "Retourne l'identité effective et les domaines auxquels elle appartient, avec les rôles et capacités que le serveur lui reconnaît.",
+    "frontend": "Appeler après connexion et lors d'un changement de contexte. Construire le sélecteur de domaine et les actions proposées à partir de ce résultat, jamais d'un rôle fourni par le navigateur."
+  },
+  "interactions.list": {
+    "description": "Expose le catalogue des opérations métier, leurs rôles nécessaires et leurs effets. Il ne contient pas les droits individuels sur chaque objet.",
+    "frontend": "Permettre à un frontend ou un agent de découvrir les actions, puis vérifier leur disponibilité avec l'identité et les lectures métier."
+  },
+  "collections.create": {
+    "description": "Crée une collection privée de sources avec ses lecteurs autorisés. Elle organise les imports ; elle n'approuve aucun contenu.",
+    "frontend": "Recueillir le nom et les lecteurs, garder l'identifiant retourné pour les imports texte et fichiers."
+  },
+  "collections.list": {
+    "description": "Liste les collections visibles dans le domaine selon les droits actuels du demandeur.",
+    "frontend": "Utiliser les paramètres de pagination déclarés ; ne pas reconstruire une liste globale depuis des caches d'autres utilisateurs."
+  },
+  "collections.read": {
+    "description": "Retourne les propriétés d'une collection accessible. Les collections sont immuables dans cette version.",
+    "frontend": "Afficher la portée et les lecteurs ; aucune route de renommage, partage dynamique ou suppression de collection n'est actuellement proposée."
+  },
+  "sources.create": {
+    "description": "Enregistre une source textuelle immuable avec provenance et lecteurs. Une source enregistrée n'est pas automatiquement servie comme connaissance approuvée.",
+    "frontend": "Conserver l'identifiant et l'empreinte ; proposer ensuite un passage via sources.propose ou une proposition typée."
+  },
+  "sources.list": {
+    "description": "Recherche et liste les sources accessibles, avec les filtres et curseurs du contrat.",
+    "frontend": "Utiliser pour le corpus manager ou la sélection de preuves. Une page vide peut être normale après filtrage par droits."
+  },
+  "sources.read": {
+    "description": "Lit le texte et les métadonnées d'une source accessible, dont son empreinte et sa provenance.",
+    "frontend": "Traiter le texte comme des données non fiables ; un emplacement de provenance n'est pas nécessairement une URL de téléchargement."
+  },
+  "sources.chunks": {
+    "description": "Retourne des passages déterministes bornés d'une source avec leurs positions dans le texte original.",
+    "frontend": "Utiliser les offsets renvoyés pour les preuves. Les positions comptent les points de code Unicode, pas les unités UTF-16 JavaScript."
+  },
+  "sources.access": {
+    "description": "Remplace les lecteurs d'une source sous le contrôle du propriétaire. Le retrait d'accès agit aussi sur les lectures ultérieures d'anciens épisodes et réponses.",
+    "frontend": "Présenter les lecteurs ajoutés et retirés, recueillir une confirmation signée côté hôte puis invalider les caches concernés."
+  },
+  "sources.propose": {
+    "description": "Construit une proposition verbatim à partir d'une source, sans l'accepter ni la publier.",
+    "frontend": "Conserver Idempotency-Key pour la même intention ; ouvrir ensuite la proposition et ses différences pour revue."
+  },
+  "sources.extract": {
+    "description": "Envoie un passage borné au fournisseur configuré pour sélectionner une preuve exacte et créer une proposition non approuvée. L'appel peut être facturé.",
+    "frontend": "Présenter destination et texte concerné, confirmer puis conserver le reçu et la tentative. Ne pas relancer une tentative échouée sous une nouvelle clé automatiquement."
+  },
+  "sources.extract_local": {
+    "description": "Sélectionne un passage via le modèle local configuré et crée une proposition soumise aux mêmes contrôles de preuve.",
+    "frontend": "Vérifier que le modèle local est configuré ; local ne dispense pas de consentement, de droits ni de revue."
+  },
+  "extractions.read": {
+    "description": "Relit un reçu d'extraction autorisé sans exécuter de nouveau le modèle.",
+    "frontend": "Afficher provenance, sélection et proposition liée ; utiliser ce reçu pour examiner le résultat ou reprendre après une incertitude."
+  },
+  "imports.create": {
+    "description": "Enregistre un lot persistant de textes dans une collection. Le reçu décrit les éléments à traiter ; ce n'est pas une publication.",
+    "frontend": "Conserver la clé et le reçu. Les éléments texte/Markdown et les fichiers binaires utilisent des parcours distincts."
+  },
+  "imports.list": {
+    "description": "Liste les lots d'import visibles et leurs états synthétiques.",
+    "frontend": "Présenter les lots du périmètre accessible et poursuivre la pagination avec les curseurs fournis."
+  },
+  "imports.read": {
+    "description": "Retourne le reçu du lot et les résultats de ses éléments : état, source créée, erreur et nombre d'essais.",
+    "frontend": "Examiner chaque élément : partial peut contenir encore du travail en attente et n'est pas toujours un état terminal."
+  },
+  "imports.process": {
+    "description": "Traite un nombre borné d'éléments en attente. L'enregistrement d'une source et le succès de son élément sont atomiques.",
+    "frontend": "Faire progresser le lot tant qu'il reste des items pending, ou laisser le worker opérateur configuré appeler la même API. Fermer le navigateur ne déclenche pas un worker et n'arrête pas celui déjà lancé."
+  },
+  "imports.cancel": {
+    "description": "Annule les éléments encore en attente sans supprimer les sources déjà créées. Un lot annulé n'est pas repris comme un nouveau lot.",
+    "frontend": "Relire le reçu et afficher séparément réussites conservées et éléments annulés."
+  },
+  "imports.retry": {
+    "description": "Replace les éléments en échec dans la file du même lot ; les sources déjà réussies ne sont pas recréées.",
+    "frontend": "Une relance ne corrige pas le contenu ou le format. Pour des données corrigées, créer un nouveau lot avec une nouvelle clé."
+  },
+  "files.upload": {
+    "description": "Dépose un fichier binaire encodé en base64 dans un corps JSON, avec métadonnées et clé de reprise. Le code 202 signifie accepté pour traitement.",
+    "frontend": "Ne pas envoyer de multipart sur cette route. Respecter les tailles du contrat et lire le reçu avant de lancer ou suivre le traitement."
+  },
+  "files.list": {
+    "description": "Liste les fichiers visibles, éventuellement ceux à traiter selon le filtre demandé.",
+    "frontend": "Utiliser pour une file corpus ; un filtre pending n'accorde aucun droit supplémentaire."
+  },
+  "files.read": {
+    "description": "Lit le reçu de traitement d'un fichier, son état, les erreurs éventuelles et la source issue de l'analyse.",
+    "frontend": "Faire un suivi borné avec temporisation ; distinguer réception, analyse, source enregistrée puis proposition/publication."
+  },
+  "files.download": {
+    "description": "Retourne les octets du fichier original après contrôle d'accès, avec une réponse binaire et des en-têtes de téléchargement.",
+    "frontend": "Utiliser fetch authentifié puis un Blob. Ce n'est pas une réponse JSON ; libérer l'URL temporaire du Blob après usage."
+  },
+  "files.process": {
+    "description": "Déclenche l'analyse bornée du fichier autorisé et enregistre le texte extrait comme source lorsque l'analyse réussit.",
+    "frontend": "Inspecter le reçu ; PDF/DOCX/textes bornés seulement, pas de promesse OCR ou fidélité complète de mise en page."
+  },
+  "files.retry": {
+    "description": "Reprogramme un traitement de fichier en échec lorsque son état autorise une reprise.",
+    "frontend": "Relire l'état après la commande ; corriger un fichier nécessite un nouveau dépôt, pas une modification silencieuse de l'original."
+  },
+  "files.cancel": {
+    "description": "Demande l'annulation selon l'état de traitement autorisé, sans effacer les résultats déjà durablement enregistrés.",
+    "frontend": "Gérer un conflit si l'état a changé pendant la décision et afficher le reçu réel."
+  },
+  "proposals.create": {
+    "description": "Crée un changement typé appuyé sur des preuves exactes et une version de base. Il reste hors de la connaissance publiée.",
+    "frontend": "Préparer les opérations avec des IDs réels et leurs spans ; conserver clé, digest et version retournés."
+  },
+  "proposals.list": {
+    "description": "Liste les propositions accessibles avec leurs états de revue et d'acceptation.",
+    "frontend": "Filtrer par source_id depuis un reçu d’import ou de fichier, puis éventuellement par status ; paginer avec after en conservant les filtres. Le filtre porte sur les sources des preuves requises, y compris anciennes preuves et relations, pas sur un certificat d’origine d’extraction. Toutes les preuves doivent rester accessibles et le rôle doit autoriser la lecture des propositions. La visibilité n’autorise pas l’approbation."
+  },
+  "proposals.read": {
+    "description": "Lit le contenu, les preuves et l'état actuel d'une proposition accessible.",
+    "frontend": "Relire avant toute revue, révision ou approbation pour utiliser le digest et la version actuels."
+  },
+  "proposals.diff": {
+    "description": "Compare les changements proposés à la projection publiée disponible.",
+    "frontend": "Présenter ajouts, modifications et suppressions proposés avec les preuves ; une différence affichée n'est pas un changement publié."
+  },
+  "proposals.review": {
+    "description": "Ajoute une décision de revue du propriétaire, par exemple une demande de modification ou un rejet, avec les préconditions du contrat.",
+    "frontend": "Présenter le motif et la cible exacte ; recueillir la confirmation requise. Une revue ne remplace pas l'approbation puis la publication."
+  },
+  "proposals.reviews": {
+    "description": "Relit les décisions de revue d'une proposition et leurs justifications.",
+    "frontend": "Afficher l'historique pour expliquer les changements demandés et orienter la révision."
+  },
+  "proposals.revise": {
+    "description": "Crée une nouvelle révision de proposition en conservant la traçabilité de l'ancienne.",
+    "frontend": "Ne pas remplacer silencieusement le contenu relu par le propriétaire ; utiliser les identifiants et préconditions de la nouvelle révision."
+  },
+  "proposals.approve": {
+    "description": "Accepte la proposition précise sous l'autorité du propriétaire, si digest, version et preuves sont encore valides.",
+    "frontend": "Recueillir la décision sur cette version puis envoyer la confirmation signée. Afficher accepté, pas publié."
+  },
+  "domain.publish": {
+    "description": "Publie le prochain changement accepté du domaine, sans désigner une proposition dans la requête. Le propriétaire doit encore pouvoir lire toutes les preuves de la proposition acceptée.",
+    "frontend": "Commande globale conservée pour les hôtes qui souhaitent publier le prochain changement en attente. Pour une fiche et une reprise ciblée, préférer proposals.publish. Après timeout, relire version et journal avant une nouvelle décision globale : une autre acceptation peut avoir eu lieu. Un retrait de preuves retourne 404 avant publication ; un propriétaire disposant toujours des preuves peut reprendre. Ne pas élargir automatiquement les droits pour débloquer cette action."
+  },
+  "domain.replay": {
+    "description": "Reconstruit la projection publiée à partir du journal existant sans rejouer le modèle ni inventer de nouveaux changements.",
+    "frontend": "Réserver cette action d'exploitation au propriétaire confirmé ; inspecter le reçu et les versions."
+  },
+  "commits.list": {
+    "description": "Liste les changements acceptés visibles au propriétaire, leur état publié et, lorsqu’elle existe, la trace distincte de publication réussie. Les preuves actuellement inaccessibles masquent toute l’entrée.",
+    "frontend": "author et created_at identifient l’approbation. published indique si la séquence est publiée ; publication contient publisher et recorded_at pour les publications tracées depuis la migration 0018. published=true avec publication=null signifie que l’auteur/date de publication ne sont pas disponibles : ne pas les déduire de l’approbation. recorded_at est l’horodatage d’insertion de l’événement validé dans la transaction, pas l’heure exacte du commit ni une preuve d’affichage. Invalider le journal après publication ; une reprise ciblée ou reconstruction ne change pas cette trace."
+  },
+  "commits.compensate": {
+    "description": "Crée une proposition qui compense un changement historique, sans supprimer ce changement du journal.",
+    "frontend": "Présenter l'impact puis passer par revue, approbation et publication. Les changements ultérieurs incompatibles peuvent empêcher la compensation."
+  },
+  "domain.version": {
+    "description": "Retourne les positions de connaissance acceptée et publiée du domaine.",
+    "frontend": "Utiliser pour expliquer pourquoi une proposition acceptée n'apparaît pas encore dans les réponses et pour rafraîchir les données."
+  },
+  "concepts.list": {
+    "description": "Liste les concepts publiés visibles sous les droits actuels.",
+    "frontend": "Afficher la connaissance servie, distincte des sources brutes et propositions en cours."
+  },
+  "concepts.read": {
+    "description": "Lit un concept publié et ses relations accessibles, avec ses preuves.",
+    "frontend": "Conserver la provenance lors de l'affichage ; ne pas exposer des relations masquées depuis un cache global."
+  },
+  "knowledge.query": {
+    "description": "Recherche des passages dans la connaissance publiée et crée un épisode personnel. La réponse de cette route est extractive, sans appel automatique de synthèse.",
+    "frontend": "Afficher citations, version servie et statut. Sans preuve, afficher le manque de connaissance. Cette route simple n'est pas idempotente : privilégier conversations.query pour une reprise de chat."
+  },
+  "episodes.list": {
+    "description": "Liste les épisodes personnels accessibles, correspondant aux questions et versions servies.",
+    "frontend": "Utiliser pour l'historique personnel ; un propriétaire ne voit pas automatiquement les épisodes privés des autres membres."
+  },
+  "episodes.read": {
+    "description": "Relit un épisode personnel avec sa réponse extractive et ses citations, sous les droits actuels sur les preuves.",
+    "frontend": "Si une source est révoquée, accepter le refus de relecture et ne pas réafficher une copie historique conservée sous une autre session."
+  },
+  "episodes.feedback": {
+    "description": "Enregistre le retour explicite historique associé à un épisode ; cette route reste compatible avec les anciens clients.",
+    "frontend": "Pour les nouveaux parcours, préférer feedback.record_signal et cibler la réponse exacte si le compagnon a reformulé l'extrait."
+  },
+  "responses.create": {
+    "description": "Conserve la réponse finale délivrée par un compagnon, séparément de la réponse extractive. Ses références doivent correspondre à celles de l'épisode.",
+    "frontend": "N'envoyer que la réponse réellement délivrée et ses références contrôlables ; le serveur ne certifie pas l'implication sémantique de chaque phrase."
+  },
+  "responses.list": {
+    "description": "Liste les réponses personnelles conservées des companions selon les filtres du contrat.",
+    "frontend": "Utiliser pour retrouver la formulation réellement lue par l'utilisateur, distincte du résultat brut de recherche."
+  },
+  "responses.read": {
+    "description": "Relit une réponse de compagnon et son rattachement à l'épisode, avec contrôle actuel des preuves.",
+    "frontend": "Utiliser le response_id pour un vote ou commentaire précis ; ne pas confondre plusieurs réponses produites pour un même épisode."
+  },
+  "conversations.create": {
+    "description": "Crée une conversation personnelle dans un domaine avec une clé d'idempotence.",
+    "frontend": "Conserver son ID pour les questions suivantes ; une conversation n'est pas partagée automatiquement avec les administrateurs."
+  },
+  "conversations.list": {
+    "description": "Liste les conversations personnelles selon leur état et la pagination demandée.",
+    "frontend": "Utiliser pour la navigation dans l'historique ; ne pas partager le cache entre identités ou tenants."
+  },
+  "conversations.read": {
+    "description": "Lit les métadonnées actuelles d'une conversation personnelle.",
+    "frontend": "Vérifier son état avant une modification ou une nouvelle question."
+  },
+  "conversations.update": {
+    "description": "Met à jour les propriétés autorisées de la conversation, notamment son titre et son archivage, avec révision attendue.",
+    "frontend": "En cas de conflit, relire la conversation avant de proposer une nouvelle modification. Archiver ne supprime pas l'historique."
+  },
+  "conversations.messages": {
+    "description": "Retourne une page de l'historique personnel de conversation à partir d'une position, avec les épisodes accessibles.",
+    "frontend": "Respecter l'ordre et le curseur renvoyés. Les réponses de compagnon peuvent nécessiter leur lecture dédiée ; ce n'est pas une mémoire automatiquement envoyée au modèle."
+  },
+  "conversations.query": {
+    "description": "Pose une question dans une conversation et crée son épisode avec une clé de reprise stable. Réponse JSON par défaut ; Accept: text/event-stream diffuse un démarrage puis le résultat extractif ou une erreur, sans tokens LLM.",
+    "frontend": "Conserver la même clé après timeout ou déconnexion. Avec SSE, attendre un événement result avant d'afficher la réussite ; une erreur peut arriver après le statut HTTP 200. La synthèse citée reste un parcours compagnon séparé."
+  },
+  "feedback.preferences": {
+    "description": "Lit le consentement personnel aux événements observés et inférés, désactivés par défaut.",
+    "frontend": "Vérifier avant de collecter automatiquement des itérations, abandons ou estimations de satisfaction."
+  },
+  "feedback.configure": {
+    "description": "Modifie les préférences personnelles de collecte après décision explicite, sous contrôle de révision et confirmation signée.",
+    "frontend": "Expliquer séparément observation et inférence. Un refus désactive les nouvelles remontées ; ce n'est pas une suppression de l'historique déjà enregistré."
+  },
+  "feedback.record_signal": {
+    "description": "Ajoute un signal immuable à un épisode et éventuellement à la réponse exacte : vote explicite, événement observé ou sentiment inféré.",
+    "frontend": "Renseigner l'origine réelle. Un pouce bas explicite peut ouvrir un signalement personnel ; une estimation ne devient jamais un vote ni une modification canonique."
+  },
+  "feedback.signals": {
+    "description": "Liste les signaux personnels accessibles avec leur origine et leur cible.",
+    "frontend": "Conserver la distinction entre ce que l'utilisateur a dit, ce que l'hôte a observé et ce qu'un modèle a estimé."
+  },
+  "feedback.summary": {
+    "description": "Agrège les signaux personnels dans une fenêtre bornée, éventuellement limitée à une conversation ou une réponse.",
+    "frontend": "Afficher séparément votes, effort observé et sentiment inféré. L'absence de signal n'est pas une preuve de satisfaction ; respecter les limites de fenêtre."
+  },
+  "issues.list": {
+    "description": "Liste les signalements personnels visibles, notamment les manques de connaissance et retours négatifs.",
+    "frontend": "Permettre un suivi personnel ; aucune file de triage partagée de toute l'entreprise n'est fournie par cette route. Le filtre episode_id permet de compléter les signalements d’un tour de conversation précis."
+  },
+  "issues.read": {
+    "description": "Lit un signalement personnel, son état et sa révision.",
+    "frontend": "Récupérer la révision avant de prendre une décision de résolution ou réouverture."
+  },
+  "issues.history": {
+    "description": "Retourne les décisions immuables prises sur un signalement personnel.",
+    "frontend": "Afficher les décisions personnelles et leurs éventuels liens correction_proposal_id, correction_digest et correction_published_version. Une décision liée est masquée si les droits actuels ne permettent plus de consulter sa proposition. La version est celle de sa publication historique, sans certification d’efficacité."
+  },
+  "issues.decide": {
+    "description": "Prend en charge, résout, classe sans suite ou rouvre un signalement avec justification et contrôle de révision.",
+    "frontend": "Relire après conflit. Pour start ou resolve, correction_proposal_id associe explicitement une proposition visible par un rôle autorisé à consulter les propositions ; resolve avec ce lien exige une proposition publiée. Sans lien, resolve reste une clôture déclarative. Aucun commentaire personnel n’est copié dans la proposition ; aucune acceptation ou publication automatique."
+  },
+  "members.list": {
+    "description": "Liste les membres et rôles d'un domaine sous l'autorité de son propriétaire.",
+    "frontend": "Utiliser pour l'administration du domaine ; cette API n'est pas un annuaire d'entreprise global."
+  },
+  "members.change": {
+    "description": "Ajoute, modifie ou retire un membre selon les opérations et contraintes du contrat, avec événement d'audit.",
+    "frontend": "Présenter l'identité et le rôle exacts, recueillir une confirmation signée. La révocation bloque les appels ultérieurs sans supprimer l'historique."
+  },
+  "members.history": {
+    "description": "Liste les événements de modification d'appartenance au domaine.",
+    "frontend": "Utiliser pour l'audit administratif ; ne pas transformer l'historique en droit actuel."
+  },
+  "models.attempts": {
+    "description": "Liste les tentatives d'extraction du demandeur avec réservations et résultats durables, y compris les échecs.",
+    "frontend": "Diagnostiquer une incertitude sans appeler de nouveau le fournisseur ; ce registre ne couvre pas automatiquement tous les appels d'un compagnon externe."
+  },
+  "models.attempt": {
+    "description": "Lit une tentative d'extraction précise et son état enregistré.",
+    "frontend": "Une tentative sans résultat durable peut être inconnue, pas gratuite ni forcément non exécutée."
+  },
+  "models.usage": {
+    "description": "Retourne l'usage du quota journalier de tentatives partagé par le domaine.",
+    "frontend": "Présenter un nombre de tentatives, pas un montant facturé. Le budget privé du compagnon et la limite de clé fournisseur sont des mécanismes distincts."
+  },
+  "domain.brief": {
+    "description": "Retourne un résumé autorisé des propositions en attente et des signalements des épisodes du demandeur.",
+    "frontend": "Construire une vue propriétaire bornée ; ce résumé n'est pas un tableau global des conversations et avis privés de l'entreprise."
+  },
+  "conversations.timeline": {
+    "description": "Lit une page de conversation personnelle regroupant chaque question, son résultat sourcé, les réponses réellement délivrées, les signaux et les signalements associés. Les références des réponses utilisent les citations de l’épisode sans dupliquer leur texte.",
+    "frontend": "Suivre le curseur de séquence et les curseurs propres aux réponses, signaux et signalements. Une page peut être vide avec next_after non nul après filtrage des droits. Le volume est limité à 500 000 octets ; réduire les limites ou lire les objets séparément si un seul tour est trop volumineux. Utiliser direction=backward pour ouvrir les tours récents, puis garder cette direction avec le curseur renvoyé."
+  },
+  "syntheses.create": {
+    "description": "Génère une synthèse personnelle à partir de la question et des citations d’un épisode, avec réservation durable avant tout appel OpenRouter.",
+    "frontend": "Confirmation signée requise selon le mode HTTP/MCP. Conserver une clé distincte de la question et examiner status même sur HTTP 200 : succeeded fournit response_id, failed un code sûr, unresolved interdit une relance automatique. Sans preuve, abstention déterministe sans fournisseur. Invalider réponses et timeline après succès."
+  },
+  "syntheses.list": {
+    "description": "Liste mes tentatives de synthèse visibles, avec filtres optionnels épisode et clé d’idempotence.",
+    "frontend": "Retrouver une tentative après une perte de réponse. Conserver les filtres pendant la pagination ; ne pas créer une nouvelle clé pour contourner un état unresolved. Les résultats d’autrui et épisodes devenus inaccessibles restent masqués."
+  },
+  "syntheses.read": {
+    "description": "Lit l’état durable, le modèle demandé, l’usage déclaré et le lien vers la réponse de ma tentative de synthèse.",
+    "frontend": "Lire response_id via responses.read ; la tentative ne contient pas le texte généré. failed et succeeded sont terminaux ; unresolved signifie en cours ou résultat non établi. budget_reserved ne prouve pas une facturation et usage n’est pas une facture. succeeded atteste la conservation du reçu, pas son affichage, sa lecture ou la satisfaction de l’utilisateur."
+  },
+  "system.ready": {
+    "description": "Vérifie la connexion à PostgreSQL, la révision de migration attendue, le rôle SQL restreint et les indicateurs de RLS forcée sur les tables applicatives.",
+    "frontend": "Utiliser comme sonde de disponibilité backend : 200 ready ou 503 NOT_READY sans diagnostic sensible. /health reste une sonde de vie statique. Aucun test fournisseur IA, aucun appel payant, aucune certification du contenu ni du fonctionnement de toutes les routes."
+  },
+  "proposals.publish": {
+    "description": "Publie uniquement la proposition acceptée désignée, avec contrôle de la version publiée attendue et de ses preuves actuelles.",
+    "frontend": "Préférer cette action depuis une fiche. Fournir expected_published_version égal à la séquence d’acceptation moins un, avec la confirmation liée à la cible et au corps. Une cible déjà publiée retourne changed=false sans publier un autre changement en attente. target_version identifie sa publication historique ; published_version est la position actuelle du domaine."
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "TextImportItem": {
+      "additionalProperties": false,
+      "properties": {
+        "filename": {
+          "maxLength": 200,
+          "minLength": 1,
+          "pattern": "^[^/\\\\\\x00-\\x1f]+$",
+          "title": "Filename",
+          "type": "string"
+        },
+        "content": {
+          "maxLength": 30000,
+          "minLength": 1,
+          "pattern": "^[^\\x00]+$",
+          "title": "Content",
+          "type": "string"
+        },
+        "allowed_subjects": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Allowed Subjects",
+          "type": "array"
+        }
+      },
+      "required": [
+        "filename",
+        "content",
+        "allowed_subjects"
+      ],
+      "title": "TextImportItem",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "items": {
+        "$ref": "#/$defs/TextImportItem"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "title": "Items",
+      "type": "array"
+    },
+    "idempotency_key": {
+      "maxLength": 128,
+      "minLength": 8,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "items",
+    "idempotency_key"
+  ],
+  "title": "TextImportInput",
+  "type": "object"
+}

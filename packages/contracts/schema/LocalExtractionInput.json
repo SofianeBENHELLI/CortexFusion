@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "allow_local_processing": {
+      "const": true,
+      "title": "Allow Local Processing",
+      "type": "boolean"
+    },
+    "idempotency_key": {
+      "maxLength": 128,
+      "minLength": 8,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "allow_local_processing",
+    "idempotency_key"
+  ],
+  "title": "LocalExtractionInput",
+  "type": "object"
+}

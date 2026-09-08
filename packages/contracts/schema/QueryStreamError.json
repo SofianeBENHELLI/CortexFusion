@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "event": {
+      "const": "error",
+      "default": "error",
+      "title": "Event",
+      "type": "string"
+    },
+    "protocol_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Protocol Version",
+      "type": "string"
+    },
+    "error": {
+      "title": "Error",
+      "type": "string"
+    },
+    "http_status": {
+      "maximum": 599,
+      "minimum": 400,
+      "title": "Http Status",
+      "type": "integer"
+    },
+    "message": {
+      "default": "La r\u00e9ponse n'a pas pu \u00eatre livr\u00e9e. Relire l'\u00e9tat ou reprendre la m\u00eame cl\u00e9.",
+      "title": "Message",
+      "type": "string"
+    },
+    "recovery": {
+      "const": "inspect_or_retry_same_key",
+      "default": "inspect_or_retry_same_key",
+      "title": "Recovery",
+      "type": "string"
+    }
+  },
+  "required": [
+    "error",
+    "http_status"
+  ],
+  "title": "QueryStreamError",
+  "type": "object"
+}

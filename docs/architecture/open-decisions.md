@@ -1,6 +1,6 @@
 # Open decisions
 
-The original dossier is preserved without silently resolving these points. Record an evidence-backed decision before implementing the affected boundary.
+The original dossier remains local. The [first implementation decision](decisions/0001-executable-core.md) and [compatibility evidence](compatibility-evidence.md) resolve the initial PostgreSQL baseline, verify harness identity, and establish the first access/approval boundary. The broader questions below remain tracked for subsequent stages.
 
 | Topic | Question to resolve | Implementation impact |
 |---|---|---|

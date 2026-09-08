@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "InteractionView": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "title": "Action Id",
+          "type": "string"
+        },
+        "operation_id": {
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "roles": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Roles",
+          "type": "array"
+        },
+        "effect": {
+          "title": "Effect",
+          "type": "string"
+        },
+        "effect_description": {
+          "title": "Effect Description",
+          "type": "string"
+        },
+        "intent_example": {
+          "title": "Intent Example",
+          "type": "string"
+        },
+        "confirmation_policy": {
+          "title": "Confirmation Policy",
+          "type": "string"
+        },
+        "object_authorization": {
+          "title": "Object Authorization",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_id",
+        "operation_id",
+        "method",
+        "path",
+        "roles",
+        "effect",
+        "effect_description",
+        "intent_example",
+        "confirmation_policy",
+        "object_authorization"
+      ],
+      "title": "InteractionView",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "title": "Version",
+      "type": "string"
+    },
+    "openapi_url": {
+      "title": "Openapi Url",
+      "type": "string"
+    },
+    "authorization_notice": {
+      "title": "Authorization Notice",
+      "type": "string"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/InteractionView"
+      },
+      "title": "Items",
+      "type": "array"
+    }
+  },
+  "required": [
+    "version",
+    "openapi_url",
+    "authorization_notice",
+    "items"
+  ],
+  "title": "InteractionCatalog",
+  "type": "object"
+}

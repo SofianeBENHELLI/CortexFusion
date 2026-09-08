@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GraphImportAttemptPage",
+  "type": "object",
+  "properties": {
+    "target_version": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854775807
+    },
+    "published_version": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854775807
+    },
+    "manifest_registered": {
+      "type": "boolean"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854775807
+    },
+    "projection_matches_journal": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "active_attempt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GraphImportAttempt"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/GraphImportAttempt"
+      }
+    },
+    "next_after": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "target_version",
+    "published_version",
+    "manifest_registered",
+    "digest",
+    "count",
+    "projection_matches_journal",
+    "active_attempt",
+    "items",
+    "next_after"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "GraphImportAttempt": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "predecessor_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subject": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "preparing",
+            "uncertain",
+            "ready",
+            "stale",
+            "superseded"
+          ]
+        },
+        "base_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "count": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "intent_sealed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "generation",
+        "predecessor_id",
+        "subject",
+        "reason",
+        "created_at",
+        "active",
+        "status",
+        "base_version",
+        "digest",
+        "count",
+        "intent_sealed"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

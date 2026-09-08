@@ -1,0 +1,11 @@
+{
+  "contract": "ApprovalInput",
+  "valid": false,
+  "value": {
+    "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "expected_version": 0,
+    "reason": "Reviewed evidence",
+    "idempotency_key": "example-approval",
+    "role": "owner"
+  }
+}

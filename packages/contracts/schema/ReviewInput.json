@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "enum": [
+        "reject",
+        "defer",
+        "request_changes",
+        "reopen"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "digest": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Digest",
+      "type": "string"
+    },
+    "expected_review_revision": {
+      "minimum": 0,
+      "title": "Expected Review Revision",
+      "type": "integer"
+    },
+    "reason": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 128,
+      "minLength": 8,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "action",
+    "digest",
+    "expected_review_revision",
+    "reason",
+    "idempotency_key"
+  ],
+  "title": "ReviewInput",
+  "type": "object"
+}

@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "scope": "Synthetic companion declarations; validates backend accounting, not answer quality or model judgment.",
+  "scenarios": [
+    {
+      "name": "declared_first_answer_useful",
+      "signals": [{"origin": "explicit", "kind": "thumbs_up"}, {"origin": "explicit", "kind": "resolved"}],
+      "expected": {"signal_count": 2, "explicit.thumbs_up": 1, "explicit.resolved": 1, "observed.maximum_declared_iteration": null}
+    },
+    {
+      "name": "several_iterations_before_declared_resolution",
+      "signals": [
+        {"origin": "observed", "kind": "reformulation", "iteration_index": 2},
+        {"origin": "observed", "kind": "reformulation", "iteration_index": 3},
+        {"origin": "observed", "kind": "correction", "iteration_index": 3},
+        {"origin": "observed", "kind": "resolved", "iteration_index": 4},
+        {"origin": "explicit", "kind": "thumbs_up"}
+      ],
+      "expected": {"signal_count": 5, "observed.reformulation": 2, "observed.correction": 1, "observed.resolved": 1, "observed.maximum_declared_iteration": 4, "explicit.resolved": 0}
+    },
+    {
+      "name": "observed_abandonment_without_invented_vote",
+      "signals": [{"origin": "observed", "kind": "abandon"}],
+      "expected": {"signal_count": 1, "observed.abandon": 1, "explicit.thumbs_down": 0, "inferred.negative": 0}
+    },
+    {
+      "name": "negative_then_declared_resolution",
+      "signals": [{"origin": "explicit", "kind": "thumbs_down"}, {"origin": "explicit", "kind": "resolved"}, {"origin": "explicit", "kind": "thumbs_up"}],
+      "expected": {"signal_count": 3, "explicit.thumbs_down": 1, "explicit.thumbs_up": 1, "explicit.resolved": 1, "conflicting_explicit_episodes": 1}
+    },
+    {
+      "name": "inference_does_not_override_explicit_feedback",
+      "signals": [
+        {"origin": "explicit", "kind": "thumbs_up"},
+        {"origin": "inferred", "kind": "satisfaction", "sentiment": "negative", "confidence": 0.65, "comment": "Synthetic companion estimate based on reformulations"}
+      ],
+      "expected": {"signal_count": 2, "explicit.thumbs_up": 1, "explicit.thumbs_down": 0, "inferred.negative": 1}
+    },
+    {
+      "name": "silence_is_not_satisfaction",
+      "signals": [],
+      "expected": {"signal_count": 0, "episode_count": 0, "explicit.thumbs_up": 0, "inferred.positive": 0}
+    }
+  ]
+}

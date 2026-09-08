@@ -1,0 +1,12 @@
+{
+  "contract": "SourceInput",
+  "valid": true,
+  "value": {
+    "title": "Synthetic runbook",
+    "location": "fixture://runbook",
+    "content": "Contact the synthetic operations team.",
+    "allowed_subjects": [
+      "owner"
+    ]
+  }
+}

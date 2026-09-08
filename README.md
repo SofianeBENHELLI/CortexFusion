@@ -2,53 +2,71 @@
 
 **Your company’s collective brain.**
 
-Cortex Fusion is a planned enterprise knowledge platform that turns documents and expertise into a shared, governed memory for people and AI agents. It learns from qualified sources, preserves the history of knowledge, and makes gaps and uncertainty visible.
+Cortex Fusion is building a governed memory for people and AI companions. Its executable backend makes knowledge changes reviewable, keeps answers tied to their evidence, and exposes application functions through interchangeable HTTP/MCP contracts.
 
-## Project status
+## Rust migration candidate
 
-**Specification and repository setup.** The v0.5 design has been organized locally; public import of the original documents awaits approval because they are labeled confidential. Application code, dependency installation, deployment, and performance validation have not started. “Enterprise Brain” is the former working name used in the preserved source documents.
+The native Rust/Axum/SQLx candidate now implements all 79 reference HTTP operations and 95 MCP tools, plus eight native graph and governance operations (87 HTTP / 103 MCP total), with immutable TerminusDB snapshots behind PostgreSQL publication manifests. It includes bounded native document parsing, optional OpenRouter/Ollama operations, authenticated MCP resources/prompts, fixed-source JWKS rotation, and graceful process shutdown. The optional [native corpus worker](docs/corpus-worker.fr.md) processes pending files and personal text imports through the same authorized APIs. Synthetic cold-store restore qualification is documented in the [French restore guide](docs/coordinated-restore.fr.md). Start with the [French Rust setup and test guide](docs/rust-start.fr.md). See the [French migration and integration guide](docs/rust-migration.fr.md) for setup, permissions, confirmations, evidence and explicit qualification limits. The Python service remains the compatibility reference; no replacement deployment has been performed.
 
-## The brain analogy
+## What works in the reference backend
 
-- **Observe:** identify useful sources and gaps in company knowledge.
-- **Learn:** propose sourced knowledge and submit it for appropriate review.
-- **Remember:** preserve approved changes and their provenance.
-- **Serve:** provide compact, current context to people and AI agents.
-- **Consolidate:** improve the organization of knowledge over time.
-- **Reflect:** surface uncertainty, contradictions, costs, and review needs.
+- Python/FastAPI and PostgreSQL, with RS256 identity, domain roles and forced tenant RLS.
+- Private collections, text imports, bounded PDF/DOCX/text parsing and a recoverable file worker.
+- Verbatim proposals, owner review/approval, atomic publication, immutable journal, replay and compensation.
+- Lexical extractive answers with citations, served versions, personal conversations and issue resolution.
+- Exhaustive generated MCP tools, authenticated resources/prompts and signed confirmations for sensitive actions.
+- Personal companion response receipts and explicit/observed/inferred feedback, opt-in collection and bounded effort summaries.
+- Optional OpenRouter or local passage selection, durable model attempt outcomes and a shared daily call allowance.
+- A reference MCP companion for cited OpenRouter synthesis, resumable receipts and consent-gated comment assessment.
+- Generated JSON Schema/TypeScript/OpenAPI/MCP artifacts, PostgreSQL tests and a tested Cordis service adapter.
 
-Conversations produce proposals, not silent changes to trusted knowledge. An authenticated domain owner approves changes; agents do not hold approval credentials.
+**This is a development backend.** Semantic retrieval, enterprise evaluation, real external identity/companion validation and production orchestration remain open. Bounded synthesis and inferred feedback have been exercised with live OpenRouter on synthetic data; this does not certify answer quality or calibrate model confidence. No product frontend is included. Original confidential specifications and enterprise corpora remain local.
 
-## Start here
+## Run and verify
 
-1. [Documentation index](docs/README.md)
-2. [Prototype scope and acceptance criteria](docs/product/prototype-scope.md)
-3. [Architecture and component boundaries](docs/architecture/README.md)
-4. [Development roadmap](docs/product/roadmap.md)
-5. [Open decisions](docs/architecture/open-decisions.md)
-6. [Contributing](CONTRIBUTING.md)
+Follow the [development guide](docs/development.md) to configure Python, Node and an isolated PostgreSQL database. Then:
+
+```sh
+make setup
+make migrate
+make test
+make demo-core
+```
+
+The synthetic demo registers a source, rejects agent approval, records owner approval, publishes a cited passage, rebuilds the state and compensates the change without erasing history. See also the [feedback evaluation](evals/README.md) and [local restore rehearsal](docs/restore-rehearsal.md).
+
+For a persistent API, configure identity verification and run `make serve`. Interactive developer API documentation is available at `/docs` on the loopback server.
+
+## Project navigation
+
+| Guide | Purpose |
+|---|---|
+| [Implementation status](docs/implementation-status.md) | Delivered scope, evidence and remaining increments |
+| [AI-native protocol](docs/ai-native.md) and [action reference](docs/interaction-reference.md) | Stable operation IDs, effects, schemas and host behavior |
+| [Exhaustive MCP](docs/mcp-exhaustive.md) and [onboarding](docs/mcp-onboarding.md) | Tools, resources, prompts, identity discovery and confirmations |
+| [Corpus API](docs/corpus-api.md) and [workspace backend](docs/backend-workspace.md) | Corpus manager, review, files, conversations and membership |
+| [Reference companion](docs/reference-companion.md) | CLI questions, cited synthesis, conversations, feedback and consent-gated assessment |
+| [Companion responses](docs/companion-responses.md) and [feedback](docs/feedback-loop.md) | Delivered-answer receipts, provenance, opt-in collection and metrics |
+| [OpenRouter](docs/openrouter.md), [local extraction](docs/local-extraction.md), [model attempts](docs/model-attempts.md) | Provider configuration, evidence bounds, attempts and limits |
+| [Documentation index](docs/README.md) and [contributing](CONTRIBUTING.md) | Architecture, product scope and development conventions |
 
 ## Repository layout
 
 ```text
-apps/web/             TypeScript interface: chat, review, knowledge map
-apps/harness/         TypeScript agent runtime adapter
-services/core/        Independent Python knowledge service and MCP boundary
-services/workflows/   Python ingestion, evaluation, and consolidation jobs
-packages/agents/      Python agent behavior behind project-owned contracts
-packages/contracts/   Shared wire schemas and protocol examples
-infra/                Local infrastructure and deployment configuration
-tests/               Cross-component integration and isolation tests
-evals/               Question banks, evaluation scenarios, benchmark reports
-docs/                Product, architecture, decisions, and source specifications
+services/core/       Python knowledge core, HTTP/MCP, migrations and worker
+packages/contracts/ Generated wire schemas, OpenAPI, interaction/MCP inventories
+apps/harness/        TypeScript client and Cordis service adapter
+scripts/             Contract generation, checks, synthetic demos/evaluation
+infra/               Local PostgreSQL profile
+tests/               PostgreSQL/API/MCP invariants and contract checks
+apps/web/            Planned product interface
+services/workflows/  Planned managed ingestion and consolidation
+packages/agents/     Planned full model orchestration
+evals/              Synthetic feedback/synthesis scenarios and evaluation methodology
 ```
-
-Each component currently contains a responsibility guide only. Runtime and package configuration will be added with the first implementation slice.
-
-## First implementation slice
-
-Create one tenant and one domain, submit a sourced knowledge proposal, approve it as the owner, append the resulting change, materialize it, and retrieve the approved concept with its source and version. Demonstrate that an agent cannot approve its own proposal and that replay reconstructs the same state.
 
 ## Licensing
 
-The project license has not been selected. The dependency license policy in the design does not grant a license to this repository. See [open decisions](docs/architecture/open-decisions.md).
+The repository license has not been selected. The dependency policy does not grant a license to Cortex Fusion. Installed dependency metadata is checked separately; see the [executable-core decision](docs/architecture/decisions/0001-executable-core.md).
+
+A Python [reference MCP companion](docs/reference-companion.md) provides a bounded question → cited synthesis → personal receipt workflow without a frontend. Its optional live synthetic demo uses OpenRouter; semantic correctness and external identity-provider integration remain separate validation work.

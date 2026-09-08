@@ -1,0 +1,387 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "BriefIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "knowledge_gap",
+            "disputed_answer"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "episode_id": {
+          "format": "uuid",
+          "title": "Episode Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "reason",
+        "episode_id"
+      ],
+      "title": "BriefIssue",
+      "type": "object"
+    },
+    "Concept": {
+      "additionalProperties": false,
+      "properties": {
+        "concept_id": {
+          "format": "uuid",
+          "title": "Concept Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "body": {
+          "maxLength": 30000,
+          "minLength": 1,
+          "title": "Body",
+          "type": "string"
+        },
+        "maturity": {
+          "$ref": "#/$defs/Maturity",
+          "default": "emerging"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceRef"
+          },
+          "maxItems": 30,
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/Link"
+          },
+          "maxItems": 100,
+          "title": "Links",
+          "type": "array"
+        }
+      },
+      "required": [
+        "concept_id",
+        "title",
+        "body",
+        "sources"
+      ],
+      "title": "Concept",
+      "type": "object"
+    },
+    "Link": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "structural",
+            "associative"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "primary": {
+          "default": false,
+          "title": "Primary",
+          "type": "boolean"
+        },
+        "weight": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "target_id",
+        "kind"
+      ],
+      "title": "Link",
+      "type": "object"
+    },
+    "Maturity": {
+      "enum": [
+        "emerging",
+        "observed",
+        "established",
+        "reference"
+      ],
+      "title": "Maturity",
+      "type": "string"
+    },
+    "ProposalValidation": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "const": "passed",
+          "title": "Status",
+          "type": "string"
+        },
+        "source_support": {
+          "const": "verbatim_v1",
+          "title": "Source Support",
+          "type": "string"
+        },
+        "graph": {
+          "const": "acyclic",
+          "title": "Graph",
+          "type": "string"
+        },
+        "policy": {
+          "const": "owner_low_risk_v1",
+          "title": "Policy",
+          "type": "string"
+        },
+        "risk": {
+          "const": "low",
+          "title": "Risk",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "source_support",
+        "graph",
+        "policy",
+        "risk",
+        "source_ids"
+      ],
+      "title": "ProposalValidation",
+      "type": "object"
+    },
+    "ProposalView": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "base_version": {
+          "title": "Base Version",
+          "type": "integer"
+        },
+        "digest": {
+          "title": "Digest",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "ready",
+            "approved",
+            "published",
+            "rejected",
+            "deferred",
+            "changes_requested",
+            "superseded"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "validation": {
+          "$ref": "#/$defs/ProposalValidation"
+        },
+        "payload": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "put_concept": "#/$defs/PutConcept",
+                "retire_concept": "#/$defs/RetireConcept"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/PutConcept"
+              },
+              {
+                "$ref": "#/$defs/RetireConcept"
+              }
+            ]
+          },
+          "title": "Payload",
+          "type": "array"
+        },
+        "review_revision": {
+          "title": "Review Revision",
+          "type": "integer"
+        },
+        "replaces_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Replaces Id"
+        }
+      },
+      "required": [
+        "id",
+        "base_version",
+        "digest",
+        "reason",
+        "status",
+        "validation",
+        "payload",
+        "review_revision",
+        "replaces_id"
+      ],
+      "title": "ProposalView",
+      "type": "object"
+    },
+    "PutConcept": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "put_concept",
+          "default": "put_concept",
+          "title": "Kind",
+          "type": "string"
+        },
+        "concept": {
+          "$ref": "#/$defs/Concept"
+        }
+      },
+      "required": [
+        "concept"
+      ],
+      "title": "PutConcept",
+      "type": "object"
+    },
+    "RetireConcept": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "retire_concept",
+          "default": "retire_concept",
+          "title": "Kind",
+          "type": "string"
+        },
+        "concept_id": {
+          "format": "uuid",
+          "title": "Concept Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "concept_id"
+      ],
+      "title": "RetireConcept",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "start": {
+          "description": "Zero-based Unicode code point offset, inclusive",
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "description": "Unicode code point offset, exclusive; not UTF-16 units",
+          "exclusiveMinimum": 0,
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source_id",
+        "start",
+        "end"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "accepted_version": {
+      "title": "Accepted Version",
+      "type": "integer"
+    },
+    "published_version": {
+      "title": "Published Version",
+      "type": "integer"
+    },
+    "pending_proposals": {
+      "items": {
+        "$ref": "#/$defs/ProposalView"
+      },
+      "title": "Pending Proposals",
+      "type": "array"
+    },
+    "issues": {
+      "items": {
+        "$ref": "#/$defs/BriefIssue"
+      },
+      "title": "Issues",
+      "type": "array"
+    },
+    "processing": {
+      "const": "local_no_model",
+      "title": "Processing",
+      "type": "string"
+    },
+    "model_calls": {
+      "const": 0,
+      "title": "Model Calls",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "accepted_version",
+    "published_version",
+    "pending_proposals",
+    "issues",
+    "processing",
+    "model_calls"
+  ],
+  "title": "BriefView",
+  "type": "object"
+}

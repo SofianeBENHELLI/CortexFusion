@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ImportItemView": {
+      "additionalProperties": false,
+      "properties": {
+        "position": {
+          "title": "Position",
+          "type": "integer"
+        },
+        "filename": {
+          "title": "Filename",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "succeeded",
+            "failed",
+            "cancelled"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "source_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Id"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Code"
+        },
+        "attempts": {
+          "title": "Attempts",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "position",
+        "filename",
+        "status",
+        "source_id",
+        "error_code",
+        "attempts"
+      ],
+      "title": "ImportItemView",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "collection_id": {
+      "format": "uuid",
+      "title": "Collection Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "partial",
+        "succeeded",
+        "failed",
+        "cancelled"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "processing": {
+      "const": "local_text_only",
+      "default": "local_text_only",
+      "title": "Processing",
+      "type": "string"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/ImportItemView"
+      },
+      "title": "Items",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "collection_id",
+    "status",
+    "items"
+  ],
+  "title": "ImportView",
+  "type": "object"
+}
