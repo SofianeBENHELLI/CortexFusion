@@ -361,3 +361,7 @@ L’identité native accepte désormais une [source JWKS fixe](jwks-rotation.fr.
 ## Worker corpus natif distinct
 
 Le binaire `cortex-corpus-worker` orchestre les lectures et traitements de fichiers/imports via HTTP sous un sujet, tenant et domaine fixes. Il ne reçoit aucun accès SQL ou moteur et ne construit pas d’identité interne. Les appels existants restent exposés en MCP ; aucun contrat métier supplémentaire n’est ajouté. Pagination, durée, nombre de POST et arrêt sont bornés. Les erreurs de traitement terminales ne sont pas répétées ; les résultats incertains arrêtent le processus. Voir le [guide fonctionnel et opérateur](corpus-worker.fr.md).
+
+## Lectures simultanées
+
+Les lectures d’un même instantané publié encore en cours peuvent être regroupées, avec réautorisation et copie filtrée par appel. Aucun résultat terminé n’est conservé. Les validations de mutations restent indépendantes. Voir le [fonctionnement, les annulations et les limites](concurrent-graph-reads.fr.md).

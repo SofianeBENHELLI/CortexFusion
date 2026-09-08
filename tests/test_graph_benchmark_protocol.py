@@ -12,6 +12,7 @@ from benchmark_rust_graph import (  # noqa: E402
     classify_import,
     fixture_data,
     mcp_result,
+    measure,
     measurement_summary,
     percentile,
 )
@@ -89,3 +90,37 @@ def test_empty_matrix_is_not_success_and_errors_remain_in_denominator():
     assert measurement_summary(report)["availability"] == "degraded"
     assert measurement_summary(report)["measured_requests"] == 12
     assert percentile([3, 1, 2, 9], 0.95) == 9
+
+
+@pytest.mark.parametrize("mode,signatures", [("per_request", 12), ("per_cell", 1)])
+def test_identity_profiles_preserve_all_requests_and_exact_payload_oracle(mode, signatures):
+    concepts, sources = fixture_data(100, str(UUID(int=1)))
+
+    class Fixture:
+        calls = 0
+
+        def headers(self, subject):
+            assert subject == "alice"
+            self.calls += 1
+            return {"Authorization": "Bearer synthetic"}
+
+    class Response:
+        status_code = 200
+        content = b"synthetic payload size"
+
+        def json(self):
+            return concepts
+
+    class Client:
+        calls = 0
+
+        def get(self, path, headers):
+            assert path == "/v1/domains/domain/concepts"
+            assert headers == {"Authorization": "Bearer synthetic"}
+            self.calls += 1
+            return Response()
+
+    fixture, client = Fixture(), Client()
+    result = measure(client, fixture, "domain", 2, concepts, sources, "list_http_owner", 1, mode)
+    assert fixture.calls == signatures and client.calls == 12
+    assert result["statuses"] == {"200": 12} and result["identity_mode"] == mode

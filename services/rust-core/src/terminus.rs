@@ -3,7 +3,7 @@ use reqwest::{Client, Method, Url};
 use serde_json::Value;
 use std::time::Duration;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Clone, Debug, thiserror::Error)]
 pub enum EngineError {
     #[error("invalid engine configuration")]
     Configuration,
@@ -23,6 +23,7 @@ pub struct Terminus {
     base: Url,
     user: String,
     password: String,
+    pub(crate) published_reads: crate::inflight_snapshot::PublishedReads,
 }
 impl Terminus {
     pub fn new(base: &str, user: String, password: String) -> Result<Self, EngineError> {
@@ -51,6 +52,7 @@ impl Terminus {
             base: url,
             user,
             password,
+            published_reads: Default::default(),
         })
     }
     pub async fn request(

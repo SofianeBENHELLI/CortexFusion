@@ -74,6 +74,9 @@ jobs:
       - name: Measure shared long document workloads
         run: |
           timeout --signal=TERM --kill-after=45s 900s uv run python scripts/benchmark_rust_graph.py --synthetic-only --build-profile release --source-profile shared_long --output "$RUNNER_TEMP/graph-volume-long.json"
+      - name: Measure companion token reuse separately
+        run: |
+          timeout --signal=TERM --kill-after=45s 900s uv run python scripts/benchmark_rust_graph.py --synthetic-only --build-profile release --sizes 2000 --source-profile shared_long --identity-mode per_cell --output "$RUNNER_TEMP/graph-volume-session.json"
       - name: Report measurements and qualification limits
         if: always()
         run: |
@@ -82,4 +85,7 @@ jobs:
           fi
           if [ -f "$RUNNER_TEMP/graph-volume-long.json" ]; then
             cat "$RUNNER_TEMP/graph-volume-long.json"
+          fi
+          if [ -f "$RUNNER_TEMP/graph-volume-session.json" ]; then
+            cat "$RUNNER_TEMP/graph-volume-session.json"
           fi

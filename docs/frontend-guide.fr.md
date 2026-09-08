@@ -2,7 +2,7 @@
 
 Cette référence cadre les fonctions utilisateur, corpus manager et propriétaire de Cortex Fusion. Elle ne prescrit pas de layout. Elle accompagne le frontend React 18 / TypeScript / Vite développé séparément, avec TanStack Query pour les données serveur, Zustand pour les brouillons et états locaux, et une interface française.
 
-La [référence exhaustive des endpoints](frontend-api.fr.md) donne, pour chaque opération, sa fonction, ses paramètres, ses schémas d'entrée/sortie, ses rôles et son outil MCP. Le [catalogue français JSON](../packages/contracts/functional-interactions.fr.json) est utilisable par un outil de génération ou un agent. Les contrats de types sont dans `packages/contracts/src/`. Les fonctions décrites ici sont celles effectivement livrées ; le tableau suivant distingue les écarts.
+La [référence exhaustive des endpoints](frontend-api.fr.md) donne, pour chaque opération, sa fonction, ses paramètres, ses schémas d'entrée/sortie, ses rôles et son outil MCP. Le [catalogue français Rust complet](../packages/contracts/functional-interactions.rust.fr.json) réunit les 86 opérations, leurs paramètres et réponses, ainsi que les 102 définitions MCP, dans un seul JSON utilisable par un générateur ou un agent. Le [catalogue de référence commun](../packages/contracts/functional-interactions.fr.json) conserve les 79 opérations historiques. Les contrats de types sont dans `packages/contracts/src/`. Les fonctions décrites ici sont celles effectivement livrées ; le tableau suivant distingue les écarts.
 
 ## Candidat Rust : paramètres à utiliser
 

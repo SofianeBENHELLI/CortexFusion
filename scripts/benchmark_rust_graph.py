@@ -256,8 +256,20 @@ def measurement_summary(report):
     }
 
 
-def measure(client, fixture, domain, version, concepts, sources, operation, concurrency):
+def measure(
+    client,
+    fixture,
+    domain,
+    version,
+    concepts,
+    sources,
+    operation,
+    concurrency,
+    identity_mode="per_request",
+):
     subject = "alice" if operation == "list_http_owner" else "bob"
+    assert identity_mode in {"per_request", "per_cell"}
+    cell_headers = fixture.headers(subject) if identity_mode == "per_cell" else None
     mcp = "mcp" in operation
     query = operation.startswith("query")
     single = operation.startswith("concept")
@@ -313,7 +325,7 @@ def measure(client, fixture, domain, version, concepts, sources, operation, conc
             request_arguments["path"]["concept_id"] = target["concept_id"]
         if index < concurrency:
             barrier.wait(timeout=10)
-        headers = fixture.headers(subject)
+        headers = cell_headers if cell_headers is not None else fixture.headers(subject)
         started = time.monotonic()
         try:
             if mcp:
@@ -361,6 +373,7 @@ def measure(client, fixture, domain, version, concepts, sources, operation, conc
     assert len(episodes) == len(set(episodes)), "Queries reused a private episode"
     return {
         "operation": operation,
+        "identity_mode": identity_mode,
         "subject": subject,
         "concurrency": concurrency,
         "requests": count,
@@ -394,6 +407,7 @@ def run(args, report):
             "status": "running",
             "model_calls": 0,
             "source_profile": args.source_profile,
+            "identity_mode": args.identity_mode,
             "profile": (
                 "one short source per concept"
                 if args.source_profile == "short_distinct"
@@ -415,9 +429,9 @@ def run(args, report):
     )
     with admin.connect() as conn:
         report["postgres_version"] = conn.execute(text("SHOW server_version")).scalar_one()
-    engine_server = None
+    engine_server, engine_state = None, None
     if args.simulate_engine:
-        engine_server, _ = start_graph(None)
+        engine_server, engine_state = start_graph(None)
         engine_url, user, password = (
             f"http://127.0.0.1:{engine_server.server_port}",
             "admin",
@@ -592,6 +606,7 @@ def run(args, report):
                                 "concurrency": concurrency,
                             }
                             save(args.output, report)
+                            before_requests = len(engine_state["requests"]) if engine_state else 0
                             measurement = measure(
                                 client,
                                 fixture,
@@ -601,7 +616,13 @@ def run(args, report):
                                 sources,
                                 operation,
                                 concurrency,
+                                args.identity_mode,
                             )
+                            if engine_state is not None:
+                                measurement["controlled_engine_gets"] = sum(
+                                    method == "GET"
+                                    for method, _ in engine_state["requests"][before_requests:]
+                                )
                             measurement["rust_rss_after_cell_kib"] = rss_kib(process)
                             volume["measurements"].append(measurement)
                             volume.pop("active_cell", None)
@@ -650,6 +671,12 @@ def main():
     parser.add_argument("--simulate-engine", action="store_true")
     parser.add_argument("--binary", type=Path, default=ROOT / "target/release/cortex-rust-core")
     parser.add_argument("--build-profile", choices=["debug", "release"], default="release")
+    parser.add_argument(
+        "--identity-mode",
+        choices=["per_request", "per_cell"],
+        default="per_request",
+        help="per_cell reuses one fresh short-lived JWT per measurement cell, as a companion does",
+    )
     parser.add_argument(
         "--source-profile", choices=["short_distinct", "shared_long"], default="short_distinct"
     )

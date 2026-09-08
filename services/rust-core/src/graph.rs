@@ -71,10 +71,10 @@ impl GraphService {
         let concepts = match snapshot {
             Some(snapshot) => self
                 .engine
-                .read_snapshot(&snapshot)
+                .read_published_snapshot(&snapshot)
                 .await
                 .map_err(|_| CoreError::database())?,
-            None => Vec::new(),
+            None => std::sync::Arc::new(Vec::new()),
         };
         // Re-authorize after network IO; no stale ACL or membership snapshot is reused.
         let mut tx = self.db.transaction(p, domain, false).await?;
@@ -83,8 +83,9 @@ impl GraphService {
         }
         let sources = allowed(&mut tx, p, domain).await?;
         let mut visible: Vec<Concept> = concepts
-            .into_iter()
+            .iter()
             .filter(|c| c.sources.iter().all(|s| sources.contains(&s.source_id)))
+            .cloned()
             .collect();
         let ids: BTreeSet<Uuid> = visible.iter().map(|c| c.concept_id).collect();
         for c in &mut visible {

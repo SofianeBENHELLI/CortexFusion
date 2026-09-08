@@ -142,17 +142,64 @@ Ces **7 opérations HTTP et MCP** complètent les 79 opérations de référence.
     return "\n".join(lines) + "\n"
 
 
+def combine_functional(baseline, extension, tools):
+    """One native frontend/companion reference; no runtime authority or new route."""
+    result = copy.deepcopy(baseline)
+    result["items"].extend(copy.deepcopy(extension["functional"]["items"]))
+    for key in ("action_id", "mcp_tool"):
+        if len({item[key] for item in result["items"]}) != len(result["items"]):
+            raise ValueError("Duplicate native functional " + key)
+    if len({(item["method"], item["path"]) for item in result["items"]}) != len(result["items"]):
+        raise ValueError("Duplicate native functional route")
+    for name, schema in extension["schemas"].items():
+        if name in result["schemas"]:
+            raise ValueError("Native functional schema collision")
+        result["schemas"][name] = copy.deepcopy(schema)
+    result["mcp_tools"] = copy.deepcopy(tools["tools"] + extension["tools"])
+    # HTTP references already use the OpenAPI #/components/schemas scope.
+    # MCP inputSchema values remain independent JSON Schema documents.
+    result["components"] = {"schemas": result.pop("schemas")}
+    names = {tool["name"] for tool in result["mcp_tools"]}
+    if len(names) != len(result["mcp_tools"]):
+        raise ValueError("Duplicate native MCP tool")
+    if any(item["mcp_tool"] not in names for item in result["items"]):
+        raise ValueError("Native functional action without MCP tool")
+    result.update(
+        {
+            "runtime": "rust",
+            "notice": "Catalogue documentaire Rust complet ; aucune autorisation individuelle n'est accordée. Les opérations sensibles exigent une confirmation signée en HTTP comme en MCP.",
+            "http_confirmation_mode": "required",
+            "http_operations_count": len(result["items"]),
+            "mcp_tools_count": len(result["mcp_tools"]),
+            "schema_resolution": {
+                "http": "Resolve #/components/schemas references against this document.",
+                "mcp": "Evaluate each tool inputSchema/outputSchema as its own JSON Schema document; its $defs references are local to that schema.",
+            },
+        }
+    )
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     extension = build_extensions()
+    functional = combine_functional(
+        json.loads((ROOT / "packages/contracts/functional-interactions.fr.json").read_text()),
+        extension,
+        json.loads((ROOT / "packages/contracts/mcp-tools.json").read_text()),
+    )
     artifacts = {
         "packages/contracts/rust-extensions.json": json.dumps(
             extension, ensure_ascii=False, indent=2
         )
         + "\n",
         "docs/rust-extensions.fr.md": render_native(extension["functional"]),
+        "packages/contracts/functional-interactions.rust.fr.json": json.dumps(
+            functional, ensure_ascii=False, indent=2
+        )
+        + "\n",
     }
     for name, schema in extension["schemas"].items():
         refs = set()

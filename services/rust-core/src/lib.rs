@@ -9,6 +9,7 @@ pub mod error;
 pub mod graph;
 mod graph_attempts;
 mod graph_import;
+mod inflight_snapshot;
 pub mod knowledge;
 pub mod lexical;
 pub mod mcp;
