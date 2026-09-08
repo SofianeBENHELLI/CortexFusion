@@ -38,3 +38,6 @@ htmlcov/
 *.tsbuildinfo
 *.egg-info/
 .envrc
+
+# Rust build output
+/target/
