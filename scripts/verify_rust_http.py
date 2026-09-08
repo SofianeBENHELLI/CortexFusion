@@ -117,7 +117,10 @@ def run(binary, rust_url, admin_url):
                     response = client.get("/v1/me", headers=h)
                     assert response.status_code == 401, response.text
                     assert response.headers["www-authenticate"] == "Bearer"
-                for valid in [headers(iat=str(int(time.time()) - 1)), headers(exp=str(int(time.time()) + 120))]:
+                for valid in [
+                    headers(iat=str(int(time.time()) - 1)),
+                    headers(exp=str(int(time.time()) + 120)),
+                ]:
                     assert client.get("/v1/me", headers=valid).status_code == 200
                 checks.append("identity_validation")
                 identity = client.get("/v1/me", headers=headers()).json()

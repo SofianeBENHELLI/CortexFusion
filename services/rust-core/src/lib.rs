@@ -4,4 +4,5 @@ pub mod database;
 pub mod error;
 pub mod knowledge;
 pub mod server;
+pub mod snapshot;
 pub mod terminus;

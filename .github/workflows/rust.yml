@@ -15,6 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
+      terminus:
+        image: terminusdb/terminusdb-server@sha256:385faf298ad77aaf2d4d6df5e84a4cbe3596d01dab2e3b991af905639ae56388
+        ports: ['6363:6363']
+        env:
+          TERMINUSDB_ADMIN_PASS: synthetic-spike-password
+          TERMINUSDB_SERVER_PORT: '6363'
       postgres:
         image: postgres:17.11-bookworm
         env:
@@ -56,3 +62,12 @@ jobs:
           cargo build --workspace --locked
           uv run python scripts/verify_rust_http.py --output "$RUNNER_TEMP/rust-http.json"
           cat "$RUNNER_TEMP/rust-http.json"
+      - name: Verify immutable typed Rust snapshots with real TerminusDB
+        env:
+          CORTEX_SPIKE_TERMINUS_PASSWORD: synthetic-spike-password
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --user admin:synthetic-spike-password http://127.0.0.1:6363/api/info > /dev/null; then break; fi
+            sleep 2
+          done
+          cargo test --workspace --locked --test terminus_engine -- --ignored --nocapture
