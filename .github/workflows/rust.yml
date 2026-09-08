@@ -8,6 +8,7 @@ on:
       - 'services/rust-core/**'
       - 'scripts/verify_rust_http.py'
       - 'scripts/verify_rust_graph.py'
+      - 'scripts/verify_rust_graph_import.py'
       - 'scripts/verify_rust_mcp.py'
       - 'scripts/verify_rust_publication.py'
       - 'scripts/verify_rust_publication_recovery.py'

@@ -1,10 +1,10 @@
 # Migration Rust et TerminusDB — état vérifiable
 
-Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La référence historique comporte 79 opérations HTTP, 95 outils MCP et 87 schémas. Les 79 opérations sont maintenant natives ; trois extensions de reprise portent la surface à82HTTP/98MCP. Le remplacement du service existant reste à qualifier : la parité de surface ne constitue pas une homologation de production. Le frontend reste inchangé.
+Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La référence historique comporte 79 opérations HTTP, 95 outils MCP et 87 schémas. Les 79 opérations sont maintenant natives ; sept extensions d’import et de reprise portent la surface à86HTTP/102MCP. Le remplacement du service existant reste à qualifier : la parité de surface ne constitue pas une homologation de production. Le frontend reste inchangé.
 
 ## Couverture native actuelle
 
-Quatre-vingt-deux opérations HTTP, leurs outils MCP et seize alias de compatibilité (98 outils au total) sont implémentés :
+Quatre-vingt-six opérations HTTP, leurs outils MCP et seize alias de compatibilité (102 outils au total) sont implémentés :
 
 | Fonction | HTTP | Outil MCP |
 |---|---|---|
@@ -287,7 +287,7 @@ Les essais de cette migration utilisent exclusivement des réponses OpenRouter/O
 
 ## Ressources et prompts MCP natifs
 
-En plus des95 outils historiques, le serveur expose trois ressources fixes : `cortex://guide` explique les règles d’usage ; `cortex://workspace` décrit l’identité et ses domaines accessibles ; `cortex://actions` décrit les82 interactions. Le modèle de ressource `cortex://domains/{domain_id}/context` fournit versions et préférences personnelles de feedback. Ces lectures sont authentifiées, recontrôlent les accès et n’importent aucun fichier ou URL arbitraire.
+En plus des95 outils historiques, le serveur expose trois ressources fixes : `cortex://guide` explique les règles d’usage ; `cortex://workspace` décrit l’identité et ses domaines accessibles ; `cortex://actions` décrit les86 interactions. Le modèle de ressource `cortex://domains/{domain_id}/context` fournit versions et préférences personnelles de feedback. Ces lectures sont authentifiées, recontrôlent les accès et n’importent aucun fichier ou URL arbitraire.
 
 Trois prompts conservent les noms et arguments historiques : `ask_cortex(domain_id, question)`, `review_cortex_proposal(domain_id, proposal_id)` et `report_cortex_feedback(domain_id, episode_id)`. Ils préparent un parcours choisi par l’utilisateur sans exécuter la question, la revue ou le signal. Une revue exige l’accès à la proposition ; le feedback exige l’épisode personnel courant. Une instruction contenue dans la question demeure une donnée du prompt ; cela ne constitue pas une preuve du comportement futur d’un LLM connecté.
 
@@ -329,3 +329,15 @@ Une réparation de la projection depuis le journal peut modifier `cf_concepts` s
 Le vérificateur indépendant a reproduit le défaut sur le vrai exécutableca976466 avec `KnowledgeService.replay` pendant l’import : ancien contenu activé alors que SQL était réparé. Le même scénario est refusé après correction, sans manifeste et sans régression de version. Une régression produit injecte la réparation après écriture du contenu moteur ; elle est également exécutée devant le moteur réel en CI.
 
 Le [lot de repriseca976466](https://github.com/SofianeBENHELLI/CortexFusion/actions/runs/34202501755) a validé103 contrôles avec TerminusDB réel,82HTTP/98MCP, avant ce correctif supplémentaire de stabilité d’import. Le test de mise à niveau indépendant0020→0023 a aussi confirmé le refus de l’ancien worker déjà en cours, la conservation exacte d’un manifeste historique et la reprise par le nouveau runtime.
+
+## Import initial et reprise explicite — migration0024
+
+Quatre opérations natives complètent la reprise de publication : importer/rapprocher une version publiée, lire ses tentatives d’import, confirmer une nouvelle tentative et lire ses événements. La spécification générée décrit désormais sept extensions et98 schémas/types au total. Les quatre opérations restent réservées au propriétaire avec accès actuel à toutes les preuves du graphe cible.
+
+L’import reconstruit la version depuis la séquence contiguë du journal, contrôle les extraits exacts des sources, les relations et leur absence de cycle structurel, puis compare l’identité de la projection SQL. Une divergence est refusée avant toute écriture moteur. Après l’entrée/sortie TerminusDB, la version, les preuves, la projection et la tentative active sont contrôlées à nouveau. L’import ne produit aucune approbation, publication métier ou avance de version. Un manifeste déjà enregistré n’est pas réécrit.
+
+La migration0024 permet un changement contrôlé d’intention uniquement lors du remplacement explicite d’un import encore sans manifeste à la version publiée courante. La nouvelle empreinte est confirmée dans la commande ; une génération supplémentaire et une nouvelle base privée sont obligatoires. L’intention de chaque ancienne tentative reste immuable. Cette exception couvre les préparations historiques sans intention scellée ainsi que les anciennes projections corrigées depuis le journal. Elle ne permet pas de transformer une publication en import ni de remplacer un import historique après avance de version.
+
+Les reçus sont `registered`, `unresolved` ou `superseded`. Une même clé personnelle de reprise identifie une décision durable ; son rejeu ne recrée jamais la base. Un ancien contenu identique déjà complet se rapproche par l’action normale. La pagination des événements utilise l’ordinal interne0023, avec filtre propre au domaine/version et aux tentatives d’import. Le diagnostic de présence du manifeste ne remplace pas un test de disponibilité du moteur.
+
+Le verrou de domaine précède ceux des tentatives dans les services natifs. Les triggers complètent ce protocole ; ils ne constituent pas une API indépendante permettant à d’autres writers SQL d’ignorer cet ordre de verrouillage.

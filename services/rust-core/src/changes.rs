@@ -79,8 +79,25 @@ pub fn apply_checked(
             }
         }
     }
+    for id in touched {
+        if let Some(c) = result.get(&id) {
+            for link in &c.links {
+                if result
+                    .get(&link.target_id)
+                    .is_some_and(|target| !visible(target, sources))
+                {
+                    return Err(CoreError::not_found());
+                }
+            }
+        }
+    }
+    validate_graph(&result)?;
+    Ok(result)
+}
+/// Validate the entire graph, independent of a proposal's bounded change batch.
+pub(crate) fn validate_graph(state: &BTreeMap<Uuid, Concept>) -> Result<(), CoreError> {
     let mut edges = BTreeMap::new();
-    for (id, c) in &result {
+    for (id, c) in state {
         if c.links.iter().filter(|l| l.primary).count() > 1 {
             return Err(invalid("One primary parent per concept"));
         }
@@ -99,16 +116,9 @@ pub fn apply_checked(
         }
         let mut next = Vec::new();
         for link in &c.links {
-            let target = result
+            let _target = state
                 .get(&link.target_id)
                 .ok_or_else(|| invalid("Relationship endpoint missing"))?;
-            if touched.contains(id) && !visible(target, sources) {
-                return Err(CoreError {
-                    code: "NOT_FOUND",
-                    message: "Relationship endpoint not found",
-                    status: StatusCode::NOT_FOUND,
-                });
-            }
             if link.kind == LinkKind::Structural {
                 next.push(link.target_id);
             }
@@ -116,7 +126,7 @@ pub fn apply_checked(
         edges.insert(*id, next);
     }
     validate_acyclic(&edges).map_err(|_| invalid("Structural relationship cycle"))?;
-    Ok(result)
+    Ok(())
 }
 #[cfg(test)]
 mod tests {

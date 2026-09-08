@@ -95,104 +95,12 @@ impl GraphService {
         p.check_fresh()?;
         Ok((served, visible))
     }
-    /// Internal migration operation. Caller must authenticate the principal first.
-    /// Reservation commits before engine IO; an incomplete reservation is never retried.
+    /// Authenticated maintenance CLI uses the same journal/projection checks as HTTP/MCP.
     pub async fn import_published(
         &self,
         p: &Principal,
         domain: &str,
     ) -> Result<Snapshot, CoreError> {
-        let mut tx = self.db.locked_owner_transaction(p, domain).await?;
-        let served = version(&mut tx, p, domain).await?;
-        let existing:Option<Value>=sqlx::query_scalar("SELECT snapshot FROM cf_graph_manifests WHERE tenant_id=$1 AND domain_id=$2 AND version=$3")
-            .bind(&p.tenant).bind(domain).bind(served).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?;
-        let raw: Vec<Value> = sqlx::query_scalar(
-            "SELECT payload FROM cf_concepts WHERE tenant_id=$1 AND domain_id=$2 ORDER BY id",
-        )
-        .bind(&p.tenant)
-        .bind(domain)
-        .fetch_all(&mut *tx)
-        .await
-        .map_err(CoreError::sql)?;
-        let concepts: Vec<Concept> = raw
-            .into_iter()
-            .map(|v| serde_json::from_value(v).map_err(|_| CoreError::database()))
-            .collect::<Result<_, _>>()?;
-        let sources = allowed(&mut tx, p, domain).await?;
-        if concepts
-            .iter()
-            .any(|c| c.sources.iter().any(|s| !sources.contains(&s.source_id)))
-        {
-            return Err(CoreError::not_found());
-        }
-        if let Some(raw) = existing {
-            p.check_fresh()?;
-            return serde_json::from_value(raw).map_err(|_| CoreError::database());
-        }
-        let (digest, count) = crate::snapshot::content_identity(concepts.clone())
-            .map_err(|_| CoreError::database())?;
-        let intent = serde_json::json!({"kind":"import","base_version":served,"digest":digest,"count":count});
-        let (attempt, reconcile) =
-            crate::graph_attempts::reserve(&mut tx, p, domain, served, &intent).await?;
-        tx.commit().await.map_err(CoreError::sql)?;
-        let prepared = if reconcile {
-            self.engine
-                .reconcile_snapshot(attempt.id, digest, count)
-                .await
-        } else {
-            self.engine
-                .stage_snapshot_reserved(attempt.id, concepts.clone())
-                .await
-        };
-        let mut tx = self.db.locked_owner_transaction(p, domain).await?;
-        let snapshot = match prepared {
-            Ok(s) => s,
-            Err(_) => {
-                crate::graph_attempts::mark(&mut tx, p, domain, served, &attempt, "uncertain")
-                    .await?;
-                tx.commit().await.map_err(CoreError::sql)?;
-                return Err(CoreError::database());
-            }
-        };
-        let sources = allowed(&mut tx, p, domain).await?;
-        if version(&mut tx, p, domain).await? != served
-            || concepts
-                .iter()
-                .any(|c| c.sources.iter().any(|s| !sources.contains(&s.source_id)))
-        {
-            crate::graph_attempts::mark(&mut tx, p, domain, served, &attempt, "stale").await?;
-            tx.commit().await.map_err(CoreError::sql)?;
-            return Err(CoreError::database());
-        }
-        // A legacy journal replay can repair this projection without advancing its version.
-        // The sealed import must still identify exactly the SQL state being migrated.
-        let current_raw: Vec<Value> = sqlx::query_scalar(
-            "SELECT payload FROM cf_concepts WHERE tenant_id=$1 AND domain_id=$2 ORDER BY id",
-        )
-        .bind(&p.tenant)
-        .bind(domain)
-        .fetch_all(&mut *tx)
-        .await
-        .map_err(CoreError::sql)?;
-        let current_concepts = current_raw
-            .into_iter()
-            .map(|v| serde_json::from_value::<Concept>(v).map_err(|_| CoreError::database()))
-            .collect::<Result<Vec<_>, _>>()?;
-        let (current_digest, current_count) = crate::snapshot::content_identity(current_concepts)
-            .map_err(|_| CoreError::database())?;
-        if intent["digest"] != current_digest || intent["count"] != current_count {
-            crate::graph_attempts::mark(&mut tx, p, domain, served, &attempt, "stale").await?;
-            tx.commit().await.map_err(CoreError::sql)?;
-            return Err(CoreError {
-                code: "GRAPH_IMPORT_STATE_CHANGED",
-                message: "The SQL projection changed during graph import; inspect and reconcile its state",
-                status: http::StatusCode::CONFLICT,
-            });
-        }
-        crate::graph_attempts::manifest(&mut tx, p, domain, served, &attempt, &snapshot).await?;
-        crate::graph_attempts::mark(&mut tx, p, domain, served, &attempt, "ready").await?;
-        p.check_fresh()?;
-        tx.commit().await.map_err(CoreError::sql)?;
-        Ok(snapshot)
+        self.import_current_snapshot(p, domain).await
     }
 }

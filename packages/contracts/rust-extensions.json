@@ -935,6 +935,1262 @@
           }
         }
       }
+    },
+    "/v1/domains/{domain}/graph-import": {
+      "post": {
+        "operationId": "graph.import_published",
+        "description": "Après confirmation signée du propriétaire, reconstruit le graphe entier depuis le journal et vérifie chaque preuve accessible, les relations et la concordance de la projection SQL. Réserve une tentative durable avant tout transfert. Une tentative déjà scellée est seulement relue dans TerminusDB ; un manifeste existant est retourné sans écriture moteur. Ne modifie ni les versions métier, ni les validations, ni le journal de connaissance. registered signifie manifeste enregistré, sans certifier la disponibilité instantanée du moteur.",
+        "x-cortex-interaction": {
+          "action_id": "graph.import_published",
+          "roles": [
+            "owner"
+          ],
+          "effect": "trusted",
+          "effect_description": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
+          "intent_example": "Enregistre cette version publiée et son contenu exact dans le graphe immuable.",
+          "confirmation_policy": "explicit_user_decision",
+          "object_authorization": "Current owner and current access to every source in the complete target graph are required; the inventory grants no authority."
+        },
+        "x-cortex-runtime": "rust",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Durable command receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphImportReceipt"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameters, evidence, state or model output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role does not authorize this action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Absent or inaccessible object; do not infer its existence.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State/version/idempotency conflict; refresh before deciding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request exceeds body limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Configured domain model attempt limit reached; no new provider call started.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage or configured model unavailable; do not claim completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Strict HTTP mode requires a signed trusted-host confirmation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "confirmation_request"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "confirmation_request": {
+                      "type": "object",
+                      "required": [
+                        "action",
+                        "command_hash",
+                        "transport_header",
+                        "max_lifetime_seconds"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "command_hash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "transport_header": {
+                          "const": "X-Cortex-Confirmation"
+                        },
+                        "max_lifetime_seconds": {
+                          "const": 300
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphImportInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/domains/{domain}/graph-import-attempts": {
+      "get": {
+        "operationId": "graph.import_attempts",
+        "description": "Retourne l’identité canonique du graphe publié, la présence du manifeste et les tentatives d’import uniquement. Sans version, cible la version publiée courante ; une version historique est autorisée avec accès actuel à toutes ses preuves. Le diagnostic de projection vaut null pour une version historique. Une tentative héritée non scellée expose une empreinte et un nombre de concepts null. Aucun appel moteur.",
+        "x-cortex-interaction": {
+          "action_id": "graph.import_attempts",
+          "roles": [
+            "owner"
+          ],
+          "effect": "none",
+          "effect_description": "Read only; no durable application change.",
+          "intent_example": "Inspecte la migration de cette version et la concordance entre journal et projection.",
+          "confirmation_policy": "authorized_user_intent",
+          "object_authorization": "Current owner and current access to every source in the complete target graph are required; the inventory grants no authority."
+        },
+        "x-cortex-runtime": "rust",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775806,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphImportAttemptPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameters, evidence, state or model output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role does not authorize this action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Absent or inaccessible object; do not infer its existence.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State/version/idempotency conflict; refresh before deciding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request exceeds body limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Configured domain model attempt limit reached; no new provider call started.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage or configured model unavailable; do not claim completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "graph.retry_import",
+        "description": "Confirme la version courante, l’empreinte désirée, l’UUID/génération attendus et un motif non blanc. Crée un nouvel UUID de base privée et une génération, en conservant les intentions anciennes immuables. Peut remplacer une préparation héritée non scellée ou une ancienne empreinte après réparation de la projection, uniquement sans manifeste à la version courante. Une clé personnelle déjà enregistrée ne recrée jamais la base. Une préparation identique complète exige un rapprochement par l’import normal. Le statut 201 est aussi retourné au rejeu ; seul outcome indique le résultat.",
+        "x-cortex-interaction": {
+          "action_id": "graph.retry_import",
+          "roles": [
+            "owner"
+          ],
+          "effect": "trusted",
+          "effect_description": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
+          "intent_example": "Remplace cette tentative d’import incertaine par une nouvelle tentative du contenu confirmé.",
+          "confirmation_policy": "explicit_user_decision",
+          "object_authorization": "Current owner and current access to every source in the complete target graph are required; the inventory grants no authority."
+        },
+        "x-cortex-runtime": "rust",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Durable command receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphImportReceipt"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameters, evidence, state or model output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role does not authorize this action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Absent or inaccessible object; do not infer its existence.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State/version/idempotency conflict; refresh before deciding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request exceeds body limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Configured domain model attempt limit reached; no new provider call started.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage or configured model unavailable; do not claim completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Strict HTTP mode requires a signed trusted-host confirmation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "confirmation_request"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "confirmation_request": {
+                      "type": "object",
+                      "required": [
+                        "action",
+                        "command_hash",
+                        "transport_header",
+                        "max_lifetime_seconds"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "command_hash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "transport_header": {
+                          "const": "X-Cortex-Confirmation"
+                        },
+                        "max_lifetime_seconds": {
+                          "const": 300
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphImportRetryInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/domains/{domain}/graph-import-events": {
+      "get": {
+        "operationId": "graph.import_events",
+        "description": "Liste les événements immuables d’import et de reprise du graphe, à la version courante par défaut ou à une version historique autorisée. Exclut les événements de publication. Pagination par curseur opaque, bornée à 100 éléments. Les états décrivent ce que l’application sait, pas la terminaison de toutes les anciennes requêtes moteur.",
+        "x-cortex-interaction": {
+          "action_id": "graph.import_events",
+          "roles": [
+            "owner"
+          ],
+          "effect": "none",
+          "effect_description": "Read only; no durable application change.",
+          "intent_example": "Affiche le journal des tentatives de migration de cette version.",
+          "confirmation_policy": "authorized_user_intent",
+          "object_authorization": "Current owner and current access to every source in the complete target graph are required; the inventory grants no authority."
+        },
+        "x-cortex-runtime": "rust",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphPublicationEventPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameters, evidence, state or model output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role does not authorize this action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Absent or inaccessible object; do not infer its existence.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State/version/idempotency conflict; refresh before deciding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request exceeds body limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Configured domain model attempt limit reached; no new provider call started.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage or configured model unavailable; do not claim completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "schemas": {
@@ -1216,6 +2472,283 @@
         "next_after"
       ],
       "additionalProperties": false
+    },
+    "GraphImportInput": {
+      "type": "object",
+      "properties": {
+        "expected_published_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "expected_projection_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "expected_published_version",
+        "expected_projection_digest"
+      ],
+      "additionalProperties": false
+    },
+    "GraphImportRetryInput": {
+      "type": "object",
+      "properties": {
+        "expected_published_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "expected_attempt_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "expected_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775806
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 200
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Motif explicite, non vide après retrait des espaces périphériques."
+        },
+        "expected_projection_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "expected_published_version",
+        "expected_attempt_id",
+        "expected_generation",
+        "idempotency_key",
+        "reason",
+        "expected_projection_digest"
+      ],
+      "additionalProperties": false
+    },
+    "GraphImportAttempt": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "predecessor_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subject": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "preparing",
+            "uncertain",
+            "ready",
+            "stale",
+            "superseded"
+          ]
+        },
+        "base_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "count": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "intent_sealed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "generation",
+        "predecessor_id",
+        "subject",
+        "reason",
+        "created_at",
+        "active",
+        "status",
+        "base_version",
+        "digest",
+        "count",
+        "intent_sealed"
+      ],
+      "additionalProperties": false
+    },
+    "GraphImportAttemptPage": {
+      "type": "object",
+      "properties": {
+        "target_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "published_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "manifest_registered": {
+          "type": "boolean"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "projection_matches_journal": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "active_attempt": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/GraphImportAttempt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/GraphImportAttempt"
+          }
+        },
+        "next_after": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "target_version",
+        "published_version",
+        "manifest_registered",
+        "digest",
+        "count",
+        "projection_matches_journal",
+        "active_attempt",
+        "items",
+        "next_after"
+      ],
+      "additionalProperties": false
+    },
+    "GraphImportReceipt": {
+      "type": "object",
+      "properties": {
+        "target_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "published_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "manifest_registered": {
+          "type": "boolean"
+        },
+        "attempt": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/GraphImportAttempt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "registered",
+            "unresolved",
+            "superseded"
+          ]
+        }
+      },
+      "required": [
+        "target_version",
+        "published_version",
+        "manifest_registered",
+        "attempt",
+        "outcome"
+      ],
+      "additionalProperties": false
     }
   },
   "interactions": [
@@ -1260,6 +2793,62 @@
       "method": "GET",
       "path": "/v1/domains/{domain}/proposals/{proposal_id}/publication-events",
       "operation_id": "proposals.publication_events"
+    },
+    {
+      "action_id": "graph.import_published",
+      "roles": [
+        "owner"
+      ],
+      "effect": "trusted",
+      "effect_description": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
+      "intent_example": "Enregistre cette version publiée et son contenu exact dans le graphe immuable.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Current owner and current access to every source in the complete target graph are required; the inventory grants no authority.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/graph-import",
+      "operation_id": "graph.import_published"
+    },
+    {
+      "action_id": "graph.import_attempts",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Inspecte la migration de cette version et la concordance entre journal et projection.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Current owner and current access to every source in the complete target graph are required; the inventory grants no authority.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/graph-import-attempts",
+      "operation_id": "graph.import_attempts"
+    },
+    {
+      "action_id": "graph.retry_import",
+      "roles": [
+        "owner"
+      ],
+      "effect": "trusted",
+      "effect_description": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
+      "intent_example": "Remplace cette tentative d’import incertaine par une nouvelle tentative du contenu confirmé.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Current owner and current access to every source in the complete target graph are required; the inventory grants no authority.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/graph-import-attempts",
+      "operation_id": "graph.retry_import"
+    },
+    {
+      "action_id": "graph.import_events",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Affiche le journal des tentatives de migration de cette version.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Current owner and current access to every source in the complete target graph are required; the inventory grants no authority.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/graph-import-events",
+      "operation_id": "graph.import_events"
     }
   ],
   "tools": [
@@ -2038,6 +3627,1160 @@
         "destructiveHint": false,
         "openWorldHint": false
       }
+    },
+    {
+      "name": "api_graph_import_published",
+      "description": "Après confirmation signée du propriétaire, reconstruit le graphe entier depuis le journal et vérifie chaque preuve accessible, les relations et la concordance de la projection SQL. Réserve une tentative durable avant tout transfert. Une tentative déjà scellée est seulement relue dans TerminusDB ; un manifeste existant est retourné sans écriture moteur. Ne modifie ni les versions métier, ni les validations, ni le journal de connaissance. registered signifie manifeste enregistré, sans certifier la disponibilité instantanée du moteur. Requires a trusted-host signed confirmation header bound to these exact arguments.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain"
+            ]
+          },
+          "body": {
+            "$ref": "#/$defs/GraphImportInput"
+          }
+        },
+        "required": [
+          "path",
+          "body"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "GraphImportInput": {
+            "type": "object",
+            "properties": {
+              "expected_published_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "expected_projection_digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "expected_published_version",
+              "expected_projection_digest"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/GraphImportReceipt"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          },
+          "confirmation_request": {
+            "$ref": "#/$defs/MCPConfirmationRequest"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/GraphImportReceipt"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "confirmation_request"
+              ]
+            },
+            "then": {
+              "properties": {
+                "http_status": {
+                  "const": 428
+                }
+              }
+            }
+          }
+        ],
+        "$defs": {
+          "GraphImportReceipt": {
+            "type": "object",
+            "properties": {
+              "target_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "published_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "manifest_registered": {
+                "type": "boolean"
+              },
+              "attempt": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/GraphImportAttempt"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "registered",
+                  "unresolved",
+                  "superseded"
+                ]
+              }
+            },
+            "required": [
+              "target_version",
+              "published_version",
+              "manifest_registered",
+              "attempt",
+              "outcome"
+            ],
+            "additionalProperties": false
+          },
+          "GraphImportAttempt": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "generation": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "predecessor_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "subject": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "preparing",
+                  "uncertain",
+                  "ready",
+                  "stale",
+                  "superseded"
+                ]
+              },
+              "base_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "digest": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "count": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9223372036854775807
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "intent_sealed": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "generation",
+              "predecessor_id",
+              "subject",
+              "reason",
+              "created_at",
+              "active",
+              "status",
+              "base_version",
+              "digest",
+              "count",
+              "intent_sealed"
+            ],
+            "additionalProperties": false
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          "MCPConfirmationRequest": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "command_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "transport_header": {
+                "const": "X-Cortex-Confirmation"
+              },
+              "max_lifetime_seconds": {
+                "const": 300
+              }
+            },
+            "required": [
+              "action",
+              "command_hash",
+              "transport_header",
+              "max_lifetime_seconds"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "api_graph_import_attempts",
+      "description": "Retourne l’identité canonique du graphe publié, la présence du manifeste et les tentatives d’import uniquement. Sans version, cible la version publiée courante ; une version historique est autorisée avec accès actuel à toutes ses preuves. Le diagnostic de projection vaut null pour une version historique. Une tentative héritée non scellée expose une empreinte et un nombre de concepts null. Aucun appel moteur.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain"
+            ]
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "default": 50
+              },
+              "after": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775806,
+                "default": 0
+              }
+            },
+            "additionalProperties": false,
+            "required": []
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/GraphImportAttemptPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/GraphImportAttemptPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "$defs": {
+          "GraphImportAttemptPage": {
+            "type": "object",
+            "properties": {
+              "target_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "published_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "manifest_registered": {
+                "type": "boolean"
+              },
+              "digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "projection_matches_journal": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "active_attempt": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/GraphImportAttempt"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/GraphImportAttempt"
+                }
+              },
+              "next_after": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9223372036854775807
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "target_version",
+              "published_version",
+              "manifest_registered",
+              "digest",
+              "count",
+              "projection_matches_journal",
+              "active_attempt",
+              "items",
+              "next_after"
+            ],
+            "additionalProperties": false
+          },
+          "GraphImportAttempt": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "generation": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "predecessor_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "subject": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "preparing",
+                  "uncertain",
+                  "ready",
+                  "stale",
+                  "superseded"
+                ]
+              },
+              "base_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "digest": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "count": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9223372036854775807
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "intent_sealed": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "generation",
+              "predecessor_id",
+              "subject",
+              "reason",
+              "created_at",
+              "active",
+              "status",
+              "base_version",
+              "digest",
+              "count",
+              "intent_sealed"
+            ],
+            "additionalProperties": false
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "api_graph_retry_import",
+      "description": "Confirme la version courante, l’empreinte désirée, l’UUID/génération attendus et un motif non blanc. Crée un nouvel UUID de base privée et une génération, en conservant les intentions anciennes immuables. Peut remplacer une préparation héritée non scellée ou une ancienne empreinte après réparation de la projection, uniquement sans manifeste à la version courante. Une clé personnelle déjà enregistrée ne recrée jamais la base. Une préparation identique complète exige un rapprochement par l’import normal. Le statut 201 est aussi retourné au rejeu ; seul outcome indique le résultat. Requires a trusted-host signed confirmation header bound to these exact arguments.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain"
+            ]
+          },
+          "body": {
+            "$ref": "#/$defs/GraphImportRetryInput"
+          }
+        },
+        "required": [
+          "path",
+          "body"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "GraphImportRetryInput": {
+            "type": "object",
+            "properties": {
+              "expected_published_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "expected_attempt_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expected_generation": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775806
+              },
+              "idempotency_key": {
+                "type": "string",
+                "minLength": 8,
+                "maxLength": 200
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Motif explicite, non vide après retrait des espaces périphériques."
+              },
+              "expected_projection_digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "expected_published_version",
+              "expected_attempt_id",
+              "expected_generation",
+              "idempotency_key",
+              "reason",
+              "expected_projection_digest"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/GraphImportReceipt"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          },
+          "confirmation_request": {
+            "$ref": "#/$defs/MCPConfirmationRequest"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  201
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/GraphImportReceipt"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "confirmation_request"
+              ]
+            },
+            "then": {
+              "properties": {
+                "http_status": {
+                  "const": 428
+                }
+              }
+            }
+          }
+        ],
+        "$defs": {
+          "GraphImportReceipt": {
+            "type": "object",
+            "properties": {
+              "target_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "published_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "manifest_registered": {
+                "type": "boolean"
+              },
+              "attempt": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/GraphImportAttempt"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "registered",
+                  "unresolved",
+                  "superseded"
+                ]
+              }
+            },
+            "required": [
+              "target_version",
+              "published_version",
+              "manifest_registered",
+              "attempt",
+              "outcome"
+            ],
+            "additionalProperties": false
+          },
+          "GraphImportAttempt": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "generation": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "predecessor_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "subject": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "preparing",
+                  "uncertain",
+                  "ready",
+                  "stale",
+                  "superseded"
+                ]
+              },
+              "base_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "digest": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "count": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9223372036854775807
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "intent_sealed": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "generation",
+              "predecessor_id",
+              "subject",
+              "reason",
+              "created_at",
+              "active",
+              "status",
+              "base_version",
+              "digest",
+              "count",
+              "intent_sealed"
+            ],
+            "additionalProperties": false
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          "MCPConfirmationRequest": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "command_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "transport_header": {
+                "const": "X-Cortex-Confirmation"
+              },
+              "max_lifetime_seconds": {
+                "const": 300
+              }
+            },
+            "required": [
+              "action",
+              "command_hash",
+              "transport_header",
+              "max_lifetime_seconds"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "api_graph_import_events",
+      "description": "Liste les événements immuables d’import et de reprise du graphe, à la version courante par défaut ou à une version historique autorisée. Exclut les événements de publication. Pagination par curseur opaque, bornée à 100 éléments. Les états décrivent ce que l’application sait, pas la terminaison de toutes les anciennes requêtes moteur.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain"
+            ]
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "default": 50
+              },
+              "after": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "additionalProperties": false,
+            "required": []
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/GraphPublicationEventPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/GraphPublicationEventPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "$defs": {
+          "GraphPublicationEventPage": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/GraphPublicationEvent"
+                }
+              },
+              "next_after": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "items",
+              "next_after"
+            ],
+            "additionalProperties": false
+          },
+          "GraphPublicationEvent": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "attempt_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "generation": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "subject": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "reserved",
+                  "uncertain",
+                  "ready",
+                  "stale",
+                  "superseded"
+                ]
+              },
+              "recorded_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "attempt_id",
+              "generation",
+              "subject",
+              "kind",
+              "recorded_at"
+            ],
+            "additionalProperties": false
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
     }
   ],
   "functional": {
@@ -2292,6 +5035,396 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "request_body": null,
+        "responses": {
+          "200": {
+            "description": "Authorized state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphPublicationEventPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "error_contract": "common_error"
+          },
+          "401": {
+            "error_contract": "common_error"
+          },
+          "403": {
+            "error_contract": "common_error"
+          },
+          "404": {
+            "error_contract": "common_error"
+          },
+          "409": {
+            "error_contract": "common_error"
+          },
+          "413": {
+            "error_contract": "common_error"
+          },
+          "429": {
+            "error_contract": "common_error"
+          },
+          "503": {
+            "error_contract": "common_error"
+          }
+        }
+      },
+      {
+        "action_id": "graph.import_published",
+        "roles": [
+          "owner"
+        ],
+        "effect": "trusted",
+        "effect_description": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
+        "intent_example": "Enregistre cette version publiée et son contenu exact dans le graphe immuable.",
+        "confirmation_policy": "explicit_user_decision",
+        "object_authorization": "Current owner and current access to every source in the complete target graph are required; the inventory grants no authority.",
+        "method": "POST",
+        "path": "/v1/domains/{domain}/graph-import",
+        "operation_id": "graph.import_published",
+        "description_fr": "Après confirmation signée du propriétaire, reconstruit le graphe entier depuis le journal et vérifie chaque preuve accessible, les relations et la concordance de la projection SQL. Réserve une tentative durable avant tout transfert. Une tentative déjà scellée est seulement relue dans TerminusDB ; un manifeste existant est retourné sans écriture moteur. Ne modifie ni les versions métier, ni les validations, ni le journal de connaissance. registered signifie manifeste enregistré, sans certifier la disponibilité instantanée du moteur.",
+        "frontend_fr": "Lire le diagnostic des tentatives pour obtenir version et empreinte exactes, puis faire confirmer ces deux valeurs. Afficher le reçu registered/unresolved. Une réponse incertaine se rapproche avec la même action et le même contenu ; un nouveau transfert exige une reprise distincte et explicite.",
+        "effect_fr": "Acceptation ou publication selon l'opération ; consulter le reçu.",
+        "mcp_tool": "api_graph_import_published",
+        "mcp_confirmation_required": true,
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "request_body": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphImportInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Durable command receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphImportReceipt"
+                }
+              }
+            }
+          },
+          "422": {
+            "error_contract": "common_error"
+          },
+          "401": {
+            "error_contract": "common_error"
+          },
+          "403": {
+            "error_contract": "common_error"
+          },
+          "404": {
+            "error_contract": "common_error"
+          },
+          "409": {
+            "error_contract": "common_error"
+          },
+          "413": {
+            "error_contract": "common_error"
+          },
+          "429": {
+            "error_contract": "common_error"
+          },
+          "503": {
+            "error_contract": "common_error"
+          },
+          "428": {
+            "error_contract": "common_error"
+          }
+        }
+      },
+      {
+        "action_id": "graph.import_attempts",
+        "roles": [
+          "owner"
+        ],
+        "effect": "none",
+        "effect_description": "Read only; no durable application change.",
+        "intent_example": "Inspecte la migration de cette version et la concordance entre journal et projection.",
+        "confirmation_policy": "authorized_user_intent",
+        "object_authorization": "Current owner and current access to every source in the complete target graph are required; the inventory grants no authority.",
+        "method": "GET",
+        "path": "/v1/domains/{domain}/graph-import-attempts",
+        "operation_id": "graph.import_attempts",
+        "description_fr": "Retourne l’identité canonique du graphe publié, la présence du manifeste et les tentatives d’import uniquement. Sans version, cible la version publiée courante ; une version historique est autorisée avec accès actuel à toutes ses preuves. Le diagnostic de projection vaut null pour une version historique. Une tentative héritée non scellée expose une empreinte et un nombre de concepts null. Aucun appel moteur.",
+        "frontend_fr": "Afficher les divergences avant de proposer un import. Conserver UUID/génération de la tentative active, version cible et empreinte du journal pour une reprise. Ne pas interpréter manifest_registered comme un contrôle de santé TerminusDB.",
+        "effect_fr": "Lecture sans modification métier durable.",
+        "mcp_tool": "api_graph_import_attempts",
+        "mcp_confirmation_required": false,
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775806,
+              "default": 0
+            }
+          }
+        ],
+        "request_body": null,
+        "responses": {
+          "200": {
+            "description": "Authorized state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphImportAttemptPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "error_contract": "common_error"
+          },
+          "401": {
+            "error_contract": "common_error"
+          },
+          "403": {
+            "error_contract": "common_error"
+          },
+          "404": {
+            "error_contract": "common_error"
+          },
+          "409": {
+            "error_contract": "common_error"
+          },
+          "413": {
+            "error_contract": "common_error"
+          },
+          "429": {
+            "error_contract": "common_error"
+          },
+          "503": {
+            "error_contract": "common_error"
+          }
+        }
+      },
+      {
+        "action_id": "graph.retry_import",
+        "roles": [
+          "owner"
+        ],
+        "effect": "trusted",
+        "effect_description": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
+        "intent_example": "Remplace cette tentative d’import incertaine par une nouvelle tentative du contenu confirmé.",
+        "confirmation_policy": "explicit_user_decision",
+        "object_authorization": "Current owner and current access to every source in the complete target graph are required; the inventory grants no authority.",
+        "method": "POST",
+        "path": "/v1/domains/{domain}/graph-import-attempts",
+        "operation_id": "graph.retry_import",
+        "description_fr": "Confirme la version courante, l’empreinte désirée, l’UUID/génération attendus et un motif non blanc. Crée un nouvel UUID de base privée et une génération, en conservant les intentions anciennes immuables. Peut remplacer une préparation héritée non scellée ou une ancienne empreinte après réparation de la projection, uniquement sans manifeste à la version courante. Une clé personnelle déjà enregistrée ne recrée jamais la base. Une préparation identique complète exige un rapprochement par l’import normal. Le statut 201 est aussi retourné au rejeu ; seul outcome indique le résultat.",
+        "frontend_fr": "Expliquer le changement d’empreinte éventuel et faire confirmer la décision exacte. Conserver une clé stable par intention, relire après timeout, afficher registered/unresolved/superseded. Ne pas créer une autre clé ou remplacer une tentative automatiquement.",
+        "effect_fr": "Acceptation ou publication selon l'opération ; consulter le reçu.",
+        "mcp_tool": "api_graph_retry_import",
+        "mcp_confirmation_required": true,
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "request_body": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphImportRetryInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Durable command receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphImportReceipt"
+                }
+              }
+            }
+          },
+          "422": {
+            "error_contract": "common_error"
+          },
+          "401": {
+            "error_contract": "common_error"
+          },
+          "403": {
+            "error_contract": "common_error"
+          },
+          "404": {
+            "error_contract": "common_error"
+          },
+          "409": {
+            "error_contract": "common_error"
+          },
+          "413": {
+            "error_contract": "common_error"
+          },
+          "429": {
+            "error_contract": "common_error"
+          },
+          "503": {
+            "error_contract": "common_error"
+          },
+          "428": {
+            "error_contract": "common_error"
+          }
+        }
+      },
+      {
+        "action_id": "graph.import_events",
+        "roles": [
+          "owner"
+        ],
+        "effect": "none",
+        "effect_description": "Read only; no durable application change.",
+        "intent_example": "Affiche le journal des tentatives de migration de cette version.",
+        "confirmation_policy": "authorized_user_intent",
+        "object_authorization": "Current owner and current access to every source in the complete target graph are required; the inventory grants no authority.",
+        "method": "GET",
+        "path": "/v1/domains/{domain}/graph-import-events",
+        "operation_id": "graph.import_events",
+        "description_fr": "Liste les événements immuables d’import et de reprise du graphe, à la version courante par défaut ou à une version historique autorisée. Exclut les événements de publication. Pagination par curseur opaque, bornée à 100 éléments. Les états décrivent ce que l’application sait, pas la terminaison de toutes les anciennes requêtes moteur.",
+        "frontend_fr": "Afficher date, acteur et génération ; utiliser next_after pour poursuivre le journal. Le curseur appartient au domaine et à la version sélectionnés.",
+        "effect_fr": "Lecture sans modification métier durable.",
+        "mcp_tool": "api_graph_import_events",
+        "mcp_confirmation_required": false,
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
             }
           },
           {
@@ -2652,6 +5785,283 @@
         "required": [
           "items",
           "next_after"
+        ],
+        "additionalProperties": false
+      },
+      "GraphImportInput": {
+        "type": "object",
+        "properties": {
+          "expected_published_version": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "expected_projection_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "expected_published_version",
+          "expected_projection_digest"
+        ],
+        "additionalProperties": false
+      },
+      "GraphImportRetryInput": {
+        "type": "object",
+        "properties": {
+          "expected_published_version": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "expected_attempt_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expected_generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775806
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 200
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Motif explicite, non vide après retrait des espaces périphériques."
+          },
+          "expected_projection_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "expected_published_version",
+          "expected_attempt_id",
+          "expected_generation",
+          "idempotency_key",
+          "reason",
+          "expected_projection_digest"
+        ],
+        "additionalProperties": false
+      },
+      "GraphImportAttempt": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          },
+          "predecessor_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subject": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "preparing",
+              "uncertain",
+              "ready",
+              "stale",
+              "superseded"
+            ]
+          },
+          "base_version": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "digest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "intent_sealed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "generation",
+          "predecessor_id",
+          "subject",
+          "reason",
+          "created_at",
+          "active",
+          "status",
+          "base_version",
+          "digest",
+          "count",
+          "intent_sealed"
+        ],
+        "additionalProperties": false
+      },
+      "GraphImportAttemptPage": {
+        "type": "object",
+        "properties": {
+          "target_version": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "published_version": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "manifest_registered": {
+            "type": "boolean"
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "projection_matches_journal": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "active_attempt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GraphImportAttempt"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GraphImportAttempt"
+            }
+          },
+          "next_after": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "target_version",
+          "published_version",
+          "manifest_registered",
+          "digest",
+          "count",
+          "projection_matches_journal",
+          "active_attempt",
+          "items",
+          "next_after"
+        ],
+        "additionalProperties": false
+      },
+      "GraphImportReceipt": {
+        "type": "object",
+        "properties": {
+          "target_version": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "published_version": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "manifest_registered": {
+            "type": "boolean"
+          },
+          "attempt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GraphImportAttempt"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "registered",
+              "unresolved",
+              "superseded"
+            ]
+          }
+        },
+        "required": [
+          "target_version",
+          "published_version",
+          "manifest_registered",
+          "attempt",
+          "outcome"
         ],
         "additionalProperties": false
       }

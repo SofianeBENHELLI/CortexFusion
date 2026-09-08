@@ -69,7 +69,7 @@ struct RetryInput {
     idempotency_key: String,
     reason: String,
 }
-fn integer<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<i64, D::Error> {
+pub(crate) fn integer<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<i64, D::Error> {
     let value = Value::deserialize(deserializer)?;
     value
         .as_i64()

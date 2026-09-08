@@ -66,7 +66,7 @@ fn schema() -> Result<Value, CoreError> {
         }
     });
     v["info"]["description"] = json!(
-        "CortexFusion native Rust migration candidate. All 79 reference operations and 3 native publication recovery operations are implemented. Historical schemas are preserved; some detailed validation error shapes differ. Optional configured model calls require signed decisions. No frontend or production deployment is included."
+        "CortexFusion native Rust migration candidate. All 79 reference operations and 7 native graph import and publication recovery operations are implemented. Historical schemas are preserved; some detailed validation error shapes differ. Optional configured model calls require signed decisions. No frontend or production deployment is included."
     );
     Ok(v)
 }

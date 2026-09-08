@@ -447,21 +447,7 @@ def verify_publication_recovery(binary, env, headers, admin, tenant, private):
                     {"t": tenant, "d": d},
                 )
 
-            def repair_projection():
-                with admin.begin() as conn:
-                    conn.execute(
-                        text(
-                            "UPDATE cf_concepts SET payload=CAST(:payload AS jsonb) WHERE tenant_id=:t AND domain_id=:d AND id=:id"
-                        ),
-                        {
-                            "t": tenant,
-                            "d": d,
-                            "id": canonical["concept_id"],
-                            "payload": json.dumps(canonical),
-                        },
-                    )
-
-            engine["after_instance"] = repair_projection
+            posts_before = len(engine["posts"])
             cli_env = {
                 **env,
                 "CORTEX_TERMINUS_URL": f"http://127.0.0.1:{server.server_port}",
@@ -477,7 +463,7 @@ def verify_publication_recovery(binary, env, headers, admin, tenant, private):
                 text=True,
                 timeout=15,
             )
-            assert result.returncode != 0 and "GRAPH_IMPORT_STATE_CHANGED" in result.stderr
+            assert result.returncode != 0 and "GRAPH_IMPORT_PROJECTION_DIVERGED" in result.stderr
             with admin.begin() as conn:
                 assert (
                     conn.execute(
@@ -491,18 +477,19 @@ def verify_publication_recovery(binary, env, headers, admin, tenant, private):
                 assert (
                     conn.execute(
                         text(
-                            "SELECT status FROM cf_graph_preparations WHERE tenant_id=:t AND domain_id=:d"
+                            "SELECT count(*) FROM cf_graph_preparations WHERE tenant_id=:t AND domain_id=:d"
                         ),
                         {"t": tenant, "d": d},
                     ).scalar_one()
-                    == "stale"
+                    == 0
                 )
+                assert len(engine["posts"]) == posts_before
                 assert (
                     conn.execute(
                         text("SELECT payload FROM cf_concepts WHERE tenant_id=:t AND domain_id=:d"),
                         {"t": tenant, "d": d},
                     ).scalar_one()
-                    == canonical
+                    == obsolete
                 )
                 assert (
                     conn.execute(
@@ -514,7 +501,7 @@ def verify_publication_recovery(binary, env, headers, admin, tenant, private):
                     == 1
                 )
             return [
-                "native_import_rechecks_projection_digest_after_engine_IO",
+                "native_import_rejects_obsolete_projection_before_engine_IO",
                 "native_recovery_signed_MCP_new_generation_publication",
                 "native_recovery_idempotency_conflict_and_replay_no_POST",
                 "native_recovery_attempt_event_pagination_schema_HTTP_MCP_parity",

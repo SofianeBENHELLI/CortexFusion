@@ -8,6 +8,7 @@ pub mod database;
 pub mod error;
 pub mod graph;
 mod graph_attempts;
+mod graph_import;
 pub mod knowledge;
 pub mod lexical;
 pub mod mcp;

@@ -1,6 +1,6 @@
 # Démarrer et tester le backend Rust
 
-Ce guide concerne le candidat Rust, ses82 opérations HTTP et98 outils MCP. Le serveur et l’analyse de documents sont natifs. PostgreSQL conserve les identités, droits, preuves et reçus ; TerminusDB fournit les snapshots de connaissance publiés. Les migrations SQL, le bootstrap et les outils de vérification utilisent encore Python. Le service Python reste présent comme référence de compatibilité.
+Ce guide concerne le candidat Rust, ses86 opérations HTTP et102 outils MCP. Le serveur et l’analyse de documents sont natifs. PostgreSQL conserve les identités, droits, preuves et reçus ; TerminusDB fournit les snapshots de connaissance publiés. Les migrations SQL, le bootstrap et les outils de vérification utilisent encore Python. Le service Python reste présent comme référence de compatibilité.
 
 Les trois extensions natives de reprise sont décrites dans la [référence française dédiée](rust-extensions.fr.md). Les schémas JSON et types TypeScript `GraphPublication*` sont générés avec les autres contrats.
 
@@ -16,7 +16,7 @@ uv run alembic upgrade head
 cargo build --workspace --locked
 ```
 
-Alembic attend `CORTEX_MIGRATION_DATABASE_URL`, au format SQLAlchemy `postgresql+pg8000://…`. Le schéma attendu est la migration0023, avec36 tables applicatives. Rust attend séparément `CORTEX_RUST_DATABASE_URL`, au format SQLx `postgresql://cortex_app:…@127.0.0.1:55432/cortex_test`. Les deux URL désignent la même base avec des identités différentes. Les mots de passe doivent être encodés dans les URL.
+Alembic attend `CORTEX_MIGRATION_DATABASE_URL`, au format SQLAlchemy `postgresql+pg8000://…`. Le schéma attendu est la migration0024, avec36 tables applicatives. Rust attend séparément `CORTEX_RUST_DATABASE_URL`, au format SQLx `postgresql://cortex_app:…@127.0.0.1:55432/cortex_test`. Les deux URL désignent la même base avec des identités différentes. Les mots de passe doivent être encodés dans les URL.
 
 Le test automatisé crée ses propres tenants, membres et clés éphémères. Pour une session manuelle persistante, créer le domaine avec le bootstrap existant, muni de l’identité de migration :
 
@@ -102,3 +102,11 @@ Pour l’extraction locale, configurer `CORTEX_MODEL_PROVIDER=ollama`, `CORTEX_L
 ## Ce qui reste à qualifier
 
 La surface HTTP/MCP est portée. Restent notamment la reprise des préparations Terminus absentes ou incomplètes (R11), le nettoyage des snapshots orphelins, les sauvegardes/restaurations cohérentes des deux stockages, le déploiement TLS/IdP réel avec rotation de clés, les performances, la haute disponibilité et l’évaluation sur corpus autorisé. Un worker autonome Rust n’est pas livré : les clients déclenchent `process` et relisent les reçus. Le [bilan technique](rust-migration.fr.md) détaille les autres limites des parseurs, du SSE et de la validation sémantique.
+
+## Import initial du graphe publié
+
+Le propriétaire lit `GET /v1/domains/{domain}/graph-import-attempts` (MCP `api_graph_import_attempts`) pour obtenir la version cible, l’empreinte SHA-256 du journal complet et la concordance de la projection SQL. Il confirme ensuite ces valeurs pour `POST /v1/domains/{domain}/graph-import` (`api_graph_import_published`). Un graphe incomplet peut nécessiter une reprise explicite via `POST /graph-import-attempts` (`api_graph_retry_import`), avec UUID/génération attendus, empreinte souhaitée, motif et clé personnelle stable.
+
+Le service ne corrige pas silencieusement une projection divergente. Il vérifie chaque preuve et l’ensemble des relations avant le transfert, puis de nouveau avant l’enregistrement du manifeste. La commande de maintenance `--import-published` applique les mêmes vérifications ; elle reste une commande opérateur authentifiée, tandis que HTTP/MCP exigent la confirmation signée du contenu. Les versions acceptée/publiée et le journal de connaissance restent inchangés.
+
+`registered` signifie qu’un manifeste immuable est enregistré. `unresolved` signifie que le résultat demeure incertain ; `superseded` qu’une décision explicite a remplacé cette tentative. Une même clé de reprise ne relance pas de création moteur. Les [contrats français des extensions](rust-extensions.fr.md) détaillent les paramètres, retours et cas de conflit.

@@ -91,6 +91,10 @@ pub const NATIVE: &[&str] = &[
     "api_concepts_list",
     "api_concepts_read",
     "api_proposals_publish",
+    "api_graph_import_published",
+    "api_graph_import_attempts",
+    "api_graph_retry_import",
+    "api_graph_import_events",
     "api_proposals_publication_attempts",
     "api_proposals_retry_publication",
     "api_proposals_publication_events",
@@ -258,7 +262,8 @@ fn request_for(
             url.query_pairs_mut().append_pair(
                 key,
                 &value.as_str().map(str::to_owned).unwrap_or_else(|| {
-                    if operation.action.starts_with("proposals.publication_")
+                    if (operation.action.starts_with("proposals.publication_")
+                        || operation.action.starts_with("graph.import_"))
                         && let Some(n) = value
                             .as_f64()
                             .filter(|n| n.fract() == 0.0 && *n >= 0.0 && *n < 9223372036854775808.0)

@@ -69,9 +69,15 @@ def verify_graph(binary, env, client, headers, token, admin, tenant, domain):
         )
         conn.execute(
             text(
-                "INSERT INTO cf_commits(tenant_id,domain_id,sequence,proposal_id,author,reason,digest,changes,before_state,decision_key,decision_hash) VALUES(:t,:d,1,:id,'alice','Synthetic fixture',:h,'[]','{}','synthetic-key',:h)"
+                "INSERT INTO cf_commits(tenant_id,domain_id,sequence,proposal_id,author,reason,digest,changes,before_state,decision_key,decision_hash) VALUES(:t,:d,1,:id,'alice','Synthetic fixture',:h,CAST(:changes AS jsonb),'{}','synthetic-key',:h)"
             ),
-            {"t": tenant, "d": domain, "id": proposal, "h": "a" * 64},
+            {
+                "t": tenant,
+                "d": domain,
+                "id": proposal,
+                "h": "a" * 64,
+                "changes": json.dumps([{"kind": "put_concept", "concept": c} for c in concepts]),
+            },
         )
         for concept in concepts:
             conn.execute(

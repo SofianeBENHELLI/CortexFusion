@@ -4,7 +4,7 @@ use axum::{Json, extract::State};
 use serde_json::{Value, json};
 use sqlx::Row;
 use std::{collections::BTreeSet, time::Duration};
-pub const REVISION: &str = "0023";
+pub const REVISION: &str = "0024";
 const TABLES: &str = "cf_collection_sources cf_collections cf_commits cf_companion_responses cf_concepts cf_conversation_episodes cf_conversations cf_domains cf_episodes cf_extractions cf_feedback cf_feedback_preferences cf_feedback_signals cf_files cf_import_items cf_imports cf_issue_events cf_issues cf_mcp_confirmations cf_membership_events cf_memberships cf_model_attempts cf_model_outcomes cf_outbox cf_proposals cf_reviews cf_graph_preparations cf_graph_manifests cf_graph_attempts cf_graph_attempt_events cf_graph_protocols cf_publications cf_sources cf_synthesis_attempts cf_synthesis_outcomes cf_tenants";
 pub async fn ready(State(s): State<StateData>) -> Result<Json<Value>, CoreError> {
     let result=tokio::time::timeout(Duration::from_secs(2),async {

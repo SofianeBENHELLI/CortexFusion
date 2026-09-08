@@ -41,7 +41,10 @@ def build_extensions():
             "confirmation_policy": "explicit_user_decision"
             if definition["confirmed"]
             else "authorized_user_intent",
-            "object_authorization": "Current owner and current access to all proposal evidence are required; the inventory grants no authority.",
+            "object_authorization": definition.get(
+                "object_authorization",
+                "Current owner and current access to all proposal evidence are required; the inventory grants no authority.",
+            ),
         }
         parameters = [
             {
@@ -50,7 +53,7 @@ def build_extensions():
                 "required": True,
                 "schema": {"type": "string", "format": "uuid"},
             }
-            for name in ("domain", "proposal_id")
+            for name in definition["path_parameters"]
         ]
         parameters.append(
             {
@@ -123,11 +126,11 @@ def build_extensions():
 def render_native(functional):
     document = render(functional)
     start = document.index("## Règles communes")
-    document = """# Extensions natives Rust — reprise de publication
+    document = """# Extensions natives Rust — import et reprise des graphes
 
 Généré par `scripts/export_rust_contracts.py` depuis `services/rust-core/contracts/extensions.json`. Ne pas modifier directement. Le catalogue machine est `packages/contracts/rust-extensions.json` (section `functional` pour les descriptions françaises).
 
-Ces **3 opérations HTTP et MCP** complètent les 79 opérations de référence. Lire le [guide frontend](frontend-guide.fr.md) et les contrats servis par le runtime Rust.
+Ces **7 opérations HTTP et MCP** complètent les 79 opérations de référence. Lire le [guide frontend](frontend-guide.fr.md) et les contrats servis par le runtime Rust.
 
 """ + document[start:]
     lines = document.splitlines()

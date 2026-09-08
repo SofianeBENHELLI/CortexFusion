@@ -365,6 +365,11 @@ def run(binary, rust_url, admin_url):
                         binary, env, headers, admin, tenant, confirmation_private
                     )
                 )
+                from verify_rust_graph_import import verify_graph_import
+
+                checks.extend(
+                    verify_graph_import(binary, env, headers, admin, tenant, confirmation_private)
+                )
                 if os.environ.get("CORTEX_TERMINUS_URL"):
                     from verify_rust_graph import verify_graph
                     from verify_rust_publication import verify_publication
@@ -379,8 +384,8 @@ def run(binary, rust_url, admin_url):
             return {
                 "status": "passed",
                 "checks": checks,
-                "native_http_operations": 82 if os.environ.get("CORTEX_TERMINUS_URL") else 78,
-                "native_mcp_operations": 98,
+                "native_http_operations": 86 if os.environ.get("CORTEX_TERMINUS_URL") else 82,
+                "native_mcp_operations": 102,
                 "publication_recovery_engine": "real TerminusDB with ACK-loss gateway"
                 if os.environ.get("CORTEX_TERMINUS_URL")
                 else "controlled HTTP simulator",

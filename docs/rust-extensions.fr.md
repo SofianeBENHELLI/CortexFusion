@@ -1,8 +1,8 @@
-# Extensions natives Rust — reprise de publication
+# Extensions natives Rust — import et reprise des graphes
 
 Généré par `scripts/export_rust_contracts.py` depuis `services/rust-core/contracts/extensions.json`. Ne pas modifier directement. Le catalogue machine est `packages/contracts/rust-extensions.json` (section `functional` pour les descriptions françaises).
 
-Ces **3 opérations HTTP et MCP** complètent les 79 opérations de référence. Lire le [guide frontend](frontend-guide.fr.md) et les contrats servis par le runtime Rust.
+Ces **7 opérations HTTP et MCP** complètent les 79 opérations de référence. Lire le [guide frontend](frontend-guide.fr.md) et les contrats servis par le runtime Rust.
 
 ## Règles communes
 
@@ -20,6 +20,10 @@ Ces **3 opérations HTTP et MCP** complètent les 79 opérations de référence.
 | [proposals.publication_attempts](#action-proposals-publication_attempts) | `GET /v1/domains/{domain}/proposals/{proposal_id}/publication-attempts` | Inspecte les tentatives de publication de cette proposition et celle encore active. |
 | [proposals.retry_publication](#action-proposals-retry_publication) | `POST /v1/domains/{domain}/proposals/{proposal_id}/publication-attempts` | Prépare une nouvelle tentative de publication pour remplacer cette préparation incertaine. |
 | [proposals.publication_events](#action-proposals-publication_events) | `GET /v1/domains/{domain}/proposals/{proposal_id}/publication-events` | Montre les événements de préparation et de reprise de cette publication. |
+| [graph.import_published](#action-graph-import_published) | `POST /v1/domains/{domain}/graph-import` | Enregistre cette version publiée et son contenu exact dans le graphe immuable. |
+| [graph.import_attempts](#action-graph-import_attempts) | `GET /v1/domains/{domain}/graph-import-attempts` | Inspecte la migration de cette version et la concordance entre journal et projection. |
+| [graph.retry_import](#action-graph-retry_import) | `POST /v1/domains/{domain}/graph-import-attempts` | Remplace cette tentative d’import incertaine par une nouvelle tentative du contenu confirmé. |
+| [graph.import_events](#action-graph-import_events) | `GET /v1/domains/{domain}/graph-import-events` | Affiche le journal des tentatives de migration de cette version. |
 
 <a id="action-proposals-publication_attempts"></a>
 ## proposals.publication_attempts
@@ -106,9 +110,193 @@ Parcourt le journal immuable des réservations, résultats incertains, activatio
 - Succès HTTP 200, `application/json` : [GraphPublicationEventPage](#schema-graphpublicationeventpage).
 - Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
 
+<a id="action-graph-import_published"></a>
+## graph.import_published
+
+Après confirmation signée du propriétaire, reconstruit le graphe entier depuis le journal et vérifie chaque preuve accessible, les relations et la concordance de la projection SQL. Réserve une tentative durable avant tout transfert. Une tentative déjà scellée est seulement relue dans TerminusDB ; un manifeste existant est retourné sans écriture moteur. Ne modifie ni les versions métier, ni les validations, ni le journal de connaissance. registered signifie manifeste enregistré, sans certifier la disponibilité instantanée du moteur.
+
+**Utilisation frontend :** Lire le diagnostic des tentatives pour obtenir version et empreinte exactes, puis faire confirmer ces deux valeurs. Afficher le reçu registered/unresolved. Une réponse incertaine se rapproche avec la même action et le même contenu ; un nouveau transfert exige une reprise distincte et explicite.
+
+- HTTP : `POST /v1/domains/{domain}/graph-import`.
+- MCP : `api_graph_import_published` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- Rôles préalables : owner.
+- Effet : Acceptation ou publication selon l'opération ; consulter le reçu.
+- Décision : accord explicite ; confirmation signée en MCP et HTTP strict.
+
+### Paramètres
+
+| Emplacement | Nom | Requis | Type | Contraintes |
+|---|---|---|---|---|
+| path | `domain` | oui | texte | format : `"uuid"` |
+| header | `x-tenant-id` | oui | texte | format : `"uuid"` |
+
+### Corps et résultat
+
+- Corps requis `application/json` : [GraphImportInput](#schema-graphimportinput).
+- Succès HTTP 200, `application/json` : [GraphImportReceipt](#schema-graphimportreceipt).
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503, 428.
+
+<a id="action-graph-import_attempts"></a>
+## graph.import_attempts
+
+Retourne l’identité canonique du graphe publié, la présence du manifeste et les tentatives d’import uniquement. Sans version, cible la version publiée courante ; une version historique est autorisée avec accès actuel à toutes ses preuves. Le diagnostic de projection vaut null pour une version historique. Une tentative héritée non scellée expose une empreinte et un nombre de concepts null. Aucun appel moteur.
+
+**Utilisation frontend :** Afficher les divergences avant de proposer un import. Conserver UUID/génération de la tentative active, version cible et empreinte du journal pour une reprise. Ne pas interpréter manifest_registered comme un contrôle de santé TerminusDB.
+
+- HTTP : `GET /v1/domains/{domain}/graph-import-attempts`.
+- MCP : `api_graph_import_attempts` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- Rôles préalables : owner.
+- Effet : Lecture sans modification métier durable.
+- Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
+
+### Paramètres
+
+| Emplacement | Nom | Requis | Type | Contraintes |
+|---|---|---|---|---|
+| path | `domain` | oui | texte | format : `"uuid"` |
+| header | `x-tenant-id` | oui | texte | format : `"uuid"` |
+| query | `version` | non | entier | minimum : `0`; maximum : `9223372036854775807` |
+| query | `limit` | non | entier | minimum : `1`; maximum : `100`; défaut : `50` |
+| query | `after` | non | entier | minimum : `0`; maximum : `9223372036854775806`; défaut : `0` |
+
+### Corps et résultat
+
+- Aucun corps attendu.
+- Succès HTTP 200, `application/json` : [GraphImportAttemptPage](#schema-graphimportattemptpage).
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+
+<a id="action-graph-retry_import"></a>
+## graph.retry_import
+
+Confirme la version courante, l’empreinte désirée, l’UUID/génération attendus et un motif non blanc. Crée un nouvel UUID de base privée et une génération, en conservant les intentions anciennes immuables. Peut remplacer une préparation héritée non scellée ou une ancienne empreinte après réparation de la projection, uniquement sans manifeste à la version courante. Une clé personnelle déjà enregistrée ne recrée jamais la base. Une préparation identique complète exige un rapprochement par l’import normal. Le statut 201 est aussi retourné au rejeu ; seul outcome indique le résultat.
+
+**Utilisation frontend :** Expliquer le changement d’empreinte éventuel et faire confirmer la décision exacte. Conserver une clé stable par intention, relire après timeout, afficher registered/unresolved/superseded. Ne pas créer une autre clé ou remplacer une tentative automatiquement.
+
+- HTTP : `POST /v1/domains/{domain}/graph-import-attempts`.
+- MCP : `api_graph_retry_import` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- Rôles préalables : owner.
+- Effet : Acceptation ou publication selon l'opération ; consulter le reçu.
+- Décision : accord explicite ; confirmation signée en MCP et HTTP strict.
+
+### Paramètres
+
+| Emplacement | Nom | Requis | Type | Contraintes |
+|---|---|---|---|---|
+| path | `domain` | oui | texte | format : `"uuid"` |
+| header | `x-tenant-id` | oui | texte | format : `"uuid"` |
+
+### Corps et résultat
+
+- Corps requis `application/json` : [GraphImportRetryInput](#schema-graphimportretryinput).
+- Succès HTTP 201, `application/json` : [GraphImportReceipt](#schema-graphimportreceipt).
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503, 428.
+
+<a id="action-graph-import_events"></a>
+## graph.import_events
+
+Liste les événements immuables d’import et de reprise du graphe, à la version courante par défaut ou à une version historique autorisée. Exclut les événements de publication. Pagination par curseur opaque, bornée à 100 éléments. Les états décrivent ce que l’application sait, pas la terminaison de toutes les anciennes requêtes moteur.
+
+**Utilisation frontend :** Afficher date, acteur et génération ; utiliser next_after pour poursuivre le journal. Le curseur appartient au domaine et à la version sélectionnés.
+
+- HTTP : `GET /v1/domains/{domain}/graph-import-events`.
+- MCP : `api_graph_import_events` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- Rôles préalables : owner.
+- Effet : Lecture sans modification métier durable.
+- Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
+
+### Paramètres
+
+| Emplacement | Nom | Requis | Type | Contraintes |
+|---|---|---|---|---|
+| path | `domain` | oui | texte | format : `"uuid"` |
+| header | `x-tenant-id` | oui | texte | format : `"uuid"` |
+| query | `version` | non | entier | minimum : `0`; maximum : `9223372036854775807` |
+| query | `limit` | non | entier | minimum : `1`; maximum : `100`; défaut : `50` |
+| query | `after` | non | texte | format : `"uuid"` |
+
+### Corps et résultat
+
+- Aucun corps attendu.
+- Succès HTTP 200, `application/json` : [GraphPublicationEventPage](#schema-graphpublicationeventpage).
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+
 ## Schémas des données
 
 Les noms techniques restent identiques dans HTTP, TypeScript et MCP. Les champs d'un objet imbriqué sont décrits par le lien vers son schéma. Le JSON machine conserve toutes les contraintes, y compris les alternatives complexes.
+
+<a id="schema-graphimportattempt"></a>
+### GraphImportAttempt
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `id` | oui | texte | format : `"uuid"` |
+| `generation` | oui | entier | minimum : `1`; maximum : `9223372036854775807` |
+| `predecessor_id` | oui | texte / null | — |
+| `subject` | oui | texte | — |
+| `reason` | oui | texte | — |
+| `created_at` | oui | texte | format : `"date-time"` |
+| `active` | oui | booléen | — |
+| `status` | oui | `"preparing"`, `"uncertain"`, `"ready"`, `"stale"`, `"superseded"` | — |
+| `base_version` | oui | entier | minimum : `0`; maximum : `9223372036854775807` |
+| `digest` | oui | texte / null | — |
+| `count` | oui | entier / null | — |
+| `intent_sealed` | oui | booléen | — |
+
+<a id="schema-graphimportattemptpage"></a>
+### GraphImportAttemptPage
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `target_version` | oui | entier | minimum : `0`; maximum : `9223372036854775807` |
+| `published_version` | oui | entier | minimum : `0`; maximum : `9223372036854775807` |
+| `manifest_registered` | oui | booléen | — |
+| `digest` | oui | texte | motif : `"^[0-9a-f]{64}$"` |
+| `count` | oui | entier | minimum : `0`; maximum : `9223372036854775807` |
+| `projection_matches_journal` | oui | booléen / null | — |
+| `active_attempt` | oui | [GraphImportAttempt](#schema-graphimportattempt) / null | — |
+| `items` | oui | liste de [GraphImportAttempt](#schema-graphimportattempt) | — |
+| `next_after` | oui | entier / null | — |
+
+<a id="schema-graphimportinput"></a>
+### GraphImportInput
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `expected_published_version` | oui | entier | minimum : `0`; maximum : `9223372036854775807` |
+| `expected_projection_digest` | oui | texte | motif : `"^[0-9a-f]{64}$"` |
+
+<a id="schema-graphimportreceipt"></a>
+### GraphImportReceipt
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `target_version` | oui | entier | minimum : `0`; maximum : `9223372036854775807` |
+| `published_version` | oui | entier | minimum : `0`; maximum : `9223372036854775807` |
+| `manifest_registered` | oui | booléen | — |
+| `attempt` | oui | [GraphImportAttempt](#schema-graphimportattempt) / null | — |
+| `outcome` | oui | `"registered"`, `"unresolved"`, `"superseded"` | — |
+
+<a id="schema-graphimportretryinput"></a>
+### GraphImportRetryInput
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `expected_published_version` | oui | entier | minimum : `0`; maximum : `9223372036854775807` |
+| `expected_attempt_id` | oui | texte | format : `"uuid"` |
+| `expected_generation` | oui | entier | minimum : `1`; maximum : `9223372036854775806` |
+| `idempotency_key` | oui | texte | longueur min. : `8`; longueur max. : `200` |
+| `reason` | oui | texte | longueur min. : `1`; longueur max. : `2000` |
+| `expected_projection_digest` | oui | texte | motif : `"^[0-9a-f]{64}$"` |
 
 <a id="schema-graphpublicationattempt"></a>
 ### GraphPublicationAttempt
