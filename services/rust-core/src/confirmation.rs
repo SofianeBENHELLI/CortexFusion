@@ -122,7 +122,7 @@ pub(crate) async fn authorize<'a>(
     domain: &str,
     action: &str,
 ) -> Result<sqlx::Transaction<'a, sqlx::Postgres>, CoreError> {
-    if action == "feedback.configure" {
+    if matches!(action, "feedback.configure" | "syntheses.create") {
         db.locked_permission_transaction(
             p,
             domain,

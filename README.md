@@ -4,7 +4,11 @@
 
 Cortex Fusion is building a governed memory for people and AI companions. Its executable backend makes knowledge changes reviewable, keeps answers tied to their evidence, and exposes application functions through interchangeable HTTP/MCP contracts.
 
-## What works now
+## Rust migration candidate
+
+The native Rust/Axum/SQLx candidate now implements all79 reference HTTP operations and95 MCP tools, with immutable TerminusDB snapshots behind PostgreSQL publication manifests. It includes bounded native document parsing and optional OpenRouter/Ollama operations. See the [French migration and integration guide](docs/rust-migration.fr.md) for setup, permissions, confirmations, evidence and explicit qualification limits. The Python service remains the compatibility reference; no replacement deployment has been performed.
+
+## What works in the reference backend
 
 - Python/FastAPI and PostgreSQL, with RS256 identity, domain roles and forced tenant RLS.
 - Private collections, text imports, bounded PDF/DOCX/text parsing and a recoverable file worker.

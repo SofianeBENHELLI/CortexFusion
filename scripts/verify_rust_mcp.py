@@ -27,6 +27,10 @@ def verify_mcp(client, headers, domain):
     assert initialized.status_code == 200, initialized.text
     result = rpc("tools/list", {}).json()["result"]
     expected_names = {
+        "api_system_mcp_discovery",
+        "api_syntheses_create",
+        "api_sources_extract",
+        "api_sources_extract_local",
         "api_files_upload",
         "api_files_process",
         "api_files_list",

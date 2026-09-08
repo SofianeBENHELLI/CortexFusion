@@ -1,10 +1,10 @@
 # Migration Rust et TerminusDB — état vérifiable
 
-Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La référence historique comporte 79 opérations HTTP, 95 outils MCP et 87 schémas. La migration reste partielle ; le candidat ne doit pas encore remplacer le service existant. Le frontend reste inchangé.
+Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La référence historique comporte 79 opérations HTTP, 95 outils MCP et 87 schémas. Les79 opérations sont maintenant natives. Le remplacement du service existant reste à qualifier : la parité de surface ne constitue pas une homologation de production. Le frontend reste inchangé.
 
 ## Couverture native actuelle
 
-Soixante-quinze opérations HTTP, leurs soixante-quinze outils MCP et seize outils de compatibilité (91 au total) sont implémentés :
+Soixante-dix-neuf opérations HTTP, leurs soixante-dix-neuf outils MCP et seize outils de compatibilité (95 au total) sont implémentés :
 
 | Fonction | HTTP | Outil MCP |
 |---|---|---|
@@ -83,14 +83,18 @@ Soixante-quinze opérations HTTP, leurs soixante-quinze outils MCP et seize outi
 | Traiter un fichier avec bail exclusif | POST /v1/domains/{domain}/files/{ident}/process | api_files_process |
 | Remettre un échec en attente | POST /v1/domains/{domain}/files/{ident}/retry | api_files_retry |
 | Annuler un traitement non terminé | POST /v1/domains/{domain}/files/{ident}/cancel | api_files_cancel |
+| Découvrir la ressource MCP et son autorité d’identité | GET /.well-known/oauth-protected-resource | api_system_mcp_discovery |
+| Générer une réponse personnelle strictement citée | POST /v1/domains/{domain}/episodes/{episode_id}/syntheses | api_syntheses_create |
+| Sélectionner un passage avec destination explicite | POST /v1/domains/{domain}/sources/{source_id}/extract | api_sources_extract |
+| Sélectionner un passage avec Ollama local | POST /v1/domains/{domain}/sources/{source_id}/extract-local | api_sources_extract_local |
 
-Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Quatre opérations restent à porter : trois appels de fournisseurs (extractions et synthèse), et la découverte OAuth MCP. `/v1/me` annonce query, inspect, personal_history, feedback et personal_issues ; les rôles rédacteurs reçoivent propose/read_proposals ; owner et corpus_manager reçoivent manage_corpus. Un owner reçoit review/approve/manage_members/source_acl si les confirmations sont configurées, et publish/compensate si TerminusDB est également configuré. Aucun fournisseur d’extraction n’est annoncé.
+Les79 opérations HTTP et95 outils historiques sont implémentés en Rust. Les routes inconnues répondent501/MIGRATION_NOT_IMPLEMENTED. Une fonctionnalité non configurée répond par son erreur explicite, par exemple SYNTHESIS_DISABLED, MODEL_DISABLED ou DISCOVERY_DISABLED. Le catalogue décrit les contrats ; /v1/me décrit les capacités courantes. Les rôles rédacteurs reçoivent propose/read_proposals, owner et corpus_manager manage_corpus. Review/approve/manage_members/source_acl et extract sont réservés au propriétaire, avec confirmations configurées ; publish/compensate exigent également TerminusDB. Synthesize est disponible à tous les membres lorsque fournisseur et confirmations sont configurés.
 
 ## Fonctionnement et intégration frontend
 
 Le transport MCP utilise le [SDK officiel Rust](https://github.com/modelcontextprotocol/rust-sdk), rmcp3.2.0 verrouillé dans Cargo.lock. Les schémas, noms et annotations des outils proviennent des contrats historiques. Chaque appel est validé par JSON Schema puis invoque en mémoire la route Rust correspondante. L’identité et le tenant viennent du transport authentifié ; les arguments ne peuvent définir ni rôle, ni URL, ni en-tête d’identité. Les segments de chemin et paramètres de requête sont contrôlés séparément.
 
-Le transport Streamable HTTP est sans session. Toutes les requêtes MCP sont authentifiées. Le candidat refuse par défaut les origines navigateur ; une liste exacte CORTEX_CORS_ORIGINS permet de les autoriser pour HTTP et MCP. Les hôtes MCP hors loopback restent refusés ; corps MCP maximal1Mo, réponse native maximale4Mo. Le frontend peut conserver ses contrats JSON, mais le déploiement distant, JWKS et la rotation de clés restent à intégrer. La forme détaillée des erreurs422 n’est pas encore entièrement alignée sur Python.
+Le transport Streamable HTTP est sans session. Toutes les requêtes MCP sont authentifiées. Le candidat refuse par défaut les origines navigateur ; une liste exacte CORTEX_CORS_ORIGINS permet de les autoriser pour HTTP et MCP. Les hôtes MCP hors loopback restent refusés sauf l’autorité HTTPS explicitement configurée ; corps MCP maximal1Mo, réponse native maximale4Mo. Le frontend peut conserver ses contrats JSON. La découverte HTTPS est configurable ; le déploiement TLS distant, JWKS et la rotation de clés restent à qualifier. La forme détaillée des erreurs422 n’est pas encore entièrement alignée sur Python.
 
 Une source textuelle doit comporter titre, emplacement, contenu et lecteurs membres du domaine. Seuls owner et corpus_manager peuvent la créer. La déduplication utilise emplacement et SHA256 du contenu : les mêmes métadonnées rendent la même source ; des métadonnées différentes produisent409/IDEMPOTENCY_CONFLICT. Les ACL s’appliquent à la création, au rejeu, à la liste et à la lecture. La liste accepte limite, curseur, recherche dans le titre et filtre de collection autorisée. Les extraits utilisent des offsets en points de code Unicode, au plus2000 caractères et6000 octets UTF-8, et un hash de contenu ; un curseur hors frontière est refusé.
 
@@ -219,7 +223,7 @@ Les ACL de source sont modifiables par un owner possédant déjà l’accès, av
 
 `/v1/interactions` est authentifié et liste exclusivement les opérations natives ; `/openapi.json` expose leurs schémas publics. Les métadonnées ne donnent aucun droit. Les16 alias historiques restent disponibles : query, inspect_concept, propose, feedback, describe_actions, my_workspace, list_sources, read_source_chunks, list_proposals, proposal_diff, list_conversations, create_conversation, conversation_query, conversation_messages, list_issues et decide_issue.
 
-Les alias conservent leurs arguments, schémas et annotations historiques, puis appellent les mêmes routes Rust. Leur succès retourne directement les données métier ; les outils api_* utilisent l’enveloppe http_status/data. Les propriétés supplémentaires permises par certains anciens schémas ne changent jamais le tenant ou le sujet authentifié. Aucun alias ne contourne une décision signée. Les outils non portés ne sont pas annoncés.
+Les alias conservent leurs arguments, schémas et annotations historiques, puis appellent les mêmes routes Rust. Leur succès retourne directement les données métier ; les outils api_* utilisent l’enveloppe http_status/data. Les propriétés supplémentaires permises par certains anciens schémas ne changent jamais le tenant ou le sujet authentifié. Aucun alias ne contourne une décision signée. Les95 outils de référence sont désormais annoncés.
 
 ## Reçus de modèles et consommation
 
@@ -250,3 +254,27 @@ Les extraits sont limités à30000 points de code Unicode avec repères section/
 Après parsing, droits et bail sont revérifiés. Source, rattachement à la collection et reçu sont atomiques ; une erreur SQL inattendue conserve le bail durable pour une reprise après expiration, sans source orpheline. La campagne indépendante injecte une erreur de reçu, vérifie le rollback puis la reprise ; elle distingue le moteur documentaire réel du moteur Terminus contrôlé.
 
 Références des composants : [pdf-extract](https://docs.rs/pdf-extract/0.12.0/pdf_extract/), [ZipArchive](https://docs.rs/zip/8.6.0/zip/struct.ZipArchive.html), [roxmltree](https://docs.rs/roxmltree/0.21.1/roxmltree/). Les limites du processus sont appliquées par CortexFusion en plus des bibliothèques.
+
+## Découverte OAuth et connexion des compagnons
+
+Sans CORTEX_MCP_PUBLIC_URL, la découverte publique retourne404/DISCOVERY_DISABLED. Avec cette option, elle exige une URL HTTPS canonique terminée par /mcp/, un issuer HTTPS sans identifiants/query/fragment et un JWT audience exactement égal à la ressource. Les métadonnées donnent l’URL de ressource, l’autorité d’identité, bearer_methods_supported=header et le nom Cortex Fusion ; elles n’émettent aucun jeton.
+
+Les401 HTTP et MCP incluent alors WWW-Authenticate avec resource_metadata. L’origine HTTPS configurée est autorisée, ainsi que son autorité MCP exacte ; un autre port, un hôte trompeur ou plusieurs Host sont refusés. Les autres origines restent soumises à CORTEX_CORS_ORIGINS. Le processus reste lié à loopback et vérifie une clé PEM fixe : les tests locaux ne prouvent ni déploiement TLS distant ni interopérabilité avec un fournisseur d’identité réel. Les outils de découverte MCP eux-mêmes restent derrière l’authentification du transport.
+
+## Synthèse native avec reçu personnel
+
+CORTEX_SYNTHESIS_ENABLED=true, CORTEX_OPENROUTER_MODEL et une clé côté serveur activent la synthèse. Une décision signée syntheses.create lie exactement épisode, destination et clé idempotente, pour l’utilisateur courant. Elle ne donne aucun droit propriétaire. Avant appel, l’épisode et ses preuves doivent être accessibles ; une réservation personnelle durable et le quota quotidien partagé sont enregistrés. Un épisode sans citations produit une abstention déterministe, sans appel fournisseur ni réservation payante.
+
+Le client utilise l’endpoint OpenRouter fixe, sans proxy hérité, redirection ni retry automatique. La requête est bornée à25000 octets selon le budget historique, la réponse à65536 octets et45 secondes. Le payload, le prompt cité et le schéma restent comparés à la référence Python. L’attribution modèle/requête, le coût non négatif, les compteurs et les indices cités sont validés. Les marqueurs [N] doivent correspondre exactement aux indices uniques des preuves. Le reçu conserve semantic_validation=not_performed : vérifier les références ne certifie pas toutes les affirmations du modèle.
+
+Après appel, expiration JWT, appartenance et ACL des preuves sont revérifiées. Réponse de compagnon et résultat succeeded sont atomiques. Une sortie invalide, un refus fournisseur ou un stockage échoué produit un résultat failed sûr si son enregistrement est possible ; une double incertitude SQL retourne SYNTHESIS_STORAGE_UNCERTAIN. Un replay retourne le reçu, éventuellement unresolved, sans rappeler le fournisseur. Ne pas créer automatiquement une nouvelle clé après une erreur. Une nouvelle confirmation signée reste nécessaire pour chaque commande, y compris un replay ; une simple lecture du reçu ne la demande pas.
+
+## Extraction native OpenRouter et Ollama
+
+CORTEX_MODEL_PROVIDER vaut openrouter ou ollama. OpenRouter utilise le modèle et la clé serveur ; Ollama utilise CORTEX_LOCAL_MODEL et CORTEX_OLLAMA_URL, limité à une origine HTTP sur IP loopback. La destination est explicite dans la commande, ou allow_local_processing=true pour l’ancienne route locale. Une destination différente de la configuration est refusée avant appel.
+
+L’extraction propriétaire signée sélectionne un passage exact, au plus2000 points de code, dans une source ou plage d’au plus6000 octets UTF-8. Ollama doit annoncer le modèle installé avec un digest SHA256 valide. La réservation durable précède toute génération ; un seul extracteur par processus est actif. Une clé ayant déjà une tentative sans reçu réussi retourne MODEL_ATTEMPT_RECORDED et ne déclenche aucun nouvel appel.
+
+Les offsets sont recalés sur la source originale et l’identifiant UUIDv5 reste compatible avec la référence. Proposition ready, reçu d’extraction et succès de tentative sont enregistrés dans une transaction unique après recontrôle owner, preuves et version publiée. Aucune acceptation ni publication implicite n’a lieu. Une publication concurrente peut imposer STALE_BASE après l’appel ; le résultat de tentative demeure consultable. Les échecs connus sont appendus à leur tentative d’origine, même si les droits ont été retirés, sans exposer les données désormais masquées.
+
+Les essais de cette migration utilisent exclusivement des réponses OpenRouter/Ollama simulées sur loopback : zéro appel payant et aucune donnée d’entreprise. Le point d’injection de fournisseur synthétique n’existe que dans les builds debug, exige la clé fixe synthetic-test-key et une URL sur IP loopback ; un build release refuse sa configuration. Il ne faut pas confondre ces tests de contrats avec une évaluation du modèle réel.

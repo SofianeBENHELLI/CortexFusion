@@ -41,3 +41,8 @@ pub mod maintenance;
 pub mod files;
 
 pub mod document_parser;
+
+pub mod model_provider;
+pub mod synthesis;
+
+pub mod extraction;

@@ -149,15 +149,26 @@ pub(crate) async fn create_service(
     id: &str,
     input: CompanionInput,
 ) -> Result<Value, CoreError> {
-    input.validate()?;
     let mut tx = retrieval::transaction(s, p, domain).await?;
-    let sources = retrieval::accessible(&mut tx, p, domain).await?;
-    let episode = retrieval::episode_row(&mut tx, p, domain, id, &sources).await?;
+    let result = create_in_transaction(&mut tx, p, domain, id, input).await?;
+    tx.commit().await.map_err(CoreError::sql)?;
+    Ok(result)
+}
+pub(crate) async fn create_in_transaction(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    p: &Principal,
+    domain: &str,
+    id: &str,
+    input: CompanionInput,
+) -> Result<Value, CoreError> {
+    input.validate()?;
+    let sources = retrieval::accessible(tx, p, domain).await?;
+    let episode = retrieval::episode_row(tx, p, domain, id, &sources).await?;
     let payload = serde_json::to_value(&input).map_err(|_| invalid())?;
     let mut fingerprint = payload.clone();
     fingerprint["episode_id"] = json!(id);
     let fingerprint = crate::canonical::digest(&fingerprint).map_err(|_| invalid())?;
-    let old=sqlx::query("SELECT *,to_jsonb(created_at) AS created FROM cf_companion_responses WHERE tenant_id=$1 AND domain_id=$2 AND subject=$3 AND idempotency_key=$4").bind(&p.tenant).bind(domain).bind(&p.subject).bind(&input.idempotency_key).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?;
+    let old=sqlx::query("SELECT *,to_jsonb(created_at) AS created FROM cf_companion_responses WHERE tenant_id=$1 AND domain_id=$2 AND subject=$3 AND idempotency_key=$4").bind(&p.tenant).bind(domain).bind(&p.subject).bind(&input.idempotency_key).fetch_optional(&mut **tx).await.map_err(CoreError::sql)?;
     if let Some(row) = old {
         if row.get::<&str, _>("request_hash") != fingerprint {
             return Err(CoreError {
@@ -171,12 +182,12 @@ pub(crate) async fn create_service(
     }
     references(&episode, &payload)?;
     let response_id = Uuid::new_v4().to_string();
-    let row=sqlx::query("INSERT INTO cf_companion_responses(tenant_id,domain_id,id,subject,episode_id,payload,idempotency_key,request_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *,to_jsonb(created_at) AS created").bind(&p.tenant).bind(domain).bind(response_id).bind(&p.subject).bind(id).bind(payload).bind(&input.idempotency_key).bind(fingerprint).fetch_one(&mut *tx).await.map_err(CoreError::sql)?;
+    let row=sqlx::query("INSERT INTO cf_companion_responses(tenant_id,domain_id,id,subject,episode_id,payload,idempotency_key,request_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *,to_jsonb(created_at) AS created").bind(&p.tenant).bind(domain).bind(response_id).bind(&p.subject).bind(id).bind(payload).bind(&input.idempotency_key).bind(fingerprint).fetch_one(&mut **tx).await.map_err(CoreError::sql)?;
     let value = view(&row, &episode)?;
     p.check_fresh()?;
-    tx.commit().await.map_err(CoreError::sql)?;
     Ok(value)
 }
+
 async fn read(
     State(s): State<StateData>,
     Path((domain, id)): Path<(String, String)>,

@@ -64,9 +64,17 @@ def run(binary, rust_url, admin_url):
                 serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
             )
         )
+        from verify_rust_synthesis import start_provider
+
+        provider_server, provider_state = start_provider()
         env = {
             **os.environ,
             "CORTEX_RUST_DATABASE_URL": rust_url,
+            "CORTEX_SYNTHESIS_ENABLED": "true",
+            "CORTEX_MODEL_PROVIDER": "openrouter",
+            "CORTEX_OPENROUTER_MODEL": "synthetic/model",
+            "CORTEX_OPENROUTER_API_KEY": "synthetic-test-key",
+            "CORTEX_SYNTHETIC_OPENROUTER_URL": f"http://127.0.0.1:{provider_server.server_port}/chat",
             "CORTEX_JWT_PUBLIC_KEY_FILE": str(public_path),
             "CORTEX_JWT_ISSUER": "https://identity.test",
             "CORTEX_JWT_AUDIENCE": "cortex-core",
@@ -141,6 +149,11 @@ def run(binary, rust_url, admin_url):
                 ]:
                     assert client.get("/v1/me", headers=valid).status_code == 200
                 checks.append("identity_validation")
+                disabled = client.get("/.well-known/oauth-protected-resource")
+                assert (
+                    disabled.status_code == 404 and disabled.json()["error"] == "DISCOVERY_DISABLED"
+                )
+                checks.append("native_public_discovery_disabled_without_configuration")
                 origin = "http://localhost:5173"
                 preflight = client.options(
                     "/v1/me",
@@ -198,6 +211,7 @@ def run(binary, rust_url, admin_url):
                             "personal_history",
                             "feedback",
                             "personal_issues",
+                            "synthesize",
                             "propose",
                             "read_proposals",
                             "manage_corpus",
@@ -205,6 +219,7 @@ def run(binary, rust_url, admin_url):
                             "approve",
                             "manage_members",
                             "source_acl",
+                            "extract",
                         ]
                         + (
                             ["publish", "compensate"]
@@ -266,6 +281,35 @@ def run(binary, rust_url, admin_url):
                 from verify_rust_model_receipts import verify_model_receipts
 
                 checks.extend(verify_model_receipts(client, headers, admin, tenant, domain))
+                from verify_rust_synthesis import verify_synthesis
+
+                checks.extend(
+                    verify_synthesis(
+                        client, headers, admin, tenant, domain, provider_state, confirmation_private
+                    )
+                )
+                from verify_rust_extraction import verify_extraction
+
+                checks.extend(
+                    verify_extraction(
+                        client, headers, admin, tenant, domain, provider_state, confirmation_private
+                    )
+                )
+                from verify_rust_configured import verify_configured
+
+                checks.extend(
+                    verify_configured(
+                        binary,
+                        env,
+                        headers,
+                        admin,
+                        tenant,
+                        domain,
+                        provider_state,
+                        confirmation_private,
+                        provider_server.server_port,
+                    )
+                )
                 from verify_rust_maintenance import verify_maintenance_empty
 
                 checks.extend(
@@ -292,11 +336,11 @@ def run(binary, rust_url, admin_url):
                 checks.append("membership_revocation")
                 assert (
                     client.post(
-                        f"/v1/domains/{domain}/sources/{uuid4()}/extract", headers=headers()
+                        f"/v1/domains/{domain}/unknown-operation", headers=headers()
                     ).status_code
                     == 501
                 )
-                checks.append("unported_operation_explicit")
+                checks.append("unknown_operation_explicit")
                 from verify_rust_mcp import verify_mcp
 
                 checks.extend(verify_mcp(client, headers, domain))
@@ -314,10 +358,11 @@ def run(binary, rust_url, admin_url):
             return {
                 "status": "passed",
                 "checks": checks,
-                "native_http_operations": 75 if os.environ.get("CORTEX_TERMINUS_URL") else 71,
-                "native_mcp_operations": 91,
+                "native_http_operations": 79 if os.environ.get("CORTEX_TERMINUS_URL") else 75,
+                "native_mcp_operations": 95,
                 "terminus_application_integration": bool(os.environ.get("CORTEX_TERMINUS_URL")),
                 "model_calls": 0,
+                "synthetic_provider_requests": len(provider_state["requests"]),
             }
         finally:
             process.terminate()
@@ -326,6 +371,8 @@ def run(binary, rust_url, admin_url):
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait(5)
+            provider_server.shutdown()
+            provider_server.server_close()
             admin.dispose()
 
 

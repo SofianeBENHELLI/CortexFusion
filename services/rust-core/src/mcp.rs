@@ -26,6 +26,10 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 pub const NATIVE: &[&str] = &[
+    "api_system_mcp_discovery",
+    "api_syntheses_create",
+    "api_sources_extract",
+    "api_sources_extract_local",
     "api_files_upload",
     "api_files_process",
     "api_files_list",
@@ -468,6 +472,9 @@ async fn authenticate(
     request: Request,
     next: Next,
 ) -> Response {
+    if request.headers().get_all(http::header::HOST).iter().count() > 1 {
+        return (http::StatusCode::BAD_REQUEST, "Ambiguous MCP authority").into_response();
+    }
     if let Err(error) = auth.authenticate(request.headers()) {
         return error.into_response();
     }
@@ -571,6 +578,7 @@ pub fn mount(
     confirmation: Option<ConfirmationVerifier>,
     db: Database,
     origins: crate::browser::Origins,
+    resource: Option<crate::discovery::PublicResource>,
 ) -> Result<Router, CoreError> {
     let handler = NativeMcp {
         http: http.clone(),
@@ -579,11 +587,14 @@ pub fn mount(
         db,
         confirmation,
     };
-    let config = StreamableHttpServerConfig::default()
+    let mut config = StreamableHttpServerConfig::default()
         .with_legacy_session_mode(false)
         .with_json_response(true)
         .with_max_request_body_bytes(1_000_000)
         .with_allowed_origins(origins.0.iter().cloned());
+    if let Some(r) = resource {
+        config.allowed_hosts.push(r.authority);
+    }
     let service = StreamableHttpService::new(
         move || Ok(handler.clone()),
         LocalSessionManager::default().into(),

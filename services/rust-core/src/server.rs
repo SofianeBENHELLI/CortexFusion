@@ -14,6 +14,9 @@ use uuid::Uuid;
 pub struct StateData {
     pub auth: Authenticator,
     pub model_daily_limit: i64,
+    pub synthesis: Option<crate::model_provider::OpenRouter>,
+    pub extraction: Option<crate::model_provider::PassageProvider>,
+    pub public_resource: Option<crate::discovery::PublicResource>,
     pub db: Database,
     pub graph: Option<crate::graph::GraphService>,
     pub confirmation: Option<crate::confirmation::ConfirmationVerifier>,
@@ -42,6 +45,8 @@ pub fn router(state: StateData) -> Router {
         .merge(crate::model_receipts::routes())
         .merge(crate::maintenance::routes())
         .merge(crate::files::routes())
+        .merge(crate::synthesis::routes())
+        .merge(crate::extraction::routes())
         .fallback(||async{(StatusCode::NOT_IMPLEMENTED,Json(json!({"error":"MIGRATION_NOT_IMPLEMENTED","message":"This operation is not yet served by the native Rust candidate"})))})
         .with_state(state)
 }
@@ -95,6 +100,9 @@ async fn identity(
             "feedback",
             "personal_issues",
         ];
+        if s.synthesis.is_some() && s.confirmation.is_some() {
+            capabilities.push("synthesize");
+        }
         if matches!(
             role.as_str(),
             "owner" | "agent" | "contributor" | "corpus_manager"
@@ -106,6 +114,9 @@ async fn identity(
         }
         if role == "owner" && s.confirmation.is_some() {
             capabilities.extend(["review", "approve", "manage_members", "source_acl"]);
+            if s.extraction.is_some() {
+                capabilities.push("extract");
+            }
             if s.graph.is_some() {
                 capabilities.extend(["publish", "compensate"]);
             }
@@ -115,7 +126,7 @@ async fn identity(
     p.check_fresh()?;
     tx.commit().await.map_err(CoreError::sql)?;
     Ok(Json(
-        json!({"subject":p.subject,"tenant_id":p.tenant,"domains":domains,"extraction_provider":null}),
+        json!({"subject":p.subject,"tenant_id":p.tenant,"domains":domains,"extraction_provider":s.extraction.as_ref().map(|m|m.provider())}),
     ))
 }
 

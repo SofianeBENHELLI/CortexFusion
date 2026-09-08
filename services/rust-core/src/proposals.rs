@@ -273,7 +273,7 @@ async fn create(
     let domain = uuid(&domain)?;
     let Json(raw) = body.map_err(|_| invalid())?;
     let input = parse_proposal(raw)?;
-    let value = propose_service(&s, &p, &domain, input, None, None).await?;
+    let value = propose_service(&s, &p, &domain, input, None, None, None).await?;
     Ok((StatusCode::CREATED, Json(value)))
 }
 async fn propose_service(
@@ -283,17 +283,24 @@ async fn propose_service(
     input: ProposalInput,
     replacement: Option<&str>,
     compensation: Option<i64>,
+    completion: Option<&crate::extraction::Completion>,
 ) -> Result<Value, CoreError> {
     input.validate()?;
     let normalized = serde_json::to_value(&input).map_err(|_| invalid())?;
     let fingerprint = hash(&normalized)?;
-    let mut tx = if compensation.is_some() {
+    let mut tx = if compensation.is_some() || completion.is_some() {
         s.db.locked_owner_transaction(p, domain).await?
     } else {
         transaction(s, p, domain).await?
     };
     let old = replacement_access(&mut tx, p, domain, replacement).await?;
     if let Some(v) = existing(&mut tx, p, domain, &input, &fingerprint, replacement).await? {
+        if let Some(c) = completion {
+            let v = c.finish(&mut tx, p, domain, v).await?;
+            p.check_fresh()?;
+            tx.commit().await.map_err(CoreError::sql)?;
+            return Ok(v);
+        }
         return Ok(v);
     }
     validate_replace_state(old.as_ref())?;
@@ -302,13 +309,19 @@ async fn propose_service(
     }
     tx.commit().await.map_err(CoreError::sql)?;
     let state = base(s, p, domain, input.base_version).await?;
-    let mut tx = if compensation.is_some() {
+    let mut tx = if compensation.is_some() || completion.is_some() {
         s.db.locked_owner_transaction(p, domain).await?
     } else {
         transaction(s, p, domain).await?
     };
     let old = replacement_access(&mut tx, p, domain, replacement).await?;
     if let Some(v) = existing(&mut tx, p, domain, &input, &fingerprint, replacement).await? {
+        if let Some(c) = completion {
+            let v = c.finish(&mut tx, p, domain, v).await?;
+            p.check_fresh()?;
+            tx.commit().await.map_err(CoreError::sql)?;
+            return Ok(v);
+        }
         return Ok(v);
     }
     validate_replace_state(old.as_ref())?;
@@ -375,6 +388,11 @@ async fn propose_service(
         sqlx::query("UPDATE cf_proposals SET status='superseded',review_revision=$1 WHERE tenant_id=$2 AND domain_id=$3 AND id=$4").bind(revision).bind(&p.tenant).bind(domain).bind(replacement).execute(&mut *tx).await.map_err(CoreError::sql)?;
     }
     let value = view(&row(&mut tx, p, domain, &id).await?);
+    let value = if let Some(c) = completion {
+        c.finish(&mut tx, p, domain, value).await?
+    } else {
+        value
+    };
     p.check_fresh()?;
     tx.commit().await.map_err(CoreError::sql)?;
     Ok(value)
@@ -948,7 +966,7 @@ async fn revise(
     let input = parse_proposal(raw)?;
     Ok((
         StatusCode::CREATED,
-        Json(propose_service(&s, &p, &d, input, Some(&id), None).await?),
+        Json(propose_service(&s, &p, &d, input, Some(&id), None, None).await?),
     ))
 }
 async fn ingest(
@@ -997,7 +1015,9 @@ async fn ingest(
     let input = parse_proposal(
         json!({"base_version":base,"changes":[{"kind":"put_concept","concept":{"concept_id":ident,"title":source.get::<String,_>("title"),"body":content,"maturity":"emerging","sources":[{"source_id":id,"start":0,"end":content.chars().count()}],"links":[]}}],"reason":"Verbatim file import; owner review required","idempotency_key":key}),
     )?;
-    Ok(Json(propose_service(&s, &p, &d, input, None, None).await?))
+    Ok(Json(
+        propose_service(&s, &p, &d, input, None, None, None).await?,
+    ))
 }
 
 #[derive(Deserialize)]
@@ -1122,7 +1142,17 @@ pub(crate) async fn compensate_service(
     )?;
     p.check_fresh()?;
     tx.commit().await.map_err(CoreError::sql)?;
-    propose_service(s, p, d, input, None, Some(sequence)).await
+    propose_service(s, p, d, input, None, Some(sequence), None).await
+}
+
+pub(crate) async fn extracted(
+    s: &StateData,
+    p: &Principal,
+    d: &str,
+    raw: Value,
+    c: &crate::extraction::Completion,
+) -> Result<Value, CoreError> {
+    propose_service(s, p, d, parse_proposal(raw)?, None, None, Some(c)).await
 }
 #[cfg(test)]
 mod tests {
