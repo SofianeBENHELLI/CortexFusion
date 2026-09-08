@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 12
     services:
       terminus:
-        image: terminusdb/terminusdb-server:v12.0.7
+        image: terminusdb/terminusdb-server@sha256:385faf298ad77aaf2d4d6df5e84a4cbe3596d01dab2e3b991af905639ae56388
         ports: ['6363:6363']
         env:
           TERMINUSDB_ADMIN_PASS: synthetic-spike-password
@@ -35,7 +35,7 @@ jobs:
           done
           exit 1
       - name: Record actual container image identity
-        run: docker image inspect terminusdb/terminusdb-server:v12.0.7 --format '{{json .RepoDigests}}' > "$RUNNER_TEMP/terminus-image.json"
+        run: docker image inspect terminusdb/terminusdb-server@sha256:385faf298ad77aaf2d4d6df5e84a4cbe3596d01dab2e3b991af905639ae56388 --format '{{json .RepoDigests}}' > "$RUNNER_TEMP/terminus-image.json"
       - name: Exercise synthetic versioned knowledge
         env:
           CORTEX_SPIKE_TERMINUS_PASSWORD: synthetic-spike-password

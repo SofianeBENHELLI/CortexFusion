@@ -52,7 +52,7 @@ Exécution sur une machine équipée de Docker :
 ```sh
 docker run --rm --name cortex-terminus-spike -p 127.0.0.1:6363:6363 \
   -e TERMINUSDB_ADMIN_PASS=synthetic-spike-password \
-  terminusdb/terminusdb-server:v12.0.7
+  terminusdb/terminusdb-server@sha256:385faf298ad77aaf2d4d6df5e84a4cbe3596d01dab2e3b991af905639ae56388
 ```
 
 Dans un second terminal du dépôt :
@@ -62,7 +62,7 @@ CORTEX_SPIKE_TERMINUS_PASSWORD=synthetic-spike-password \
   uv run python experiments/terminusdb/probe.py --output /tmp/terminus-probe.json
 ```
 
-Ce mot de passe public ne sert qu’au moteur jetable en loopback. Le workflow `Synthetic TerminusDB spike` crée le même service éphémère sur le runner CI et consigne le digest réel de l’image. Le tag sélectionne la version étudiée ; un verrouillage par digest sera nécessaire avant de qualifier une image distribuée. Aucun déploiement applicatif ni service cloud n’est créé.
+Ce mot de passe public ne sert qu’au moteur jetable en loopback. Le workflow `Synthetic TerminusDB spike` crée le même service éphémère sur le runner CI et consigne le digest réel de l’image. Le premier essai a résolu le tag v12.0.7 ; le workflow et la commande sont maintenant verrouillés sur le digest observé. Cela ne remplace pas l’audit des dépendances de l’image. Aucun déploiement applicatif ni service cloud n’est créé.
 
 ## Plan détaillé et critères de décision
 
@@ -76,6 +76,8 @@ Ce mot de passe public ne sert qu’au moteur jetable en loopback. Le workflow `
 
 Ces durées sont des ordres de grandeur pour un développeur, pas une promesse de tout livrer dans la fenêtre nocturne. Le travail déjà réalisé sur identité, confirmations, feedback, corpus, synthèse et documentation reste réutilisable. Les nouveaux endpoints produit pour atomes/KCR/historique ne seront ajoutés qu’avec contrats HTTP/MCP synchronisés et descriptions françaises ; aucun endpoint du prototype n’est encore exposé au frontend.
 
-## État de validation initial
+## Résultat du premier essai réel
 
-Sept tests locaux passent : séparation des contextes dans la règle sémantique, refus de destinations distantes, refus de redirection et absence de rejeu après timeout. Aucun moteur Docker/Podman/SWI-Prolog n’a été trouvé localement. La validation réelle est déléguée au workflow CI éphémère, dont le résultat devra être inscrit explicitement après exécution. Cette note ne certifie pas encore TerminusDB pour CortexFusion.
+Sept tests locaux passent : séparation des contextes dans la règle sémantique, refus de destinations distantes, refus de redirection et absence de rejeu après timeout. Aucun moteur Docker/Podman/SWI-Prolog n’a été trouvé localement. Le [premier workflow moteur](https://github.com/SofianeBENHELLI/CortexFusion/actions/runs/34172543003) a **réussi** sur Ubuntu avec le conteneur réel. Le serveur annonce 12.0.7, git_hash 57f2093baeafd65e16004e84b7b58e0c5cf72858 et terminusdb_store 0.19.8. Le [rapport machine](../../experiments/terminusdb/result-2026-09-08.json) consigne le digest exact et les sept vérifications. Les six premières exercent stockage/branches/diff/apply/historique/conflit sur le moteur ; la septième est une règle métier Python exécutée dans le même scénario, pas une capacité sémantique native de TerminusDB.
+
+La validation moteur utilise un compte admin sur données jetables ; elle ne prouve pas les contrôles de sécurité CortexFusion. Aucun test de grande charge, HA, restauration, intégration du workflow d’approbation ou publication multi-stockages n’a encore été effectué. Résultat : **poursuivre le prototype**, sans décider encore la migration du backend.
