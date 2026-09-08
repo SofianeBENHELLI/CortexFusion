@@ -79,7 +79,10 @@ class Containers:
         name, _ = self.start("job-" + uuid4().hex, image, mounts=mounts, command=command)
         result = process(["docker", "wait", name], timeout=180).strip()
         if result != b"0":
-            diagnostic = process(["docker", "logs", name]).decode(errors="replace")[-3000:]
+            logs = subprocess.run(
+                ["docker", "logs", name], capture_output=True, timeout=30, check=False
+            )
+            diagnostic = (logs.stdout + logs.stderr).decode(errors="replace")[-6000:]
             raise RuntimeError(
                 "Qualification container failed: "
                 + diagnostic.replace(PASSWORD, "[synthetic credential]")
