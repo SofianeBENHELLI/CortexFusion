@@ -99,3 +99,29 @@ def test_commit_comparison_sorts_documents_but_preserves_business_list_order():
     assert normalized["db"]["commit"] == "original"
     assert [d["@id"] for d in normalized["db"]["instance"]] == ["a", "b"]
     assert normalized["db"]["instance"][1]["sources"] == ["second", "first"]
+
+
+def test_full_store_archive_preserves_exact_files_and_requires_empty_target(tmp_path):
+    module = load_protocol()
+    source = tmp_path / "source"
+    (source / "db").mkdir(parents=True)
+    (source / "db" / "layer").write_bytes(b"synthetic immutable layer")
+    (source / "version").write_bytes(b"2")
+    archive = tmp_path / "store.tar.gz"
+    module.archive_store(source, archive)
+    target = tmp_path / "target"
+    target.mkdir()
+    module.extract_store(archive, target)
+    assert module.file_hashes(target) == module.file_hashes(source)
+    with pytest.raises(ValueError, match="empty directory"):
+        module.extract_store(archive, target)
+
+
+def test_full_store_archive_refuses_external_symlink(tmp_path):
+    module = load_protocol()
+    source = tmp_path / "source"
+    source.mkdir()
+    (tmp_path / "external").write_bytes(b"outside backup")
+    (source / "link").symlink_to(tmp_path / "external")
+    with pytest.raises(ValueError, match="regular files"):
+        module.archive_store(source, tmp_path / "store.tar.gz")

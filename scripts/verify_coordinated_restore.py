@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import subprocess
+import tarfile
 import tempfile
 import time
 from pathlib import Path
@@ -486,15 +487,35 @@ def verify_bundle(path, expected):
         raise ValueError("Backup integrity check failed before engine import")
 
 
-def qualify(binary, report):
+def archive_store(source, archive):
+    for path in source.rglob("*"):
+        if path.is_symlink() or not (path.is_file() or path.is_dir()):
+            raise ValueError("Store backup only accepts regular files and directories")
+    with tarfile.open(archive, "w:gz") as package:
+        package.add(source, arcname=".")
+
+
+def extract_store(archive, target):
+    if any(target.iterdir()):
+        raise ValueError("Restore target must be a newly created empty directory")
+    with tarfile.open(archive, "r:gz") as package:
+        package.extractall(target, filter="data")
+
+
+def qualify(binary, report, strategy="cold_store"):
     report.update(
         {
             "status": "running",
+            "strategy": strategy,
             "model_calls": 0,
             "checks": [],
             "limitations": [
                 "Synthetic cold backup only; no production RPO/RTO or scale claim",
-                "Terminus identities are recreated; application ACL and receipts come from PostgreSQL",
+                (
+                    "Application ACL and receipts come from PostgreSQL; the full store includes Terminus identities and orphan databases"
+                    if strategy == "cold_store"
+                    else "Application ACL come from PostgreSQL; bundle target identities are recreated and orphan databases excluded"
+                ),
                 "No SQL COMMIT acknowledgement-loss simulation",
                 "Bundle integrity rejection is a protocol check, not an intrinsic engine guarantee",
             ],
@@ -617,28 +638,37 @@ def qualify(binary, report):
                 key: stopped[key] for key in ("Running", "ExitCode", "OOMKilled", "Error")
             }
             before_source = file_hashes(source_store)
-            report["phase"] = "bundle_copied_offline_store"
+            report["phase"] = "export_copied_offline_store"
             export_store = directory / "export-store"
             shutil.copytree(source_store, export_store)
             assert source_store.resolve() != export_store.resolve()
-            for manifest in manifests:
-                database = manifest["snapshot"]["database"]
-                assert database.startswith("cf_snapshot_") and len(database) == 44
-                containers.cli(
-                    export_store,
-                    bundles,
-                    "bundle",
-                    "admin/" + database,
-                    "--output",
-                    "/backup/" + database + ".bundle",
-                )
-            report["bundles_sha256"] = file_hashes(bundles)
-            assert len(report["bundles_sha256"]) == 3
+            if strategy == "bundle_experiment":
+                for manifest in manifests:
+                    database = manifest["snapshot"]["database"]
+                    assert database.startswith("cf_snapshot_") and len(database) == 44
+                    containers.cli(
+                        export_store,
+                        bundles,
+                        "bundle",
+                        "admin/" + database,
+                        "--output",
+                        "/backup/" + database + ".bundle",
+                    )
+            else:
+                archive_store(export_store, bundles / "terminus-store.tar.gz")
+                report["store_file_count"] = len(before_source)
+                report["includes_system_and_orphan_databases"] = True
+            report["backup_sha256"] = file_hashes(bundles)
+            assert len(report["backup_sha256"]) == (3 if strategy == "bundle_experiment" else 1)
             assert file_hashes(source_store) == before_source, (
                 "Export touched original source store"
             )
             assert sql_state(admin) == source_state, "Source SQL changed during export"
-            report["checks"].append("quiescent_sql_dump_and_cli_bundles_on_independent_store_copy")
+            report["checks"].append(
+                "quiescent_sql_dump_and_independent_full_store_archive"
+                if strategy == "cold_store"
+                else "experimental_cli_bundles_from_independent_store_copy"
+            )
 
             report["phase"] = "restore_postgres"
             target_pg, target_port = containers.start(
@@ -700,23 +730,42 @@ def qualify(binary, report):
             def restore_store(name, included):
                 store = directory / name
                 store.mkdir()
-                containers.cli(store, bundles, "store", "init", "--key", PASSWORD)
-                for manifest in included:
-                    database = manifest["snapshot"]["database"]
-                    filename = database + ".bundle"
-                    verify_bundle(bundles / filename, report["bundles_sha256"][filename])
-                    containers.cli(
-                        store,
-                        bundles,
-                        "db",
-                        "create",
-                        "admin/" + database,
-                        "--label",
-                        "Synthetic restore",
+                if strategy == "cold_store":
+                    filename = "terminus-store.tar.gz"
+                    verify_bundle(bundles / filename, report["backup_sha256"][filename])
+                    extract_store(bundles / filename, store)
+                    assert file_hashes(store) == before_source, (
+                        "Restored physical files differ before startup"
                     )
-                    containers.cli(
-                        store, bundles, "unbundle", "admin/" + database, "/backup/" + filename
-                    )
+                    # Remove only a known synthetic database from an independent negative-test copy.
+                    # Never infer which shared physical layers belong to one database.
+                    for manifest in manifests:
+                        if manifest not in included:
+                            containers.cli(
+                                store,
+                                bundles,
+                                "db",
+                                "delete",
+                                "admin/" + manifest["snapshot"]["database"],
+                            )
+                else:
+                    containers.cli(store, bundles, "store", "init", "--key", PASSWORD)
+                    for manifest in included:
+                        database = manifest["snapshot"]["database"]
+                        filename = database + ".bundle"
+                        verify_bundle(bundles / filename, report["backup_sha256"][filename])
+                        containers.cli(
+                            store,
+                            bundles,
+                            "db",
+                            "create",
+                            "admin/" + database,
+                            "--label",
+                            "Synthetic restore",
+                        )
+                        containers.cli(
+                            store, bundles, "unbundle", "admin/" + database, "/backup/" + filename
+                        )
                 return store
 
             report["phase"] = "restore_terminus_offline"
@@ -726,9 +775,16 @@ def qualify(binary, report):
                 ENGINE_IMAGE,
                 6363,
                 mounts=[(target_store, STORE)],
-                variables=["TERMINUSDB_ADMIN_PASS=" + PASSWORD],
+                variables=["TERMINUSDB_ADMIN_PASS=synthetic-new-env-not-a-rotation"],
             )
             target_url, _ = wait_engine(target_engine_port)
+            with httpx.Client(
+                auth=("admin", "synthetic-new-env-not-a-rotation"), trust_env=False, timeout=5
+            ) as invalid_identity:
+                assert invalid_identity.get(target_url + "/api/info").status_code == 401
+            report["checks"].append(
+                "restored_store_keeps_original_admin_identity_despite_new_environment_value"
+            )
             report["phase"] = "verify_original_commits_and_runtime"
             assert normalized_commits(read_commits(target_url, manifests)) == original_commits
             report["checks"].append(
@@ -789,9 +845,9 @@ def qualify(binary, report):
                 )
                 assert not partial_requests["posts"]
             report["checks"].append(
-                "missing_current_bundle_fails_closed_without_sql_projection_fallback"
+                "missing_current_graph_fails_closed_without_sql_projection_fallback"
             )
-            filename, expected = next(iter(report["bundles_sha256"].items()))
+            filename, expected = next(iter(report["backup_sha256"].items()))
             corrupted = directory / "corrupted.bundle"
             corrupted.write_bytes((bundles / filename).read_bytes() + b"synthetic corruption")
             try:
@@ -800,7 +856,7 @@ def qualify(binary, report):
                 pass
             else:
                 raise AssertionError("Corrupted bundle passed the backup integrity check")
-            report["checks"].append("corrupted_bundle_rejected_by_checksum_before_unbundle")
+            report["checks"].append("corrupted_backup_rejected_by_checksum_before_import")
             report["status"] = "passed"
             report["phase"] = "complete"
         finally:
@@ -828,12 +884,15 @@ def qualify(binary, report):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--synthetic-only", action="store_true", required=True)
+    parser.add_argument(
+        "--strategy", choices=["cold_store", "bundle_experiment"], default="cold_store"
+    )
     parser.add_argument("--binary", type=Path, default=ROOT / "target/debug/cortex-rust-core")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     result = {}
     try:
-        qualify(args.binary, result)
+        qualify(args.binary, result, args.strategy)
     except Exception as error:
         result.update(
             {"status": "failed", "error": str(error).replace(PASSWORD, "[synthetic credential]")}
