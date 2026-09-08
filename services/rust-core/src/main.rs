@@ -4,7 +4,7 @@ use cortex_rust_core::{
     server::{self, StateData},
 };
 use sqlx::postgres::PgPoolOptions;
-use std::{env, net::SocketAddr, time::Duration};
+use std::{env, future::IntoFuture, net::SocketAddr, time::Duration};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().skip(1).collect();
@@ -170,6 +170,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
         _ => return Err("Invalid model provider".into()),
     };
+    let grace = cortex_rust_core::shutdown::grace_seconds(
+        env::var("CORTEX_SHUTDOWN_GRACE_SECONDS").ok().as_deref(),
+    )?;
+    let mut signals = cortex_rust_core::shutdown::Signals::install()?;
     let listener = tokio::net::TcpListener::bind(address).await?;
     println!(
         "CortexFusion Rust migration candidate listening on {}",
@@ -195,10 +199,28 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     .map_err(|_| "MCP initialization failed")?;
     let app = cortex_rust_core::discovery::install_challenge(app, public_resource);
     let app = cortex_rust_core::browser::install(app, origins);
-    axum::serve(listener, app)
+    let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
+    let server = axum::serve(listener, app)
         .with_graceful_shutdown(async {
-            let _ = tokio::signal::ctrl_c().await;
+            let _ = stopped.await;
         })
-        .await?;
+        .into_future();
+    tokio::pin!(server);
+    tokio::select! {
+        result = &mut server => { result?; return Ok(()); },
+        result = signals.receive() => { result?; },
+    }
+    let _ = stop.send(());
+    eprintln!("CortexFusion shutdown: draining accepted requests");
+    tokio::select! {
+        result = tokio::time::timeout(grace, &mut server) => {
+            result.map_err(|_| "Shutdown grace period expired; inspect durable receipts before retry")??;
+        },
+        result = signals.receive() => {
+            result?;
+            return Err("Shutdown interrupted again; inspect durable receipts before retry".into());
+        },
+    }
+    eprintln!("CortexFusion shutdown: accepted requests drained");
     Ok(())
 }

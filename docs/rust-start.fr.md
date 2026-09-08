@@ -110,3 +110,9 @@ Le propriétaire lit `GET /v1/domains/{domain}/graph-import-attempts` (MCP `api_
 Le service ne corrige pas silencieusement une projection divergente. Il vérifie chaque preuve et l’ensemble des relations avant le transfert, puis de nouveau avant l’enregistrement du manifeste. La commande de maintenance `--import-published` applique les mêmes vérifications ; elle reste une commande opérateur authentifiée, tandis que HTTP/MCP exigent la confirmation signée du contenu. Les versions acceptée/publiée et le journal de connaissance restent inchangés.
 
 `registered` signifie qu’un manifeste immuable est enregistré. `unresolved` signifie que le résultat demeure incertain ; `superseded` qu’une décision explicite a remplacé cette tentative. Une même clé de reprise ne relance pas de création moteur. Les [contrats français des extensions](rust-extensions.fr.md) détaillent les paramètres, retours et cas de conflit.
+
+## Arrêt et redémarrage du processus
+
+Le serveur intercepte `SIGTERM` et `SIGINT`, ferme son admission HTTP/MCP et laisse les requêtes acceptées terminer. `CORTEX_SHUTDOWN_GRACE_SECONDS` fixe le délai de drainage, de1 à300 secondes,75 par défaut. Une seconde interruption ou l’expiration du délai produit une sortie en erreur. Le journal de processus signale le début et la fin du drainage sans contenu de requête ni identifiant secret.
+
+Prévoir un délai d’arrêt du superviseur supérieur à cette grâce. Les parseurs de documents sont eux-mêmes bornés ; leur terminaison peut ajouter le temps de nettoyage d’un sous-processus. Ne pas déduire d’une coupure réseau que la décision n’a pas été enregistrée : après redémarrage, relire les reçus durables et reprendre avec la même intention/clé. Les contrôles de droits et d’expiration restent actifs pendant le drainage. Aucune nouvelle tentative moteur n’est créée automatiquement par l’arrêt.

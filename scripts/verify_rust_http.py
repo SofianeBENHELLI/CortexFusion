@@ -370,6 +370,9 @@ def run(binary, rust_url, admin_url):
                 checks.extend(
                     verify_graph_import(binary, env, headers, admin, tenant, confirmation_private)
                 )
+                from verify_rust_shutdown import verify_shutdown
+
+                checks.extend(verify_shutdown(binary, env, admin))
                 if os.environ.get("CORTEX_TERMINUS_URL"):
                     from verify_rust_graph import verify_graph
                     from verify_rust_publication import verify_publication

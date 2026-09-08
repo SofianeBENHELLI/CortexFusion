@@ -34,7 +34,10 @@ def start_graph(upstream):
             if version:
                 self.send_header("TerminusDB-Data-Version", version)
             self.end_headers()
-            self.wfile.write(body)
+            try:
+                self.wfile.write(body)
+            except (BrokenPipeError, ConnectionResetError):
+                pass  # A shutdown probe intentionally closes the native connection.
 
         def dispatch(self):
             parts = urlsplit(self.path).path.split("/")

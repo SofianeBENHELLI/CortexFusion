@@ -341,3 +341,9 @@ La migration0024 permet un changement contrôlé d’intention uniquement lors d
 Les reçus sont `registered`, `unresolved` ou `superseded`. Une même clé personnelle de reprise identifie une décision durable ; son rejeu ne recrée jamais la base. Un ancien contenu identique déjà complet se rapproche par l’action normale. La pagination des événements utilise l’ordinal interne0023, avec filtre propre au domaine/version et aux tentatives d’import. Le diagnostic de présence du manifeste ne remplace pas un test de disponibilité du moteur.
 
 Le verrou de domaine précède ceux des tentatives dans les services natifs. Les triggers complètent ce protocole ; ils ne constituent pas une API indépendante permettant à d’autres writers SQL d’ignorer cet ordre de verrouillage.
+
+## Drainage du processus sur SIGTERM et SIGINT
+
+L’ancien candidat n’attendait que Ctrl-C et se terminait immédiatement sur SIGTERM. Le runtime installe maintenant les deux gestionnaires avant d’annoncer son écoute. Au premier signal, Axum ferme les connexions à de nouvelles requêtes et draine celles déjà acceptées. Le délai configurable `CORTEX_SHUTDOWN_GRACE_SECONDS` est borné1..300s,75par défaut. Un deuxième signal ou une grâce dépassée provoque une sortie non nulle ; les reçus durables restent la référence pour la reprise.
+
+Cette mécanique n’accorde aucun droit supplémentaire et ne publie aucun état au titre de l’arrêt. Une preuve révoquée ou un JWT expiré pendant le drainage reste refusé. Une préparation réservée avant coupure conserve son identité ; au redémarrage, son rapprochement utilise les lectures moteur existantes. La fin du drainage HTTP ne constitue pas une garantie de sauvegarde à chaud des deux bases.
