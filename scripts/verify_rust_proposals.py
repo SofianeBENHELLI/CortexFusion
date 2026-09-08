@@ -223,6 +223,9 @@ def verify_proposals(client, headers, admin, tenant, confirmation_private):
     from verify_rust_retrieval import verify_retrieval
 
     checks.extend(verify_retrieval(client, headers, admin, tenant, domain, published=False))
+    from verify_rust_signals import verify_signals
+
+    checks.extend(verify_signals(client, headers, admin, tenant, domain, confirmation_private))
     if os.environ.get("CORTEX_TERMINUS_URL"):
         args = {
             "path": {"domain": domain, "proposal_id": id},

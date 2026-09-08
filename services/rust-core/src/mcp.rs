@@ -29,6 +29,11 @@ pub const NATIVE: &[&str] = &[
     "api_system_health",
     "api_system_ready",
     "api_identity_read",
+    "api_feedback_preferences",
+    "api_feedback_configure",
+    "api_feedback_record_signal",
+    "api_feedback_signals",
+    "api_feedback_summary",
     "api_knowledge_query",
     "api_episodes_list",
     "api_episodes_read",
@@ -224,7 +229,8 @@ impl ServerHandler for NativeMcp {
                     Uuid::parse_str(arguments["path"]["domain"].as_str().ok_or_else(invalid)?)
                         .map_err(|_| invalid())?
                         .to_string();
-                let tx = self.db.locked_owner_transaction(&p, &domain).await?;
+                let tx = crate::confirmation::authorize(&self.db, &p, &domain, &operation.action)
+                    .await?;
                 tx.commit().await.map_err(CoreError::sql)?;
                 if parts
                     .headers

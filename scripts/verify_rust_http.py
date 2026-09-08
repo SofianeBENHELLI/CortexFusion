@@ -213,8 +213,8 @@ def run(binary, rust_url, admin_url):
             return {
                 "status": "passed",
                 "checks": checks,
-                "native_http_operations": 22 if os.environ.get("CORTEX_TERMINUS_URL") else 19,
-                "native_mcp_operations": 22,
+                "native_http_operations": 27 if os.environ.get("CORTEX_TERMINUS_URL") else 24,
+                "native_mcp_operations": 27,
                 "terminus_application_integration": bool(os.environ.get("CORTEX_TERMINUS_URL")),
                 "model_calls": 0,
             }

@@ -13,6 +13,7 @@ pub mod publication;
 pub mod readiness;
 pub mod retrieval;
 pub mod server;
+pub mod signals;
 pub mod snapshot;
 pub mod sources;
 pub mod terminus;

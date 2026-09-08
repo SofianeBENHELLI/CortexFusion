@@ -98,7 +98,7 @@ impl ConfirmationVerifier {
         {
             return Err(invalid());
         }
-        let mut tx = self.db.locked_owner_transaction(p, domain).await?;
+        let mut tx = authorize(&self.db, p, domain, action).await?;
         confirmation.check_fresh().map_err(|_| invalid())?;
         let inserted=sqlx::query("INSERT INTO cf_mcp_confirmations(tenant_id,domain_id,id,subject,action,command_hash) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING")
             .bind(&p.tenant).bind(domain).bind(id).bind(&p.subject).bind(action).bind(hash).execute(&mut *tx).await.map_err(CoreError::sql)?.rows_affected();
@@ -113,6 +113,25 @@ impl ConfirmationVerifier {
         confirmation.check_fresh().map_err(|_| invalid())?;
         tx.commit().await.map_err(CoreError::sql)?;
         Ok(())
+    }
+}
+/// Explicit personal actions retain membership scope; all other decisions require owner.
+pub(crate) async fn authorize<'a>(
+    db: &'a crate::database::Database,
+    p: &Principal,
+    domain: &str,
+    action: &str,
+) -> Result<sqlx::Transaction<'a, sqlx::Postgres>, CoreError> {
+    if action == "feedback.configure" {
+        db.locked_permission_transaction(
+            p,
+            domain,
+            &["owner", "agent", "contributor", "corpus_manager", "viewer"],
+            "Domain membership required",
+        )
+        .await
+    } else {
+        db.locked_owner_transaction(p, domain).await
     }
 }
 // In-process proof; no HTTP header can manufacture this value.

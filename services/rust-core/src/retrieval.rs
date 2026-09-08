@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 use sqlx::{Postgres, Row, Transaction, postgres::PgRow};
 use std::collections::{BTreeMap, BTreeSet};
 use uuid::Uuid;
-const READERS: &[&str] = &["owner", "agent", "contributor", "corpus_manager", "viewer"];
+pub(crate) const READERS: &[&str] = &["owner", "agent", "contributor", "corpus_manager", "viewer"];
 fn invalid() -> CoreError {
     CoreError {
         code: "VALIDATION_FAILED",
@@ -31,7 +31,7 @@ fn uuid(s: &str) -> Result<String, CoreError> {
         .map(|v| v.to_string())
         .map_err(|_| CoreError::invalid_uuid())
 }
-async fn transaction<'a>(
+pub(crate) async fn transaction<'a>(
     s: &'a StateData,
     p: &Principal,
     domain: &str,
@@ -81,14 +81,14 @@ pub fn routes() -> Router<StateData> {
             post(feedback),
         )
 }
-async fn accessible(
+pub(crate) async fn accessible(
     tx: &mut Transaction<'_, Postgres>,
     p: &Principal,
     domain: &str,
 ) -> Result<BTreeMap<Uuid, PgRow>, CoreError> {
     sqlx::query("SELECT id,title,location,content_hash,content FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND allowed_subjects ? $3 FOR SHARE").bind(&p.tenant).bind(domain).bind(&p.subject).fetch_all(&mut **tx).await.map_err(CoreError::sql)?.into_iter().map(|r|Ok((Uuid::parse_str(r.get::<&str,_>("id")).map_err(|_|CoreError::database())?,r))).collect()
 }
-async fn issue(
+pub(crate) async fn issue(
     tx: &mut Transaction<'_, Postgres>,
     p: &Principal,
     domain: &str,
@@ -201,7 +201,7 @@ fn can_read(row: &PgRow, sources: &BTreeMap<Uuid, PgRow>) -> Result<bool, CoreEr
         serde_json::from_value(row.get("source_ids")).map_err(|_| CoreError::database())?;
     Ok(ids.iter().all(|id| sources.contains_key(id)))
 }
-async fn episode_row(
+pub(crate) async fn episode_row(
     tx: &mut Transaction<'_, Postgres>,
     p: &Principal,
     domain: &str,

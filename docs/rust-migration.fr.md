@@ -4,7 +4,7 @@ Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La
 
 ## Couverture native actuelle
 
-Vingt-deux opérations HTTP et vingt-deux outils MCP sont implémentés :
+Vingt-sept opérations HTTP et vingt-sept outils MCP sont implémentés :
 
 | Fonction | HTTP | Outil MCP |
 |---|---|---|
@@ -26,12 +26,17 @@ Vingt-deux opérations HTTP et vingt-deux outils MCP sont implémentés :
 | Historique personnel des épisodes visibles | GET /v1/domains/{domain}/episodes | api_episodes_list |
 | Relire sa réponse et ses citations | GET /v1/domains/{domain}/episodes/{episode_id} | api_episodes_read |
 | Évaluer explicitement sa réponse | POST /v1/domains/{domain}/episodes/{episode_id}/feedback | api_episodes_feedback |
+| Lire ses préférences de collecte | GET /v1/domains/{domain}/feedback-preferences | api_feedback_preferences |
+| Activer ou désactiver sa collecte automatique | PUT /v1/domains/{domain}/feedback-preferences | api_feedback_configure |
+| Déclarer un signal lié à son épisode | POST /v1/domains/{domain}/episodes/{episode_id}/signals | api_feedback_record_signal |
+| Parcourir ses signaux visibles | GET /v1/domains/{domain}/feedback-signals | api_feedback_signals |
+| Résumer ses signaux sur une fenêtre bornée | GET /v1/domains/{domain}/feedback-summary | api_feedback_summary |
 | Créer une source textuelle | POST /v1/domains/{domain}/sources | api_sources_create |
 | Chercher et paginer les sources accessibles | GET /v1/domains/{domain}/sources | api_sources_list |
 | Lire une source et son contenu | GET /v1/domains/{domain}/sources/{source_id} | api_sources_read |
 | Parcourir ses extraits déterministes | GET /v1/domains/{domain}/sources/{source_id}/chunks | api_sources_chunks |
 
-Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Réviser une proposition, les conversations, le feedback automatique, les imports de fichiers, les collections et l’administration restent à migrer. `/v1/me` annonce prudemment uniquement `inspect` et aucun fournisseur d’extraction ; ses capacités seront étendues avec les parcours complets.
+Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Réviser une proposition, les conversations, les réponses de compagnons, les imports de fichiers, les collections et l’administration restent à migrer. `/v1/me` annonce prudemment uniquement `inspect` et aucun fournisseur d’extraction ; ses capacités seront étendues avec les parcours complets.
 
 ## Fonctionnement et intégration frontend
 
@@ -66,11 +71,11 @@ La commande interne `cortex-rust-core --import-published <domainUUID>` utilise `
 ## Preuves et limites de vérification
 
 - Formatage, Clippy sans avertissement et18 tests Rust passent localement. Le test Terminus réel est explicitement ignoré hors moteur isolé et exécuté séparément en CI.
-- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques : dix-neuf routes directement testables sans moteur et vingt-deux schémas/outils MCP annoncés. Les scénarios source contrôlent ACL, rôle, déduplication, pagination et découpe Unicode comparée à Python.
-- Le lot sources et pont MCP générique a passé la CI avec le moteur TerminusDB12.0.7 épinglé par digest : onze opérations HTTP/MCP, publication signée, rejeu ciblé et lectures avec droits. Le lot propositions a ensuite validé dix-huit HTTP/MCP et le cycle complet source → création → revue → approbation → publication avec TerminusDB réel. Le nouveau lot recherche/feedback nécessite encore sa propre CI moteur.
+- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques : vingt-quatre routes directement testables sans moteur et vingt-sept schémas/outils MCP annoncés. Les scénarios source contrôlent ACL, rôle, déduplication, pagination et découpe Unicode comparée à Python.
+- Le lot sources et pont MCP générique a passé la CI avec le moteur TerminusDB12.0.7 épinglé par digest : onze opérations HTTP/MCP, publication signée, rejeu ciblé et lectures avec droits. Le lot propositions a ensuite validé dix-huit HTTP/MCP et le cycle complet source → création → revue → approbation → publication avec TerminusDB réel. Le lot recherche/feedback a ensuite passé sa CI avec TerminusDB réel, citations et épisodes privés (vingt-deux opérations). Le lot signaux/préférences nécessite encore sa propre CI.
 - La suite historique sur la migration0020 passe :514 tests Python et11 Node. Elle protège la référence, sans prouver que ses79 routes ont été portées en Rust.
 - Le vérificateur indépendant a exécuté100018 vecteurs de JSON canonique sans divergence après correction Ryu ;2044 cas de changements de graphe concordent avec Python ;23 cas de confirmations concordent. Ses campagnes de concurrence couvrent isolation tenant, révocation, expiration pendant réseau/verrou SQL, publication concurrente et retour arrière atomique après panne SQL injectée.
-- Les courses sont déclenchées avec un moteur contrôlé, distinct du test TerminusDB réel. Les NumericDate sous forme de chaînes exotiques restent plus restrictifs que Python. Les confirmations personnelles, opérations non portées, performances, haute disponibilité et perte d’accusé de commit PostgreSQL ne sont pas déclarées validées.
+- Les courses sont déclenchées avec un moteur contrôlé, distinct du test TerminusDB réel. Les NumericDate sous forme de chaînes exotiques restent plus restrictifs que Python. Les autres confirmations personnelles, opérations non portées, performances, haute disponibilité et perte d’accusé de commit PostgreSQL ne sont pas déclarées validées.
 
 Aucun corpus d’entreprise ni appel modèle payant n’est utilisé dans ces campagnes. Les rapports détaillés et contre-exemples indépendants restent dans les livrables locaux.
 
@@ -90,6 +95,18 @@ Contre-vérification des décisions : neuf groupes supplémentaires passent avec
 
 L’interrogation lit le snapshot Terminus publié et renvoie uniquement des extraits approuvés, leur version, leurs citations et les relations visibles. Le classement lexical, les mots ignorés, le départage par UUID et les budgets de caractères reprennent Python. Les tables Unicode15.0.0 sont générées avec Python3.12 à la construction des sources puis utilisées directement en Rust, sans processus Python au runtime. Leur régénération est contrôlée en CI. Le vérificateur a comparé les1 112 064 scalaires Unicode à l’oracle, sans divergence.
 
-Une absence de preuve dans le budget donne explicitement `knowledge_gap` et crée un élément de suivi. Chaque interrogation crée un épisode personnel ; même un owner ne lit pas celui d’un autre utilisateur. Les droits sur les sources sont revérifiés avant enregistrement et lors de chaque relecture/liste. Un retour `unhelpful` crée un élément `disputed_answer` ; son rejeu idempotent ne duplique ni feedback ni élément de suivi. Les préférences et signaux observés/inférés restent à porter.
+Une absence de preuve dans le budget donne explicitement `knowledge_gap` et crée un élément de suivi. Chaque interrogation crée un épisode personnel ; même un owner ne lit pas celui d’un autre utilisateur. Les droits sur les sources sont revérifiés avant enregistrement et lors de chaque relecture/liste. Un retour `unhelpful` crée un élément `disputed_answer` ; son rejeu idempotent ne duplique ni feedback ni élément de suivi. Les préférences et signaux observés/inférés sont décrits dans le lot suivant.
 
 La réponse indique `mode=extractive` et `processing=local_no_model`. Ce lot n’ajoute ni synthèse LLM ni appel OpenRouter. La version servie reste celle du snapshot lu, y compris si une nouvelle publication survient ensuite. La revue indépendante couvre classement, budgets Unicode, citations, épisodes privés, concurrence du feedback et révocation pendant lecture moteur, avec PostgreSQL réel et moteur contrôlé.
+
+## Signaux des compagnons et préférences personnelles — lot en vérification
+
+Les signaux déclarent leur origine : explicite (pouces, commentaire, résolution), observée (reformulation, correction, abandon, résolution), ou inférée (estimation de satisfaction). Un signal inféré exige commentaire, confiance bornée et sentiment ; un indice d’itération appartient uniquement aux observations. Le backend contrôle cette déclaration mais ne certifie pas que le compagnon a correctement interprété l’utilisateur.
+
+Les deux collectes automatiques sont désactivées par défaut. Leur modification exige une confirmation signée pour l’utilisateur courant et la révision attendue. Un viewer peut gérer ses propres préférences ; cela ne lui donne aucun droit d’approbation ou publication. Les changements sont sérialisés avec les enregistrements de signaux. Après désactivation, un nouveau signal automatique est refusé ; le rejeu exact d’un reçu existant reste consultable sous les mêmes contrôles d’accès.
+
+Les signaux et synthèses restent personnels. Une référence à une réponse de compagnon doit appartenir au même utilisateur et au même épisode. Un pouce négatif explicite crée un élément de suivi une seule fois. Les signaux inférés négatifs ne sont pas présentés comme une décision explicite.
+
+La synthèse utilise une fenêtre avec fuseau horaire, croissante et limitée à31 jours (30 par défaut), puis filtre les droits avant son plafond de10000 signaux. Au-delà, elle exige une fenêtre plus étroite et ne renvoie aucun total partiel. Elle distingue les compteurs par origine, les épisodes aux pouces contradictoires et les indices d’itération déclarés. Ces indices ne sont pas des mesures du nombre réel de tentatives ; l’absence de signal ne signifie pas satisfaction. Le feedback historique simple est exclu de cette synthèse pour éviter un double comptage.
+
+Le vérificateur indépendant confirme224 cas de validation de provenance face à Pydantic, les confirmations personnelles HTTP/MCP, le maintien du rôleowner pour publier, l’idempotence, les préférencesBIGINT et les références de compagnons privées. Les contre-tests de synthèse passent : filtre conversation propre/autre auteur, fenêtres invalides et31 jours, plafond de10001 signaux refusé sans résultat partiel, puis même fenêtre après révocation des preuves donnant zéro signal visible. Une erreur de colonne du filtre conversation (R13) a été corrigée et le test indépendant confirme le correctif.
