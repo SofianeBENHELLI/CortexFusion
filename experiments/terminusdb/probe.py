@@ -196,6 +196,40 @@ class TerminusProbe:
         self.apply("left", common, right, conflict=True)
         if self.documents(self.branch_path("left")) != left_before:
             raise SpikeFailure("Conflicting apply partially changed its target")
+        # Diverge main and a fresh proposal with disjoint changes. Applying a diff
+        # from the current main instead of the true base could erase main's edit.
+        self.branch("independent", self.branch_path("main"))
+        divergence_base = self.request(
+            "GET", "document/" + self.branch_path("main"), params={"as_list": "true"}
+        ).headers["terminusdb-data-version"]
+        self.write("main", [{**seed[0], "label": "Changed independently on main"}], replace=True)
+        revised_atom = {**atom, "context": "revised", "business_version": 2}
+        independent = self.write("independent", [revised_atom], replace=True)
+        self.apply("main", divergence_base, independent)
+        merged = self.documents(self.branch_path("main"))
+        if not any(d.get("label") == "Changed independently on main" for d in merged):
+            raise SpikeFailure("Merge lost an independent main edit")
+        merged_atoms = [d for d in merged if d.get("@type") == "KnowledgeAtom"]
+        if len(merged_atoms) != 1 or merged_atoms[0]["context"] != "revised":
+            raise SpikeFailure("Independent proposal edit was lost")
+        before_compensation = self.request(
+            "GET", "document/" + self.branch_path("main"), params={"as_list": "true"}
+        ).headers["terminusdb-data-version"]
+        # Compensate the assertion's context with a new business revision. Do not
+        # reset the branch or roll back the independent concept edit.
+        after_compensation = self.write("main", [{**atom, "business_version": 3}], replace=True)
+        if after_compensation == before_compensation:
+            raise SpikeFailure("Compensation did not create a new engine version")
+        compensated = self.documents(self.branch_path("main"))
+        current_atom = next(d for d in compensated if d.get("@type") == "KnowledgeAtom")
+        if current_atom["business_version"] != 3 or current_atom["context"] != "synthetic":
+            raise SpikeFailure("Compensation did not restore the intended assertion context")
+        if not any(d.get("label") == "Changed independently on main" for d in compensated):
+            raise SpikeFailure("Compensation erased an unrelated concept change")
+        prior = self.documents(self.root + "/local/commit/" + before_compensation.split(":", 1)[1])
+        prior_atom = next(d for d in prior if d.get("@type") == "KnowledgeAtom")
+        if prior_atom["business_version"] != 2 or prior_atom["context"] != "revised":
+            raise SpikeFailure("Compensation erased the previous business revision")
         conflicts = semantic_conflicts([atom, {**atom, "predicate": "INCOMPATIBLE_WITH"}])
         if len(conflicts) != 1:
             raise SpikeFailure("Synthetic semantic rule failed")
@@ -211,6 +245,8 @@ class TerminusProbe:
                 "apply_from_immutable_base",
                 "historical_read",
                 "field_conflict_atomicity",
+                "divergent_disjoint_changes_preserved",
+                "additive_compensation_preserves_history_and_unrelated_edits",
                 "deterministic_semantic_rule",
             ],
             "not_validated": [
