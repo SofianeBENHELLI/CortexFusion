@@ -68,7 +68,7 @@ docker run --rm --name cortex-terminus-dev \
 
 Cette instance jetable contient seulement des données synthétiques. Configurer l’URL locale, l’utilisateur `admin` et ce mot de passe dans le processus de test. Les snapshots utilisent une base privée par préparation, un commit immuable et un manifeste SQL. Aucun accès direct au moteur n’est nécessaire au frontend ou au compagnon.
 
-Une base historique déjà publiée ne bascule pas automatiquement vers TerminusDB. La commande interne `--import-published UUID_DOMAINE`, avec `CORTEX_MIGRATION_BEARER` et `CORTEX_MIGRATION_TENANT`, prépare les snapshots à partir de la projection déjà approuvée/publiée, sous contrôle owner et accès à toutes les preuves. La migration d’un corpus réel reste une opération à préparer avec sauvegarde et rapprochement dédié.
+Une base historique déjà publiée ne bascule pas automatiquement vers TerminusDB. La commande interne `--import-published UUID_DOMAINE`, avec `CORTEX_MIGRATION_BEARER` et `CORTEX_MIGRATION_TENANT`, reconstruit le savoir publié depuis le journal contigu, vérifie sa concordance avec la projection SQL et prépare ou rapproche le snapshot, sous contrôle owner et accès à toutes les preuves. La migration d’un corpus réel reste une opération à préparer avec sauvegarde et rapprochement dédié.
 
 ## Vérifier sans consommer de crédits modèle
 
@@ -102,7 +102,7 @@ Pour l’extraction locale, configurer `CORTEX_MODEL_PROVIDER=ollama`, `CORTEX_L
 
 ## Ce qui reste à qualifier
 
-La surface HTTP/MCP est portée. La reprise explicite des préparations Terminus et la restauration complète à froid sont testées ; les [limites de restauration](coordinated-restore.fr.md) restent précises. Restent notamment le nettoyage des snapshots orphelins, la sauvegarde à chaud, le déploiement TLS/IdP réel, les performances, la haute disponibilité et l’évaluation sur corpus autorisé. Un [worker corpus Rust optionnel](corpus-worker.fr.md) traite les éléments en attente sous une identité explicitement configurée ; les clients peuvent aussi déclencher `process` et relire les reçus. Le [bilan technique](rust-migration.fr.md) détaille les autres limites des parseurs, du SSE et de la validation sémantique.
+La surface HTTP/MCP est portée. La reprise explicite des préparations Terminus et la restauration complète à froid sont testées ; les [limites de restauration](coordinated-restore.fr.md) restent précises. Restent notamment le nettoyage des snapshots orphelins, la sauvegarde à chaud, le déploiement TLS/IdP réel, le dimensionnement de production, la haute disponibilité et l’évaluation sur corpus autorisé. Un [worker corpus Rust optionnel](corpus-worker.fr.md) traite les éléments en attente sous une identité explicitement configurée ; les clients peuvent aussi déclencher `process` et relire les reçus. Une [mesure synthétique sur TerminusDB réel](graph-volume.fr.md) couvre 100, 500 et 2000 concepts ; elle ne constitue pas un SLO. Le [bilan technique](rust-migration.fr.md) détaille les autres limites des parseurs, du SSE et de la validation sémantique.
 
 ## Import initial du graphe publié
 

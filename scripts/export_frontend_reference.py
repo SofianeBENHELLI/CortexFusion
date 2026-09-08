@@ -143,10 +143,12 @@ def render(document):
         "ce fichier directement. Le contrôle `make contracts` refuse une opération non documentée.",
         "",
         "Lire d'abord le [guide des parcours frontend](frontend-guide.fr.md). Cette référence "
-        "décrit le comportement actuel, pas des fonctions futures. Le catalogue machine français "
+        "décrit les opérations de référence communes, pas des fonctions futures. Les sept extensions "
+        "natives Rust sont décrites dans [leur référence](rust-extensions.fr.md). Le catalogue machine français "
         "est `packages/contracts/functional-interactions.fr.json`.",
         "",
-        f"Couverture : **{len(items)} opérations HTTP**, chacune liée à son outil MCP généré. "
+        f"Couverture : **{len(items)} opérations HTTP de référence communes**, chacune liée à son outil MCP généré. "
+        "Les sept extensions portent le runtime Rust à **86 opérations HTTP et 102 outils MCP**. "
         "Les outils de compatibilité et les ressources/prompts sont décrits dans le guide MCP.",
         "",
         "## Règles communes",
@@ -155,10 +157,10 @@ def render(document):
         "propriété des objets personnels restent contrôlés par le serveur.",
         "- Sur les routes protégées, envoyer `Authorization: Bearer …` et `X-Tenant-ID`. "
         "Le jeton provient de l'hôte authentifié, jamais d'un modèle.",
-        "- Les actions sensibles requièrent `X-Cortex-Confirmation` en MCP et en HTTP direct "
-        "par défaut (`CORTEX_HTTP_CONFIRMATION_MODE=required`). Le mode HTTP `trusted_host` "
-        "est une compatibilité explicite réservée à un hôte qui recueille les décisions ; "
-        "il ne désactive jamais les confirmations MCP.",
+        "- En Rust, les actions sensibles requièrent toujours `X-Cortex-Confirmation` en HTTP et MCP. "
+        "La référence Python applique aussi cette règle par défaut (`CORTEX_HTTP_CONFIRMATION_MODE=required`). "
+        "Son mode HTTP `trusted_host` est une compatibilité explicite réservée à un hôte qui recueille "
+        "les décisions ; il ne concerne pas Rust et ne désactive jamais les confirmations MCP.",
         "- Pour une reprise, conserver la clé d'idempotence uniquement si le schéma ou les "
         "paramètres la prévoient. Sans clé, ne pas répéter aveuglément une écriture.",
         "- Les réponses d'erreur sont `{error, message?, details?}`. Les statuts ci-dessous "

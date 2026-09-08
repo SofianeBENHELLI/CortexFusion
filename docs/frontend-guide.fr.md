@@ -14,7 +14,7 @@ Les79 endpoints et95 outils MCP historiques sont implémentés en Rust. Sept ext
 - `GET /v1/me` indique les capacités effectivement configurées. Le catalogue exhaustif ne prouve ni l’activation d’un fournisseur ni les droits sur un objet. Synthèse et extraction sont optionnelles ; TerminusDB est requis pour les connaissances publiées.
 - Les erreurs de validation422 peuvent avoir un détail différent de FastAPI. Afficher une erreur exploitable, conserver les champs saisis et ne pas dépendre de la structure interne Pydantic pour décider des droits.
 - L’analyse des fichiers utilise un processus Rust borné. Les reçus et le cycle `process/retry/cancel` sont conservés, mais l’extraction PDF peut produire un texte différent du parseur Python. Les citations doivent porter sur la source effectivement créée.
-- Les workers CLI historiques ne sont pas des workers Rust. Le frontend ou l’hôte de confiance doit déclencher les opérations `process`, puis relire les reçus avec polling modéré. Une annulation réseau ne prouve pas l’annulation du traitement durable.
+- Les anciennes CLI Python ne deviennent pas des workers Rust. Le binaire optionnel `cortex-corpus-worker` traite les fichiers accessibles et les imports personnels via les mêmes API ; sans worker configuré, le frontend ou l’hôte déclenche `process` puis relit les reçus. Fermer le frontend n’annule pas un traitement déjà engagé.
 
 Les [instructions de démarrage Rust](rust-start.fr.md) détaillent la configuration, et le [bilan de migration](rust-migration.fr.md) distingue les validations acquises des limites de production. Les ressources `cortex://guide`, `cortex://workspace`, `cortex://actions` et le contexte par domaine, ainsi que les trois prompts historiques, permettent aussi un usage via compagnon sans frontend dédié.
 
@@ -108,13 +108,13 @@ La matrice précise est celle de chaque endpoint, pas une hiérarchie implicite 
 
 Chaque appel protégé comporte `Authorization: Bearer <jeton>` et `X-Tenant-ID: <uuid>`. Le domaine est dans le chemin. Appeler `GET /v1/me` après connexion ; choisir un domaine parmi ceux retournés. Un lien partagé vers une proposition ne donne aucun accès supplémentaire.
 
-**Contrôle des décisions sensibles :** MCP et les routes HTTP directes exigent par défaut une attestation `X-Cortex-Confirmation`, liée à la commande exacte, au sujet et au tenant, valide au maximum cinq minutes et à usage unique. Configurer `CORTEX_CONFIRMATION_PUBLIC_KEY_FILE` et conserver `CORTEX_HTTP_CONFIRMATION_MODE=required`. Sans clé de vérification ou sans attestation, une commande sensible autorisée par le rôle reçoit 428 ; les consultations restent utilisables.
+**Contrôle des décisions sensibles :** en Rust, MCP et les routes HTTP directes exigent toujours une attestation `X-Cortex-Confirmation`, liée à la commande exacte, au sujet et au tenant, valide au maximum cinq minutes et à usage unique. Configurer `CORTEX_CONFIRMATION_PUBLIC_KEY_FILE`. Rust publie toujours le mode `required` ; la variable `CORTEX_HTTP_CONFIRMATION_MODE` concerne la référence Python. Sans clé de vérification ou sans attestation, une commande sensible autorisée par le rôle reçoit 428 ; les consultations restent utilisables.
 
-Le mode explicite `CORTEX_HTTP_CONFIRMATION_MODE=trusted_host` préserve l'ancien fonctionnement HTTP pour un serveur de confiance qui recueille lui-même la décision. Il ne convient pas à une API directement exposée aux commandes d'un modèle ou d'un navigateur privilégié. Il ne désactive jamais les confirmations MCP. Les fixtures métier et démonstrations synthétiques l'utilisent explicitement ; les tests de transport vérifient le mode strict. Le mode effectif est publié dans `x-cortex-http-confirmation-mode` de l'OpenAPI.
+Dans la référence Python seulement, le mode explicite `CORTEX_HTTP_CONFIRMATION_MODE=trusted_host` préserve l'ancien fonctionnement HTTP pour un serveur de confiance qui recueille lui-même la décision. Il ne convient pas à une API directement exposée aux commandes d'un modèle ou d'un navigateur privilégié. Il ne désactive jamais les confirmations MCP. Les fixtures métier et démonstrations synthétiques l'utilisent explicitement ; les tests de transport vérifient le mode strict. Le mode effectif est publié dans `x-cortex-http-confirmation-mode` de l'OpenAPI.
 
 Le pont MCP transmet une preuve en mémoire après vérification pour éviter une seconde consommation au passage HTTP interne. Aucun en-tête de contournement n'est accepté depuis le réseau. Une confirmation utilisée reste consommée même si une précondition métier échoue ensuite : relire l'état avant une nouvelle décision, conserver la clé métier si l'intention est la même.
 
-La clé privée de confirmation, les clés OpenRouter et les secrets d'IdP restent côté serveur. Ils ne doivent jamais être inclus dans les variables publiques de build Vite, le navigateur ou les arguments d'un modèle. L'hôte de confiance prépare la confirmation HTTP/MCP après avoir recueilli le choix sur les paramètres exacts.
+La clé privée de confirmation reste côté hôte de confiance qui recueille la décision, distinct du backend Cortex, lequel ne reçoit que la clé publique. Les clés OpenRouter et les secrets d'IdP restent dans les processus serveur concernés. Ils ne doivent jamais être inclus dans les variables publiques de build Vite, le navigateur ou les arguments d'un modèle. L'hôte de confiance prépare la confirmation HTTP/MCP après avoir recueilli le choix sur les paramètres exacts.
 
 ### Préparer une confirmation depuis le serveur de l'interface
 
@@ -144,14 +144,15 @@ Zustand peut conserver le brouillon de question, les panneaux ouverts et l'inten
 | Mutation réussie | Lectures à actualiser dans le même contexte |
 |---|---|
 | Créer/mettre à jour une conversation | Liste et détail de conversation |
-| Poser une question | Messages, épisodes, signalements et brief personnel si manque de connaissance |
+| Poser une question | Messages, épisodes et signalements personnels ; brief du domaine si le sujet est owner |
 | Enregistrer une réponse | Réponses de compagnon de l'épisode/conversation |
 | Enregistrer un signal | Signaux, résumé personnel, signalements en cas de retour négatif |
 | Modifier le consentement | Préférences ; arrêter les collecteurs devenus interdits |
 | Importer/traiter un fichier ou lot | Reçu, liste des imports/fichiers, sources accessibles |
 | Créer/réviser une proposition | Proposition, liste, diff et revues selon le cas |
 | Revoir/accepter | Proposition, revues, liste, brief ; version acceptée après acceptation |
-| Publier/compenser après publication | Version, concepts, résultats de recherche futurs, journal, brief |
+| Publier | Version, concepts, résultats de recherche futurs, journal, brief |
+| Proposer une compensation | Proposition, liste et diff ; la version ne change qu’après approbation et publication distinctes |
 | Modifier les lecteurs/membres | Identité/capacités, listes et détails affectés ; purge des données désormais interdites |
 
 Ne pas activer de retry automatique pour toute mutation. Conserver une clé par intention logique et reprendre selon le contrat. Une nouvelle clé signifie une nouvelle commande, parfois un nouvel appel facturé. Pour les lectures, temporiser les retries et arrêter sur 401/403/404 selon le contexte.
@@ -256,7 +257,7 @@ La capacité `synthesize` dans `/v1/me` signale que la synthèse backend est con
 {"processing_destination":"openrouter","idempotency_key":"synthesis-unique-001"}
 ```
 
-La clé de synthèse est distincte de celle de la question. Ne pas renvoyer la question, des extraits arbitraires ou la clé fournisseur dans ce corps : le backend utilise l’épisode personnel et ses preuves. L’appel est synchrone, sans flux de tokens. La confirmation signée porte sur cette commande et cette destination ; les règles HTTP `required`/`trusted_host` et la confirmation MCP restent celles décrites plus haut. Désactivé, le service retourne `SYNTHESIS_DISABLED` (503), après les contrôles de transport applicables.
+La clé de synthèse est distincte de celle de la question. Ne pas renvoyer la question, des extraits arbitraires ou la clé fournisseur dans ce corps : le backend utilise l’épisode personnel et ses preuves. L’appel est synchrone, sans flux de tokens. La confirmation signée porte sur cette commande et cette destination ; en Rust, la confirmation reste obligatoire en HTTP et MCP ; la variante `trusted_host` concerne exclusivement la référence Python. Désactivé, le service retourne `SYNTHESIS_DISABLED` (503), après les contrôles de transport applicables.
 
 **Lire `status`, même sur HTTP 200** :
 
@@ -416,6 +417,8 @@ Les codes sont plus stables que les messages. Les traductions react-intl doivent
 Ces scénarios peuvent guider Playwright côté frontend ; le backend maintient les tests HTTP/MCP et PostgreSQL correspondants avec données synthétiques. Les variantes SSE et JSON utilisent la même clé de question. Les futures vues agrégées ou la génération de tokens doivent être rattachées à leurs propres contrats livrés.
 
 ## Tester la chaîne complète sans frontend ni clé fournisseur
+
+Ce scénario démontre la référence Python. Pour qualifier le runtime Rust, utiliser les scénarios natifs du [guide de démarrage Rust](rust-start.fr.md) avec le vrai binaire.
 
 Après les migrations, avec `CORTEX_TEST_ADMIN_URL` et `CORTEX_TEST_DATABASE_URL` pointant vers une base dédiée dont le nom se termine par `_test` :
 

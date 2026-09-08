@@ -77,7 +77,7 @@
   },
   "imports.process": {
     "description": "Traite un nombre borné d'éléments en attente. L'enregistrement d'une source et le succès de son élément sont atomiques.",
-    "frontend": "Faire progresser explicitement le lot tant qu'il reste du travail. Fermer le navigateur n'exécute pas les éléments restants en arrière-plan."
+    "frontend": "Faire progresser le lot tant qu'il reste des items pending, ou laisser le worker opérateur configuré appeler la même API. Fermer le navigateur ne déclenche pas un worker et n'arrête pas celui déjà lancé."
   },
   "imports.cancel": {
     "description": "Annule les éléments encore en attente sans supprimer les sources déjà créées. Un lot annulé n'est pas repris comme un nouveau lot.",

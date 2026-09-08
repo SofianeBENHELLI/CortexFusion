@@ -8,7 +8,7 @@ Ces **7 opérations HTTP et MCP** complètent les 79 opérations de référence.
 
 - Les rôles listés sont des prérequis ; tenant, domaine, droits sur les preuves et propriété des objets personnels restent contrôlés par le serveur.
 - Sur les routes protégées, envoyer `Authorization: Bearer …` et `X-Tenant-ID`. Le jeton provient de l'hôte authentifié, jamais d'un modèle.
-- Les actions sensibles exigent une confirmation signée de l’hôte authentifié via `X-Cortex-Confirmation`, en HTTP comme en MCP. Le runtime Rust ne propose pas de mode qui supprime cette confirmation.
+- En Rust, les actions sensibles requièrent toujours `X-Cortex-Confirmation` en HTTP et MCP. La référence Python applique aussi cette règle par défaut (`CORTEX_HTTP_CONFIRMATION_MODE=required`). Son mode HTTP `trusted_host` est une compatibilité explicite réservée à un hôte qui recueille les décisions ; il ne concerne pas Rust et ne désactive jamais les confirmations MCP.
 - Pour une reprise, conserver la clé d'idempotence uniquement si le schéma ou les paramètres la prévoient. Sans clé, ne pas répéter aveuglément une écriture.
 - Les réponses d'erreur sont `{error, message?, details?}`. Les statuts ci-dessous sont le contrat déclaré commun, pas la preuve que chaque erreur est atteignable sur chaque route.
 - Les champs absents et `null` sont distincts. Les bornes et champs requis sont repris du schéma ; des règles métier supplémentaires sont contrôlées à l'exécution.
