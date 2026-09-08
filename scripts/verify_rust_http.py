@@ -205,7 +205,11 @@ def run(binary, rust_url, admin_url):
                             "manage_members",
                             "source_acl",
                         ]
-                        + (["publish"] if os.environ.get("CORTEX_TERMINUS_URL") else []),
+                        + (
+                            ["publish", "compensate"]
+                            if os.environ.get("CORTEX_TERMINUS_URL")
+                            else []
+                        ),
                     }
                 ]
                 forged = client.get("/v1/me", headers=headers(sub="bob", role="owner")).json()
@@ -252,6 +256,14 @@ def run(binary, rust_url, admin_url):
                 from verify_rust_aliases import verify_aliases
 
                 checks.extend(verify_aliases(client, headers, domain))
+                from verify_rust_model_receipts import verify_model_receipts
+
+                checks.extend(verify_model_receipts(client, headers, admin, tenant, domain))
+                from verify_rust_maintenance import verify_maintenance_empty
+
+                checks.extend(
+                    verify_maintenance_empty(client, headers, domain, tenant, confirmation_private)
+                )
                 from verify_rust_proposals import verify_proposals
 
                 checks.extend(
@@ -272,7 +284,9 @@ def run(binary, rust_url, admin_url):
                 )
                 checks.append("membership_revocation")
                 assert (
-                    client.post(f"/v1/domains/{domain}/publish", headers=headers()).status_code
+                    client.post(
+                        f"/v1/domains/{domain}/files/{uuid4()}/process", headers=headers()
+                    ).status_code
                     == 501
                 )
                 checks.append("unported_operation_explicit")
@@ -293,8 +307,8 @@ def run(binary, rust_url, admin_url):
             return {
                 "status": "passed",
                 "checks": checks,
-                "native_http_operations": 59 if os.environ.get("CORTEX_TERMINUS_URL") else 56,
-                "native_mcp_operations": 75,
+                "native_http_operations": 68 if os.environ.get("CORTEX_TERMINUS_URL") else 64,
+                "native_mcp_operations": 84,
                 "terminus_application_integration": bool(os.environ.get("CORTEX_TERMINUS_URL")),
                 "model_calls": 0,
             }

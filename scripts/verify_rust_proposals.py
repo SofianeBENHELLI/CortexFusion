@@ -240,14 +240,35 @@ def verify_proposals(client, headers, admin, tenant, confirmation_private):
             "path": {"domain": domain, "proposal_id": id},
             "body": {"expected_published_version": 0},
         }
+        global_args = {"path": {"domain": domain}}
+        global_published = mcp(
+            "api_domain_publish", global_args, signed("domain.publish", global_args)
+        )
+        assert global_published == {
+            "http_status": 200,
+            "data": {"published_version": 1, "changed": True},
+        }, global_published
         published = mcp("api_proposals_publish", args, signed("proposals.publish", args))
-        assert published["http_status"] == 200 and published["data"]["changed"], published
+        assert published["http_status"] == 200 and not published["data"]["changed"], published
         concepts = client.get(root + "/concepts", headers=headers(sub="bob")).json()
         assert concepts == [normalized["changes"][0]["concept"]], concepts
         checks.extend(verify_retrieval(client, headers, admin, tenant, domain, published=True))
         checks.extend(verify_conversations(client, headers, domain, published=True))
         checks.extend(verify_issues(client, headers, domain, id, published=True))
         checks.extend(verify_commit_brief(client, headers, domain, id, published=True))
+        from verify_rust_maintenance import verify_maintenance_published
+
+        checks.extend(
+            verify_maintenance_published(
+                client,
+                headers,
+                admin,
+                tenant,
+                domain,
+                confirmation_private,
+                normalized["changes"][0]["concept"],
+            )
+        )
         revised = {
             **normalized,
             "base_version": 1,

@@ -85,6 +85,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let origins = cortex_rust_core::browser::Origins::parse(
         &env::var("CORTEX_CORS_ORIGINS").unwrap_or_else(|_| "[]".into()),
     )?;
+    let model_daily_limit = env::var("CORTEX_MODEL_DAILY_ATTEMPT_LIMIT")
+        .unwrap_or_else(|_| "100".into())
+        .parse::<i64>()?;
+    if !(1..=100000).contains(&model_daily_limit) {
+        return Err("Invalid model attempt limit".into());
+    }
     let listener = tokio::net::TcpListener::bind(address).await?;
     println!(
         "CortexFusion Rust migration candidate listening on {}",
@@ -93,6 +99,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = cortex_rust_core::mcp::mount(
         server::router(StateData {
             auth: auth.clone(),
+            model_daily_limit,
             db: db.clone(),
             graph,
             confirmation: confirmation.clone(),

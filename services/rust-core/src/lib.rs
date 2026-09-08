@@ -33,3 +33,7 @@ pub mod governance;
 pub mod source_access;
 
 pub mod discovery;
+
+pub mod model_receipts;
+
+pub mod maintenance;

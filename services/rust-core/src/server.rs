@@ -13,6 +13,7 @@ use uuid::Uuid;
 #[derive(Clone)]
 pub struct StateData {
     pub auth: Authenticator,
+    pub model_daily_limit: i64,
     pub db: Database,
     pub graph: Option<crate::graph::GraphService>,
     pub confirmation: Option<crate::confirmation::ConfirmationVerifier>,
@@ -38,6 +39,8 @@ pub fn router(state: StateData) -> Router {
         .merge(crate::governance::routes())
         .merge(crate::source_access::routes())
         .merge(crate::discovery::routes())
+        .merge(crate::model_receipts::routes())
+        .merge(crate::maintenance::routes())
         .fallback(||async{(StatusCode::NOT_IMPLEMENTED,Json(json!({"error":"MIGRATION_NOT_IMPLEMENTED","message":"This operation is not yet served by the native Rust candidate"})))})
         .with_state(state)
 }
@@ -100,7 +103,7 @@ async fn identity(
         if role == "owner" && s.confirmation.is_some() {
             capabilities.extend(["review", "approve", "manage_members", "source_acl"]);
             if s.graph.is_some() {
-                capabilities.push("publish");
+                capabilities.extend(["publish", "compensate"]);
             }
         }
         domains.push(json!({"id":row.get::<String,_>("id"),"name":row.get::<String,_>("name"),"role":role,"capabilities":capabilities}));

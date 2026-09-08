@@ -273,7 +273,7 @@ async fn create(
     let domain = uuid(&domain)?;
     let Json(raw) = body.map_err(|_| invalid())?;
     let input = parse_proposal(raw)?;
-    let value = propose_service(&s, &p, &domain, input, None).await?;
+    let value = propose_service(&s, &p, &domain, input, None, None).await?;
     Ok((StatusCode::CREATED, Json(value)))
 }
 async fn propose_service(
@@ -282,24 +282,39 @@ async fn propose_service(
     domain: &str,
     input: ProposalInput,
     replacement: Option<&str>,
+    compensation: Option<i64>,
 ) -> Result<Value, CoreError> {
     input.validate()?;
     let normalized = serde_json::to_value(&input).map_err(|_| invalid())?;
     let fingerprint = hash(&normalized)?;
-    let mut tx = transaction(s, p, domain).await?;
+    let mut tx = if compensation.is_some() {
+        s.db.locked_owner_transaction(p, domain).await?
+    } else {
+        transaction(s, p, domain).await?
+    };
     let old = replacement_access(&mut tx, p, domain, replacement).await?;
     if let Some(v) = existing(&mut tx, p, domain, &input, &fingerprint, replacement).await? {
         return Ok(v);
     }
     validate_replace_state(old.as_ref())?;
+    if let Some(sequence) = compensation {
+        compensation_guard(&mut tx, p, domain, sequence).await?;
+    }
     tx.commit().await.map_err(CoreError::sql)?;
     let state = base(s, p, domain, input.base_version).await?;
-    let mut tx = transaction(s, p, domain).await?;
+    let mut tx = if compensation.is_some() {
+        s.db.locked_owner_transaction(p, domain).await?
+    } else {
+        transaction(s, p, domain).await?
+    };
     let old = replacement_access(&mut tx, p, domain, replacement).await?;
     if let Some(v) = existing(&mut tx, p, domain, &input, &fingerprint, replacement).await? {
         return Ok(v);
     }
     validate_replace_state(old.as_ref())?;
+    if let Some(sequence) = compensation {
+        compensation_guard(&mut tx, p, domain, sequence).await?;
+    }
     if published(&mut tx, p, domain).await? != input.base_version {
         return Err(conflict(
             "STALE_BASE",
@@ -933,7 +948,7 @@ async fn revise(
     let input = parse_proposal(raw)?;
     Ok((
         StatusCode::CREATED,
-        Json(propose_service(&s, &p, &d, input, Some(&id)).await?),
+        Json(propose_service(&s, &p, &d, input, Some(&id), None).await?),
     ))
 }
 async fn ingest(
@@ -982,9 +997,133 @@ async fn ingest(
     let input = parse_proposal(
         json!({"base_version":base,"changes":[{"kind":"put_concept","concept":{"concept_id":ident,"title":source.get::<String,_>("title"),"body":content,"maturity":"emerging","sources":[{"source_id":id,"start":0,"end":content.chars().count()}],"links":[]}}],"reason":"Verbatim file import; owner review required","idempotency_key":key}),
     )?;
-    Ok(Json(propose_service(&s, &p, &d, input, None).await?))
+    Ok(Json(propose_service(&s, &p, &d, input, None, None).await?))
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct CompensationInput {
+    expected_version: i64,
+    reason: String,
+    idempotency_key: String,
+}
+pub(crate) fn parse_compensation(raw: Value) -> Result<CompensationInput, CoreError> {
+    let d: CompensationInput = serde_json::from_value(raw).map_err(|_| invalid())?;
+    if d.expected_version < 0
+        || !(1..=2000).contains(&d.reason.chars().count())
+        || !(8..=128).contains(&d.idempotency_key.chars().count())
+    {
+        return Err(invalid());
+    }
+    Ok(d)
+}
+async fn compensation_guard(
+    tx: &mut Transaction<'_, Postgres>,
+    p: &Principal,
+    d: &str,
+    sequence: i64,
+) -> Result<(), CoreError> {
+    let domain = sqlx::query(
+        "SELECT accepted_version,published_version FROM cf_domains WHERE tenant_id=$1 AND id=$2",
+    )
+    .bind(&p.tenant)
+    .bind(d)
+    .fetch_one(&mut **tx)
+    .await
+    .map_err(CoreError::sql)?;
+    if domain.get::<i64, _>("accepted_version") != domain.get::<i64, _>("published_version") {
+        return Err(conflict(
+            "PUBLICATION_PENDING",
+            "Publication must finish before compensation",
+        ));
+    }
+    let before: Value = sqlx::query_scalar(
+        "SELECT before_state FROM cf_commits WHERE tenant_id=$1 AND domain_id=$2 AND sequence=$3",
+    )
+    .bind(&p.tenant)
+    .bind(d)
+    .bind(sequence)
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(CoreError::sql)?
+    .ok_or_else(CoreError::not_found)?;
+    let touched = before
+        .as_object()
+        .ok_or_else(CoreError::database)?
+        .keys()
+        .map(|s| Uuid::parse_str(s).map_err(|_| CoreError::database()))
+        .collect::<Result<BTreeSet<_>, _>>()?;
+    let batches: Vec<Value> = sqlx::query_scalar(
+        "SELECT changes FROM cf_commits WHERE tenant_id=$1 AND domain_id=$2 AND sequence>$3",
+    )
+    .bind(&p.tenant)
+    .bind(d)
+    .bind(sequence)
+    .fetch_all(&mut **tx)
+    .await
+    .map_err(CoreError::sql)?;
+    for batch in batches {
+        let changes: Vec<Change> =
+            serde_json::from_value(batch).map_err(|_| CoreError::database())?;
+        for change in changes {
+            let dependent = match change {
+                Change::PutConcept { concept } => {
+                    touched.contains(&concept.concept_id)
+                        || concept.links.iter().any(|l| touched.contains(&l.target_id))
+                }
+                Change::RetireConcept { concept_id } => touched.contains(&concept_id),
+            };
+            if dependent {
+                return Err(conflict(
+                    "DEPENDENT_CHANGE",
+                    "Later changes depend on this change; create a revised proposal",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+pub(crate) async fn compensate_service(
+    s: &StateData,
+    p: &Principal,
+    d: &str,
+    sequence: i64,
+    data: CompensationInput,
+) -> Result<Value, CoreError> {
+    let mut tx = s.db.locked_owner_transaction(p, d).await?;
+    let published = published(&mut tx, p, d).await?;
+    let before: Option<Value> = sqlx::query_scalar(
+        "SELECT before_state FROM cf_commits WHERE tenant_id=$1 AND domain_id=$2 AND sequence=$3",
+    )
+    .bind(&p.tenant)
+    .bind(d)
+    .bind(sequence)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(CoreError::sql)?;
+    if sequence > published || before.is_none() {
+        return Err(CoreError::not_found());
+    }
+    let before = before.unwrap();
+    let changes = before
+        .as_object()
+        .ok_or_else(CoreError::database)?
+        .iter()
+        .map(|(id, v)| {
+            if v.is_null() {
+                json!({"kind":"retire_concept","concept_id":id})
+            } else {
+                json!({"kind":"put_concept","concept":v})
+            }
+        })
+        .collect::<Vec<_>>();
+    let input = parse_proposal(
+        json!({"base_version":data.expected_version,"changes":changes,"reason":format!("Compensate change {sequence}: {}",data.reason),"idempotency_key":data.idempotency_key}),
+    )?;
+    p.check_fresh()?;
+    tx.commit().await.map_err(CoreError::sql)?;
+    propose_service(s, p, d, input, None, Some(sequence)).await
+}
 #[cfg(test)]
 mod tests {
     use super::*;

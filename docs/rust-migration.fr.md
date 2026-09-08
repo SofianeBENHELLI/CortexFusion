@@ -4,7 +4,7 @@ Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La
 
 ## Couverture native actuelle
 
-Cinquante-neuf opérations HTTP, leurs cinquante-neuf outils MCP et seize outils de compatibilité (75 au total) sont implémentés :
+Soixante-huit opérations HTTP, leurs soixante-huit outils MCP et seize outils de compatibilité (84 au total) sont implémentés :
 
 | Fonction | HTTP | Outil MCP |
 |---|---|---|
@@ -67,8 +67,17 @@ Cinquante-neuf opérations HTTP, leurs cinquante-neuf outils MCP et seize outils
 | Chercher et paginer les sources accessibles | GET /v1/domains/{domain}/sources | api_sources_list |
 | Lire une source et son contenu | GET /v1/domains/{domain}/sources/{source_id} | api_sources_read |
 | Parcourir ses extraits déterministes | GET /v1/domains/{domain}/sources/{source_id}/chunks | api_sources_chunks |
+| Lire ses tentatives d’extraction visibles | GET /v1/domains/{domain}/model-attempts | api_models_attempts |
+| Lire une tentative d’extraction | GET /v1/domains/{domain}/model-attempts/{attempt_id} | api_models_attempt |
+| Lire les réservations quotidiennes de modèles | GET /v1/domains/{domain}/model-usage | api_models_usage |
+| Lire ses tentatives de synthèse visibles | GET /v1/domains/{domain}/syntheses | api_syntheses_list |
+| Lire une tentative de synthèse | GET /v1/domains/{domain}/syntheses/{ident} | api_syntheses_read |
+| Lire son reçu d’extraction et sa proposition | GET /v1/domains/{domain}/extractions/{ident} | api_extractions_read |
+| Publier le prochain commit accepté | POST /v1/domains/{domain}/publish | api_domain_publish |
+| Reconstruire la projection publiée vérifiée | POST /v1/domains/{domain}/replay | api_domain_replay |
+| Préparer une proposition inverse | POST /v1/domains/{domain}/commits/{sequence}/compensate | api_commits_compensate |
 
-Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Les fichiers binaires, les fonctions de modèles et certaines actions de publication restent à migrer. `/v1/me` annonce query, inspect, personal_history, feedback et personal_issues ; les rôles rédacteurs reçoivent propose/read_proposals. Un owner reçoit review/approve/manage_members/source_acl si les confirmations sont configurées, et publish si TerminusDB est également configuré. Aucun fournisseur d’extraction n’est annoncé.
+Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Onze opérations restent à porter : sept opérations de fichiers binaires, trois appels de fournisseurs (extractions et synthèse), et la découverte OAuth MCP. `/v1/me` annonce query, inspect, personal_history, feedback et personal_issues ; les rôles rédacteurs reçoivent propose/read_proposals. Un owner reçoit review/approve/manage_members/source_acl si les confirmations sont configurées, et publish/compensate si TerminusDB est également configuré. Aucun fournisseur d’extraction n’est annoncé.
 
 ## Fonctionnement et intégration frontend
 
@@ -204,3 +213,17 @@ Les ACL de source sont modifiables par un owner possédant déjà l’accès, av
 `/v1/interactions` est authentifié et liste exclusivement les opérations natives ; `/openapi.json` expose leurs schémas publics. Les métadonnées ne donnent aucun droit. Les16 alias historiques restent disponibles : query, inspect_concept, propose, feedback, describe_actions, my_workspace, list_sources, read_source_chunks, list_proposals, proposal_diff, list_conversations, create_conversation, conversation_query, conversation_messages, list_issues et decide_issue.
 
 Les alias conservent leurs arguments, schémas et annotations historiques, puis appellent les mêmes routes Rust. Leur succès retourne directement les données métier ; les outils api_* utilisent l’enveloppe http_status/data. Les propriétés supplémentaires permises par certains anciens schémas ne changent jamais le tenant ou le sujet authentifié. Aucun alias ne contourne une décision signée. Les outils non portés ne sont pas annoncés.
+
+## Reçus de modèles et consommation
+
+Les propriétaires lisent leurs tentatives d’extraction et les utilisateurs leurs propres tentatives de synthèse, toujours sous les droits courants des preuves. Une tentative sans résultat demeure unresolved ; aucune réussite n’est inventée. Les reçus conservent fournisseur, modèle demandé, plages, hash, dates et usage disponibles ; les anciens champs absents restent null ou leur valeur historique. Aucun de ces chemins ne déclenche de modèle.
+
+Le compteur propriétaire agrège les réservations du domaine sur le jour UTC courant, tous auteurs confondus : tentatives d’extraction et synthèses avec budget réservé. Le plafond CORTEX_MODEL_DAILY_ATTEMPT_LIMIT vaut100 par défaut (1 à100000). Ce compteur décrit des tentatives, pas une dépense en dollars ni le plafond OpenRouter. Les synthèses gratuites et jours précédents sont exclus, les réservations des preuves révoquées restent comptées.
+
+## Maintenance signée du savoir
+
+Publier au niveau domaine sélectionne le prochain commit accepté et conserve cette cible pendant le traitement. Sans changement en attente, changed=false. La reconstruction lit le snapshot Terminus immuable, compare son contenu au journal SQL reconstruit, puis remplace atomiquement la projection après recontrôle de la version et des droits. Une divergence retourne503 sans effacer la projection ; une publication concurrente retourne409. Ce mécanisme ne répare pas une préparation Terminus incomplète (R11 reste ouvert).
+
+Compenser un commit publié crée une proposition inverse ready, sans l’accepter ni la publier. Une publication en attente, un changement dépendant ultérieur ou des preuves inaccessibles bloquent la création. Les permissions owner sont revérifiées après lecture réseau, même si l’utilisateur conserve un rôle contributeur. Confirmation signée, base attendue, motif et clé idempotente restent obligatoires.
+
+La campagne indépendante couvre les historiques privés et quotas, une reconstruction réparatrice, une divergence moteur, un rollback SQL injecté après suppression, une publication concurrente pendant lecture, des révocations owner et la compensation idempotente. Les scénarios locaux utilisent PostgreSQL et un moteur contrôlé ; la CI vérifie séparément TerminusDB réel.

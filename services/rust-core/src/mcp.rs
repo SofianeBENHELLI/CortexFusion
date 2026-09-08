@@ -26,6 +26,15 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 pub const NATIVE: &[&str] = &[
+    "api_domain_publish",
+    "api_domain_replay",
+    "api_commits_compensate",
+    "api_models_attempts",
+    "api_models_attempt",
+    "api_models_usage",
+    "api_syntheses_read",
+    "api_syntheses_list",
+    "api_extractions_read",
     "api_interactions_list",
     "api_system_health",
     "api_system_ready",
