@@ -84,14 +84,14 @@ async fn transaction<'a>(
     s.db.locked_permission_transaction(p, domain, WRITERS, "Proposal permission required")
         .await
 }
-async fn sources(
+pub(crate) async fn sources(
     tx: &mut Transaction<'_, Postgres>,
     p: &Principal,
     domain: &str,
 ) -> Result<BTreeMap<Uuid, String>, CoreError> {
     sqlx::query("SELECT id,content FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND allowed_subjects ? $3 FOR SHARE").bind(&p.tenant).bind(domain).bind(&p.subject).fetch_all(&mut **tx).await.map_err(CoreError::sql)?.into_iter().map(|r|Ok((Uuid::parse_str(r.get::<&str,_>("id")).map_err(|_|CoreError::database())?,r.get("content")))).collect()
 }
-async fn check_access(
+pub(crate) async fn check_access(
     tx: &mut Transaction<'_, Postgres>,
     p: &Principal,
     domain: &str,
@@ -140,7 +140,7 @@ async fn check_access(
     }
     Ok(())
 }
-async fn row(
+pub(crate) async fn row(
     tx: &mut Transaction<'_, Postgres>,
     p: &Principal,
     domain: &str,

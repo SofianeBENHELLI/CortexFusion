@@ -44,6 +44,13 @@ pub const NATIVE: &[&str] = &[
     "api_conversations_messages",
     "api_conversations_query",
     "api_conversations_timeline",
+    "api_collections_create",
+    "api_collections_list",
+    "api_collections_read",
+    "api_issues_list",
+    "api_issues_read",
+    "api_issues_history",
+    "api_issues_decide",
     "api_knowledge_query",
     "api_episodes_list",
     "api_episodes_read",
@@ -318,11 +325,15 @@ impl ServerHandler for NativeMcp {
         .into())
     }
 }
-async fn authenticate(State(auth): State<Authenticator>, request: Request, next: Next) -> Response {
+async fn authenticate(
+    State((auth, origins)): State<(Authenticator, crate::browser::Origins)>,
+    request: Request,
+    next: Next,
+) -> Response {
     if let Err(error) = auth.authenticate(request.headers()) {
         return error.into_response();
     }
-    if request.headers().contains_key("origin") {
+    if !origins.allowed(request.headers()) {
         return (http::StatusCode::FORBIDDEN, "Origin is not enabled").into_response();
     }
     next.run(request).await
@@ -391,6 +402,7 @@ pub fn mount(
     auth: Authenticator,
     confirmation: Option<ConfirmationVerifier>,
     db: Database,
+    origins: crate::browser::Origins,
 ) -> Result<Router, CoreError> {
     let handler = NativeMcp {
         http: http.clone(),
@@ -402,17 +414,18 @@ pub fn mount(
     let config = StreamableHttpServerConfig::default()
         .with_legacy_session_mode(false)
         .with_json_response(true)
-        .with_max_request_body_bytes(1_000_000);
+        .with_max_request_body_bytes(1_000_000)
+        .with_allowed_origins(origins.0.iter().cloned());
     let service = StreamableHttpService::new(
         move || Ok(handler.clone()),
         LocalSessionManager::default().into(),
         config,
     );
-    Ok(http.merge(
-        Router::new()
-            .nest_service("/mcp", service)
-            .layer(middleware::from_fn_with_state(auth, authenticate)),
-    ))
+    Ok(
+        http.merge(Router::new().nest_service("/mcp", service).layer(
+            middleware::from_fn_with_state((auth, origins), authenticate),
+        )),
+    )
 }
 #[cfg(test)]
 mod tests {

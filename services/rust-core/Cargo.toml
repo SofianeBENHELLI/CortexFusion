@@ -8,6 +8,7 @@ publish = false
 futures-util = "0.3"
 jsonschema = { version = "0.55", default-features = false, features = ["arbitrary-precision"] }
 rmcp = { version = "3.2", default-features = false, features = ["server", "transport-streamable-http-server"] }
+tower-http = { version = "0.6", features = ["cors"] }
 tower = { version = "0.5", features = ["util"] }
 axum = "0.8"
 chrono = { version = "0.4", features = ["serde"] }

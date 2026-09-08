@@ -4,7 +4,7 @@ Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La
 
 ## Couverture native actuelle
 
-Trente-sept opérations HTTP et trente-sept outils MCP sont implémentés :
+Quarante-quatre opérations HTTP et quarante-quatre outils MCP sont implémentés :
 
 | Fonction | HTTP | Outil MCP |
 |---|---|---|
@@ -41,18 +41,25 @@ Trente-sept opérations HTTP et trente-sept outils MCP sont implémentés :
 | Lire les messages visibles | GET /v1/domains/{domain}/conversations/{ident}/messages | api_conversations_messages |
 | Poser une question idempotente, JSON ou SSE | POST /v1/domains/{domain}/conversations/{ident}/query | api_conversations_query |
 | Lire la timeline avec réponses et signaux | GET /v1/domains/{domain}/conversations/{ident}/timeline | api_conversations_timeline |
+| Lister ses signalements visibles | GET /v1/domains/{domain}/issues | api_issues_list |
+| Lire son signalement | GET /v1/domains/{domain}/issues/{ident} | api_issues_read |
+| Lire son journal de décisions | GET /v1/domains/{domain}/issues/{ident}/events | api_issues_history |
+| Démarrer, résoudre, ignorer ou rouvrir | POST /v1/domains/{domain}/issues/{ident}/decisions | api_issues_decide |
+| Créer une collection de corpus | POST /v1/domains/{domain}/collections | api_collections_create |
+| Chercher ses collections accessibles | GET /v1/domains/{domain}/collections | api_collections_list |
+| Lire une collection accessible | GET /v1/domains/{domain}/collections/{collection_id} | api_collections_read |
 | Créer une source textuelle | POST /v1/domains/{domain}/sources | api_sources_create |
 | Chercher et paginer les sources accessibles | GET /v1/domains/{domain}/sources | api_sources_list |
 | Lire une source et son contenu | GET /v1/domains/{domain}/sources/{source_id} | api_sources_read |
 | Parcourir ses extraits déterministes | GET /v1/domains/{domain}/sources/{source_id}/chunks | api_sources_chunks |
 
-Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Réviser une proposition, les imports de fichiers, les collections et l’administration restent à migrer. `/v1/me` annonce query, inspect, personal_history et feedback ; les rôles rédacteurs reçoivent propose/read_proposals. Un owner reçoit review/approve si les confirmations sont configurées, et publish si TerminusDB est également configuré. Aucun fournisseur d’extraction n’est annoncé.
+Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Réviser une proposition, les imports de fichiers et l’administration restent à migrer. `/v1/me` annonce query, inspect, personal_history, feedback et personal_issues ; les rôles rédacteurs reçoivent propose/read_proposals. Un owner reçoit review/approve si les confirmations sont configurées, et publish si TerminusDB est également configuré. Aucun fournisseur d’extraction n’est annoncé.
 
 ## Fonctionnement et intégration frontend
 
 Le transport MCP utilise le [SDK officiel Rust](https://github.com/modelcontextprotocol/rust-sdk), rmcp3.2.0 verrouillé dans Cargo.lock. Les schémas, noms et annotations des outils proviennent des contrats historiques. Chaque appel est validé par JSON Schema puis invoque en mémoire la route Rust correspondante. L’identité et le tenant viennent du transport authentifié ; les arguments ne peuvent définir ni rôle, ni URL, ni en-tête d’identité. Les segments de chemin et paramètres de requête sont contrôlés séparément.
 
-Le transport Streamable HTTP est sans session. Toutes les requêtes MCP sont authentifiées. Le candidat local refuse les origines navigateur et les hôtes hors loopback ; corps MCP maximal1Mo, réponse native maximale4Mo. Le frontend peut conserver ses contrats JSON, mais le déploiement distant, CORS, JWKS et la rotation de clés restent à intégrer. La forme détaillée des erreurs422 n’est pas encore entièrement alignée sur Python.
+Le transport Streamable HTTP est sans session. Toutes les requêtes MCP sont authentifiées. Le candidat refuse par défaut les origines navigateur ; une liste exacte CORTEX_CORS_ORIGINS permet de les autoriser pour HTTP et MCP. Les hôtes MCP hors loopback restent refusés ; corps MCP maximal1Mo, réponse native maximale4Mo. Le frontend peut conserver ses contrats JSON, mais le déploiement distant, JWKS et la rotation de clés restent à intégrer. La forme détaillée des erreurs422 n’est pas encore entièrement alignée sur Python.
 
 Une source textuelle doit comporter titre, emplacement, contenu et lecteurs membres du domaine. Seuls owner et corpus_manager peuvent la créer. La déduplication utilise emplacement et SHA256 du contenu : les mêmes métadonnées rendent la même source ; des métadonnées différentes produisent409/IDEMPOTENCY_CONFLICT. Les ACL s’appliquent à la création, au rejeu, à la liste et à la lecture. La liste accepte limite, curseur, recherche dans le titre et filtre de collection autorisée. Les extraits utilisent des offsets en points de code Unicode, au plus2000 caractères et6000 octets UTF-8, et un hash de contenu ; un curseur hors frontière est refusé.
 
@@ -80,9 +87,9 @@ La commande interne `cortex-rust-core --import-published <domainUUID>` utilise `
 
 ## Preuves et limites de vérification
 
-- Formatage, Clippy sans avertissement et19 tests Rust passent localement. Le test Terminus réel est explicitement ignoré hors moteur isolé et exécuté séparément en CI.
-- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques : trente-quatre routes directement testables sans moteur et trente-sept schémas/outils MCP annoncés. Les scénarios source contrôlent ACL, rôle, déduplication, pagination et découpe Unicode comparée à Python.
-- Le lot sources et pont MCP générique a passé la CI avec le moteur TerminusDB12.0.7 épinglé par digest : onze opérations HTTP/MCP, publication signée, rejeu ciblé et lectures avec droits. Le lot propositions a ensuite validé dix-huit HTTP/MCP et le cycle complet source → création → revue → approbation → publication avec TerminusDB réel. Le lot recherche/feedback a ensuite passé sa CI avec TerminusDB réel, citations et épisodes privés (vingt-deux opérations). Les lots signaux/préférences puis compagnons ont passé leurs trois workflows, dont TerminusDB réel (trente opérations). Le lot conversations attend sa CI dédiée.
+- Formatage, Clippy sans avertissement et20 tests Rust passent localement. Le test Terminus réel est explicitement ignoré hors moteur isolé et exécuté séparément en CI.
+- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques : quarante et une routes directement testables sans moteur et quarante-quatre schémas/outils MCP annoncés. Les scénarios source contrôlent ACL, rôle, déduplication, pagination et découpe Unicode comparée à Python.
+- Le lot sources et pont MCP générique a passé la CI avec le moteur TerminusDB12.0.7 épinglé par digest : onze opérations HTTP/MCP, publication signée, rejeu ciblé et lectures avec droits. Le lot propositions a ensuite validé dix-huit HTTP/MCP et le cycle complet source → création → revue → approbation → publication avec TerminusDB réel. Le lot recherche/feedback a ensuite passé sa CI avec TerminusDB réel, citations et épisodes privés (vingt-deux opérations). Les lots signaux/préférences puis compagnons ont passé leurs trois workflows, dont TerminusDB réel (trente opérations). Le lot conversations a également passé les contrôles Rust avec TerminusDB réel (trente-sept opérations). Les lots issues, collections et CORS attendent leur CI dédiée.
 - La suite historique sur la migration0020 passe :514 tests Python et11 Node. Elle protège la référence, sans prouver que ses79 routes ont été portées en Rust.
 - Le vérificateur indépendant a exécuté100018 vecteurs de JSON canonique sans divergence après correction Ryu ;2044 cas de changements de graphe concordent avec Python ;23 cas de confirmations concordent. Ses campagnes de concurrence couvrent isolation tenant, révocation, expiration pendant réseau/verrou SQL, publication concurrente et retour arrière atomique après panne SQL injectée.
 - Les courses sont déclenchées avec un moteur contrôlé, distinct du test TerminusDB réel. Les NumericDate sous forme de chaînes exotiques restent plus restrictifs que Python. Les autres confirmations personnelles, opérations non portées, performances, haute disponibilité et perte d’accusé de commit PostgreSQL ne sont pas déclarées validées.
@@ -138,3 +145,17 @@ Pour HTTP, `Accept: text/event-stream` reçoit `started`, puis `result` ou `erro
 Les messages ont un curseur de séquence ; la timeline ajoute les reçus de compagnons, signaux et éléments de suivi, avec curseurs enfants. Elle accepte avant/arrière, borne les scans à100 épisodes et la réponse à500000 octets UTF-8. Une page vide avec curseur et scan_limited=true doit être poursuivie. Les données dont les preuves ne sont plus accessibles sont masquées avant pagination ; aucun owner ne reçoit l’historique personnel d’un autre utilisateur.
 
 La vérification indépendante couvre les questions concurrentes, archivage/révocation/expiration pendant lecture moteur, événement started avant libération du moteur, relecture idempotente, directions et curseurs,101 épisodes masqués et refus d’un tour trop volumineux. Les scénarios HTTP/MCP produits passent localement avec PostgreSQL ; le moteur réel est vérifié séparément en CI.
+
+## Traiter ses signalements et organiser le corpus
+
+Un signalement reste personnel à travers son épisode, même pour un owner. Démarrer passe open à in_progress ; résoudre ou ignorer passe open/in_progress à resolved/dismissed ; rouvrir remet resolved/dismissed à open. Une décision exige motif, révision attendue et clé idempotente. L’événement et l’état sont enregistrés atomiquement, sans publication implicite. Un viewer peut traiter ses propres problèmes, sans accéder aux propositions.
+
+Une correction facultative peut accompagner démarrer ou résoudre. Elle exige le droit courant de lire la proposition et ses preuves. Résoudre avec correction exige son statut published et enregistre sa version publiée et son digest. Les corrections rejetées, différées, superseded ou changes_requested sont refusées. Le journal filtre les preuves des corrections avant pagination ; un replay dont la correction est désormais masquée renvoie404. Les révisions sont BIGINT et la concurrence est sérialisée.
+
+Les collections regroupent le corpus : création owner/corpus_manager, lecteurs membres et accès conservé par le créateur. La clé de création porte les arguments normalisés ; changer leur ordre ou leurs doublons change cette empreinte, même si l’ACL enregistrée est triée et dédupliquée. Nom, description et ACL sont immuables dans le modèle actuel ; aucune modification d’ACL de collection n’est annoncée. Lecture et recherche filtrent l’appartenance et les lecteurs ; la recherche utilise lower PostgreSQL, donc ses règles de collation. Les imports associés restent à porter.
+
+## Connexion navigateur locale
+
+Définir par exemple `CORTEX_CORS_ORIGINS='["http://localhost:5173"]'` pour le frontend Vite. La liste contient au plus20 origines canoniques uniques, HTTPS ou HTTP loopback explicite, sans chemin, wildcard, identifiants ni slash final. Par défaut elle est vide. Les origines absentes restent utilisables par les clients API ; une origine présente non autorisée ou répétée est refusée403 avant exécution.
+
+Les prévols OPTIONS sont sans bearer et ne déclenchent aucune action métier. Les requêtes réelles restent authentifiées par Authorization et X-Tenant-ID ; aucune authentification par cookie n’est activée. GET/POST/PUT/DELETE/OPTIONS et les en-têtes de confirmation, idempotence, SSE et MCP sont déclarés. HTTP et MCP partagent la liste, le SDK MCP conserve son contrôle d’hôte loopback. Le binaire reste lié à loopback : un déploiement distant ne fait pas partie de ce lot.

@@ -32,6 +32,8 @@ pub fn router(state: StateData) -> Router {
         .merge(crate::signals::routes())
         .merge(crate::companions::routes())
         .merge(crate::conversations::routes())
+        .merge(crate::issues::routes())
+        .merge(crate::collections::routes())
         .fallback(||async{(StatusCode::NOT_IMPLEMENTED,Json(json!({"error":"MIGRATION_NOT_IMPLEMENTED","message":"This operation is not yet served by the native Rust candidate"})))})
         .with_state(state)
 }
@@ -78,7 +80,13 @@ async fn identity(
     for row in rows {
         let role: String = row.get("role");
         // Candidate only advertises implemented capabilities; no model provider.
-        let mut capabilities = vec!["query", "inspect", "personal_history", "feedback"];
+        let mut capabilities = vec![
+            "query",
+            "inspect",
+            "personal_history",
+            "feedback",
+            "personal_issues",
+        ];
         if matches!(
             role.as_str(),
             "owner" | "agent" | "contributor" | "corpus_manager"

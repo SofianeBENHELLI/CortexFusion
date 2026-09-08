@@ -87,6 +87,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "CortexFusion Rust migration candidate listening on {}",
         listener.local_addr()?
     );
+    let origins = cortex_rust_core::browser::Origins::parse(
+        &env::var("CORTEX_CORS_ORIGINS").unwrap_or_else(|_| "[]".into()),
+    )?;
     let app = cortex_rust_core::mcp::mount(
         server::router(StateData {
             auth: auth.clone(),
@@ -97,8 +100,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         auth,
         confirmation,
         db,
+        origins.clone(),
     )
     .map_err(|_| "MCP initialization failed")?;
+    let app = cortex_rust_core::browser::install(app, origins);
     axum::serve(listener, app)
         .with_graceful_shutdown(async {
             let _ = tokio::signal::ctrl_c().await;

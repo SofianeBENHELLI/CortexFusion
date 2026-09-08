@@ -72,6 +72,7 @@ def run(binary, rust_url, admin_url):
             "CORTEX_JWT_AUDIENCE": "cortex-core",
             "CORTEX_CONFIRMATION_PUBLIC_KEY_FILE": str(confirmation_path),
             "CORTEX_RUST_BIND": "127.0.0.1:0",
+            "CORTEX_CORS_ORIGINS": '["http://localhost:5173"]',
         }
         process = subprocess.Popen(
             [str(binary.resolve())],
@@ -140,6 +141,50 @@ def run(binary, rust_url, admin_url):
                 ]:
                     assert client.get("/v1/me", headers=valid).status_code == 200
                 checks.append("identity_validation")
+                origin = "http://localhost:5173"
+                preflight = client.options(
+                    "/v1/me",
+                    headers={
+                        "Origin": origin,
+                        "Access-Control-Request-Method": "GET",
+                        "Access-Control-Request-Headers": "authorization,x-tenant-id",
+                    },
+                )
+                assert (
+                    preflight.status_code == 200
+                    and preflight.headers["access-control-allow-origin"] == origin
+                )
+                assert "access-control-allow-credentials" not in preflight.headers
+                browser_identity = client.get("/v1/me", headers={**headers(), "Origin": origin})
+                assert (
+                    browser_identity.status_code == 200
+                    and browser_identity.headers["access-control-allow-origin"] == origin
+                )
+                assert client.get("/v1/me", headers={"Origin": origin}).status_code == 401
+                denied = client.get(
+                    "/v1/me", headers={**headers(), "Origin": "https://other.example"}
+                )
+                assert denied.status_code == 403 and denied.json()["error"] == "ORIGIN_NOT_ALLOWED"
+                assert (
+                    client.get(
+                        "/v1/me",
+                        headers=list(headers().items()) + [("Origin", origin), ("Origin", origin)],
+                    ).status_code
+                    == 403
+                )
+                browser_rpc = client.post(
+                    "/mcp",
+                    headers={
+                        **headers(),
+                        "Origin": origin,
+                        "Accept": "application/json, text/event-stream",
+                    },
+                    json={"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}},
+                )
+                assert browser_rpc.status_code == 200, browser_rpc.text
+                assert browser_rpc.headers["access-control-allow-origin"] == origin
+                checks.append("native_exact_cors_preflight_and_authenticated_http_mcp")
+
                 identity = client.get("/v1/me", headers=headers()).json()
                 assert identity["subject"] == "alice" and identity["tenant_id"] == tenant
                 assert identity["domains"] == [
@@ -152,6 +197,7 @@ def run(binary, rust_url, admin_url):
                             "inspect",
                             "personal_history",
                             "feedback",
+                            "personal_issues",
                             "propose",
                             "read_proposals",
                             "review",
@@ -182,6 +228,9 @@ def run(binary, rust_url, admin_url):
                 from verify_rust_sources import verify_sources
 
                 checks.extend(verify_sources(client, headers, admin, tenant, domain))
+                from verify_rust_collections import verify_collections
+
+                checks.extend(verify_collections(client, headers, domain))
                 from verify_rust_proposals import verify_proposals
 
                 checks.extend(
@@ -223,8 +272,8 @@ def run(binary, rust_url, admin_url):
             return {
                 "status": "passed",
                 "checks": checks,
-                "native_http_operations": 37 if os.environ.get("CORTEX_TERMINUS_URL") else 34,
-                "native_mcp_operations": 37,
+                "native_http_operations": 44 if os.environ.get("CORTEX_TERMINUS_URL") else 41,
+                "native_mcp_operations": 44,
                 "terminus_application_integration": bool(os.environ.get("CORTEX_TERMINUS_URL")),
                 "model_calls": 0,
             }
