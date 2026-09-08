@@ -4,6 +4,20 @@ Cette référence cadre les fonctions utilisateur, corpus manager et propriétai
 
 La [référence exhaustive des endpoints](frontend-api.fr.md) donne, pour chaque opération, sa fonction, ses paramètres, ses schémas d'entrée/sortie, ses rôles et son outil MCP. Le [catalogue français JSON](../packages/contracts/functional-interactions.fr.json) est utilisable par un outil de génération ou un agent. Les contrats de types sont dans `packages/contracts/src/`. Les fonctions décrites ici sont celles effectivement livrées ; le tableau suivant distingue les écarts.
 
+## Candidat Rust : paramètres à utiliser
+
+Les79 endpoints et95 outils MCP du catalogue sont maintenant implémentés en Rust. Les fonctions et schémas métier ci-dessous restent la référence d’intégration. Pour ce runtime, appliquer les précisions suivantes avant les sections communes :
+
+- Base locale : `http://127.0.0.1:8010`, avec OpenAPI sur `/openapi.json` et MCP Streamable HTTP sur `/mcp/`. Aucun écran `/docs` n’est livré par Rust. Le frontend React/Vite peut garder ses clients typés et ses clés de cache.
+- Le serveur exige `CORTEX_RUST_DATABASE_URL` et une clé publique PEM via `CORTEX_JWT_PUBLIC_KEY_FILE`. Le mode JWKS décrit plus bas concerne la référence Python ; Rust ne le charge pas encore. Les rôles viennent toujours de SQL.
+- Les confirmations sensibles HTTP et MCP sont toujours requises ; `CORTEX_HTTP_CONFIRMATION_MODE=trusted_host` n’accorde aucun contournement dans le candidat Rust. Les champs doivent rester identiques entre préparation, signature et envoi.
+- `GET /v1/me` indique les capacités effectivement configurées. Le catalogue exhaustif ne prouve ni l’activation d’un fournisseur ni les droits sur un objet. Synthèse et extraction sont optionnelles ; TerminusDB est requis pour les connaissances publiées.
+- Les erreurs de validation422 peuvent avoir un détail différent de FastAPI. Afficher une erreur exploitable, conserver les champs saisis et ne pas dépendre de la structure interne Pydantic pour décider des droits.
+- L’analyse des fichiers utilise un processus Rust borné. Les reçus et le cycle `process/retry/cancel` sont conservés, mais l’extraction PDF peut produire un texte différent du parseur Python. Les citations doivent porter sur la source effectivement créée.
+- Les workers CLI historiques ne sont pas des workers Rust. Le frontend ou l’hôte de confiance doit déclencher les opérations `process`, puis relire les reçus avec polling modéré. Une annulation réseau ne prouve pas l’annulation du traitement durable.
+
+Les [instructions de démarrage Rust](rust-start.fr.md) détaillent la configuration, et le [bilan de migration](rust-migration.fr.md) distingue les validations acquises des limites de production. Les ressources `cortex://guide`, `cortex://workspace`, `cortex://actions` et le contexte par domaine, ainsi que les trois prompts historiques, permettent aussi un usage via compagnon sans frontend dédié.
+
 ## Correspondance avec les sept parcours du produit
 
 | Parcours demandé | Disponible | Écart ou limite actuelle |

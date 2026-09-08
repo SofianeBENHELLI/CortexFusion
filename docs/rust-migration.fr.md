@@ -114,6 +114,8 @@ Le transport moteur refuse HTTP distant, identifiants dans l’URL, redirections
 
 ## Démarrer le candidat
 
+Le [guide de démarrage et de test Rust](rust-start.fr.md) décrit la préparation SQL, les variables, le bootstrap, les commandes et les différences avec le service historique.
+
 Toolchain Rust1.98.1, Cargo.lock et `cargo build --workspace --locked`. Le binaire est `target/debug/cortex-rust-core`. Configuration requise : `CORTEX_RUST_DATABASE_URL`, `CORTEX_JWT_PUBLIC_KEY_FILE`, `CORTEX_JWT_ISSUER`, `CORTEX_JWT_AUDIENCE`. Adresse `CORTEX_RUST_BIND`, défaut127.0.0.1:8010. Un rôle PostgreSQL superuser, BYPASSRLS ou propriétaire des tables applicatives est refusé.
 
 Pour le graphe : `CORTEX_TERMINUS_URL`, `CORTEX_TERMINUS_USER`, `CORTEX_TERMINUS_PASSWORD`. Pour les confirmations : `CORTEX_CONFIRMATION_PUBLIC_KEY_FILE` ; le backend ne possède aucune clé privée de confirmation.
@@ -122,9 +124,9 @@ La commande interne `cortex-rust-core --import-published <domainUUID>` utilise `
 
 ## Preuves et limites de vérification
 
-- Formatage, Clippy sans avertissement et20 tests Rust passent localement. Le test Terminus réel est explicitement ignoré hors moteur isolé et exécuté séparément en CI.
-- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques : cinquante-six routes directement testables sans moteur et soixante-quinze schémas/outils MCP annoncés. Les scénarios source contrôlent ACL, rôle, déduplication, pagination et découpe Unicode comparée à Python.
-- Le lot sources et pont MCP générique a passé la CI avec le moteur TerminusDB12.0.7 épinglé par digest : onze opérations HTTP/MCP, publication signée, rejeu ciblé et lectures avec droits. Le lot propositions a ensuite validé dix-huit HTTP/MCP et le cycle complet source → création → revue → approbation → publication avec TerminusDB réel. Le lot recherche/feedback a ensuite passé sa CI avec TerminusDB réel, citations et épisodes privés (vingt-deux opérations). Les lots signaux/préférences puis compagnons ont passé leurs trois workflows, dont TerminusDB réel (trente opérations). Le lot conversations a également passé les contrôles Rust avec TerminusDB réel (trente-sept opérations). Les lots issues, collections et CORS ont passé les trois workflows (quarante-quatre opérations). Les imports textuels et la gouvernance ont passé les trois workflows (cinquante-cinq opérations). Le lot révisions, droits de sources et alias MCP attend sa CI dédiée.
+- Formatage, Clippy sans avertissement et21 tests Rust passent localement. Le test Terminus réel est explicitement ignoré hors moteur isolé et exécuté séparément en CI.
+- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques :75 opérations directement testables sans moteur,95 outils annoncés, ressources et prompts authentifiés. Les tests vérifient les parcours et contrôles décrits, sans prétendre mesurer une couverture exhaustive de branches.
+- Le candidat79 HTTP/95 MCP au commit `ece58a2105340059789a6c62972a424b09cc9e48` a passé les trois workflows. Le [workflow Rust avec TerminusDB réel](https://github.com/SofianeBENHELLI/CortexFusion/actions/runs/34189337046) vérifie publication signée, snapshot immuable, manifeste et droits courants. Les tests OpenRouter/Ollama utilisent des fournisseurs HTTP locaux synthétiques ; aucun modèle réel n’est contacté. Les ressources/prompts ajoutés ensuite ont leur propre vérification native et indépendante.
 - La suite historique sur la migration0020 passe :514 tests Python et11 Node. Elle protège la référence, sans prouver que ses79 routes ont été portées en Rust.
 - Le vérificateur indépendant a exécuté100018 vecteurs de JSON canonique sans divergence après correction Ryu ;2044 cas de changements de graphe concordent avec Python ;23 cas de confirmations concordent. Ses campagnes de concurrence couvrent isolation tenant, révocation, expiration pendant réseau/verrou SQL, publication concurrente et retour arrière atomique après panne SQL injectée.
 - Les courses sont déclenchées avec un moteur contrôlé, distinct du test TerminusDB réel. Les NumericDate sous forme de chaînes exotiques restent plus restrictifs que Python. Les performances, la haute disponibilité et la perte d’accusé de commit PostgreSQL ne sont pas déclarées validées.
@@ -287,3 +289,8 @@ En plus des95 outils historiques, le serveur expose trois ressources fixes : `co
 Trois prompts conservent les noms et arguments historiques : `ask_cortex(domain_id, question)`, `review_cortex_proposal(domain_id, proposal_id)` et `report_cortex_feedback(domain_id, episode_id)`. Ils préparent un parcours choisi par l’utilisateur sans exécuter la question, la revue ou le signal. Une revue exige l’accès à la proposition ; le feedback exige l’épisode personnel courant. Une instruction contenue dans la question demeure une donnée du prompt ; cela ne constitue pas une preuve du comportement futur d’un LLM connecté.
 
 Les métadonnées et le guide sont générés depuis la référence Python et contrôlés en CI. La contre-vérification indépendante couvre les3 ressources, le template, les3 prompts, les arguments/URI/curseurs invalides, la séparation des identités, les révocations et l’absence de mutation ou d’appel modèle.
+
+
+## Contrôle final de l’identité après attente SQL
+
+La vérification indépendante a détecté une lecture de version qui conservait un jeton expiré pendant l’attente du pool SQL. Les transactions recontrôlent maintenant l’expiration après acquisition de connexion, et la route version avant et après son commit de lecture. Le même contre-test indépendant reçoit401 après correctif. Une régression produit sature uniquement les dix connexions de son processus de test, attend l’expiration puis exige le refus ; elle ne modifie aucune configuration globale PostgreSQL.

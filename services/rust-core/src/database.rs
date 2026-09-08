@@ -27,6 +27,7 @@ impl Database {
     ) -> Result<Transaction<'_, Postgres>, CoreError> {
         p.check_fresh()?;
         let mut tx = self.pool.begin().await.map_err(CoreError::sql)?;
+        p.check_fresh()?;
         sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
             .execute(&mut *tx)
             .await
@@ -53,6 +54,7 @@ impl Database {
                 status: http::StatusCode::FORBIDDEN,
             });
         }
+        p.check_fresh()?;
         Ok(tx)
     }
 }
@@ -75,6 +77,7 @@ impl Database {
     ) -> Result<Transaction<'_, Postgres>, CoreError> {
         p.check_fresh()?;
         let mut tx = self.pool.begin().await.map_err(CoreError::sql)?;
+        p.check_fresh()?;
         sqlx::query("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
             .execute(&mut *tx)
             .await

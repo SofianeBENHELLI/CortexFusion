@@ -74,7 +74,9 @@ async fn version(
     .map_err(CoreError::sql)?
     .ok_or_else(CoreError::not_found)?;
     let data = json!({"domain_id":domain,"accepted_version":row.get::<i64,_>("accepted_version"),"published_version":row.get::<i64,_>("published_version")});
+    p.check_fresh()?;
     tx.commit().await.map_err(CoreError::sql)?;
+    p.check_fresh()?;
     Ok(Json(data))
 }
 async fn identity(
@@ -92,7 +94,7 @@ async fn identity(
     let mut domains = Vec::new();
     for row in rows {
         let role: String = row.get("role");
-        // Candidate only advertises implemented capabilities; no model provider.
+        // Advertise only capabilities available in this configured runtime.
         let mut capabilities = vec![
             "query",
             "inspect",

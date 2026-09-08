@@ -31,6 +31,7 @@ on:
       - 'scripts/verify_rust_extraction.py'
       - 'scripts/verify_rust_configured.py'
       - 'scripts/verify_rust_onboarding.py'
+      - 'scripts/verify_rust_expiry.py'
       - 'scripts/generate_rust_onboarding.py'
       - 'scripts/generate_rust_lexical.py'
       - 'scripts/generate_rust_model_contracts.py'

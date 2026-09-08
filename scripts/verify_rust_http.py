@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from uuid import uuid4
 
 import httpx
@@ -24,6 +25,11 @@ def run(binary, rust_url, admin_url):
         raise ValueError("Dedicated *_test databases are required")
     admin = create_engine(admin_url)
     tenant, domain, other_tenant, other_domain = [str(uuid4()) for _ in range(4)]
+    application_name = "cortex-rust-http-" + tenant
+    parts = urlsplit(rust_url)
+    query = [(k, v) for k, v in parse_qsl(parts.query) if k != "application_name"]
+    query.append(("application_name", application_name))
+    rust_url = urlunsplit(parts._replace(query=urlencode(query)))
     with admin.begin() as conn:
         for tid, did in [(tenant, domain), (other_tenant, other_domain)]:
             conn.execute(
@@ -118,6 +124,11 @@ def run(binary, rust_url, admin_url):
 
             checks = []
             with httpx.Client(base_url=base, timeout=5, trust_env=False) as client:
+                from verify_rust_expiry import verify_expiry
+
+                checks.extend(
+                    verify_expiry(client, headers, domain, tenant, admin, application_name)
+                )
                 assert client.get("/health").json() == {
                     "status": "ok",
                     "version": "0.1.0",

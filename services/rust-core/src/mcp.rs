@@ -644,36 +644,6 @@ pub fn mount(
         )),
     )
 }
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn contract_driven_routes_reject_forged_identity_and_traversal() {
-        let operations = operations().unwrap();
-        let headers = http::HeaderMap::new();
-        assert!(
-            request_for(
-                &operations["api_identity_read"],
-                &json!({"role":"owner"}),
-                &headers
-            )
-            .is_err()
-        );
-        assert!(
-            request_for(
-                &operations["api_concepts_list"],
-                &json!({"path":{"domain":"../admin"}}),
-                &headers
-            )
-            .is_err()
-        );
-        let args = json!({"path":{"domain":Uuid::nil(),"proposal_id":Uuid::nil()},"body":{"expected_published_version":0}});
-        let request = request_for(&operations["api_proposals_publish"], &args, &headers).unwrap();
-        assert_eq!(request.method(), http::Method::POST);
-        assert!(request.uri().path().ends_with("/publish"));
-    }
-}
-
 impl NativeMcp {
     pub(crate) fn context_headers(
         &self,
@@ -722,5 +692,35 @@ impl NativeMcp {
         };
         self.context_headers(ctx)?;
         Ok(value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn contract_driven_routes_reject_forged_identity_and_traversal() {
+        let operations = operations().unwrap();
+        let headers = http::HeaderMap::new();
+        assert!(
+            request_for(
+                &operations["api_identity_read"],
+                &json!({"role":"owner"}),
+                &headers
+            )
+            .is_err()
+        );
+        assert!(
+            request_for(
+                &operations["api_concepts_list"],
+                &json!({"path":{"domain":"../admin"}}),
+                &headers
+            )
+            .is_err()
+        );
+        let args = json!({"path":{"domain":Uuid::nil(),"proposal_id":Uuid::nil()},"body":{"expected_published_version":0}});
+        let request = request_for(&operations["api_proposals_publish"], &args, &headers).unwrap();
+        assert_eq!(request.method(), http::Method::POST);
+        assert!(request.uri().path().ends_with("/publish"));
     }
 }
