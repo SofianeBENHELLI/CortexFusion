@@ -1,12 +1,13 @@
-name: Synthetic graph volume
+name: Synthetic graph soak
 on:
   pull_request:
     paths:
+      - 'scripts/soak_rust_graph.py'
       - 'scripts/benchmark_rust_graph.py'
       - 'scripts/verify_*.py'
       - 'packages/contracts/**'
       - 'services/core/src/cortex_core/service.py'
-      - 'tests/test_graph_benchmark_protocol.py'
+      - 'tests/test_soak_protocol.py'
       - 'services/rust-core/**'
       - 'services/core/migrations/**'
       - 'pyproject.toml'
@@ -14,13 +15,16 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'rust-toolchain.toml'
-      - '.github/workflows/graph-volume.yml'
+      - '.github/workflows/graph-soak.yml'
 permissions:
   contents: read
+concurrency:
+  group: synthetic-graph-soak-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 jobs:
-  volume:
+  soak:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 55
     services:
       terminus:
         image: terminusdb/terminusdb-server@sha256:385faf298ad77aaf2d4d6df5e84a4cbe3596d01dab2e3b991af905639ae56388
@@ -65,21 +69,13 @@ jobs:
               conn.execute(text("CREATE ROLE cortex_app LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD 'synthetic-app-password'"))
           PYCODE
           uv run alembic upgrade head
-          uv run pytest tests/test_graph_benchmark_protocol.py -q
-      - name: Measure synthetic immutable graph workloads
+          uv run pytest tests/test_soak_protocol.py -q
+      - name: Qualify thirty measured minutes with rights changes and restart
         run: |
-          timeout --signal=TERM --kill-after=45s 900s uv run python scripts/benchmark_rust_graph.py --synthetic-only --build-profile release --output "$RUNNER_TEMP/graph-volume.json"
-      - name: Measure native Unicode excerpt allocations
-        run: cargo run --release --locked --example benchmark_excerpt
-      - name: Measure shared long document workloads
-        run: |
-          timeout --signal=TERM --kill-after=45s 900s uv run python scripts/benchmark_rust_graph.py --synthetic-only --build-profile release --source-profile shared_long --output "$RUNNER_TEMP/graph-volume-long.json"
-      - name: Report measurements and qualification limits
+          timeout --signal=TERM --kill-after=45s 2100s uv run python scripts/soak_rust_graph.py --synthetic-only --duration-seconds 1800 --interval-seconds 2 --output "$RUNNER_TEMP/graph-soak.json"
+      - name: Report full or partial qualification
         if: always()
         run: |
-          if [ -f "$RUNNER_TEMP/graph-volume.json" ]; then
-            cat "$RUNNER_TEMP/graph-volume.json"
-          fi
-          if [ -f "$RUNNER_TEMP/graph-volume-long.json" ]; then
-            cat "$RUNNER_TEMP/graph-volume-long.json"
+          if [ -f "$RUNNER_TEMP/graph-soak.json" ]; then
+            cat "$RUNNER_TEMP/graph-soak.json"
           fi
