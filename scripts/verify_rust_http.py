@@ -373,6 +373,9 @@ def run(binary, rust_url, admin_url):
                 from verify_rust_shutdown import verify_shutdown
 
                 checks.extend(verify_shutdown(binary, env, admin))
+                from verify_rust_jwks import verify_jwks
+
+                checks.extend(verify_jwks(binary, env, admin))
                 if os.environ.get("CORTEX_TERMINUS_URL"):
                     from verify_rust_graph import verify_graph
                     from verify_rust_publication import verify_publication

@@ -1,26 +1,39 @@
 use crate::error::CoreError;
+use crate::jwks::{Lease, Source};
 use http::HeaderMap;
 use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode};
 use serde_json::Value;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct Authenticator {
-    key: DecodingKey,
+    key: IdentityKeys,
     validation: Validation,
     issuer: String,
     audience: String,
+}
+#[derive(Clone)]
+enum IdentityKeys {
+    Static(DecodingKey),
+    Rotating(Arc<Source>),
 }
 #[derive(Debug, Clone)]
 pub struct Principal {
     pub subject: String,
     pub tenant: String,
     pub expires_at: f64,
+    identity_lease: Option<Lease>,
 }
 impl Authenticator {
     pub fn new(pem: &[u8], issuer: &str, audience: &str) -> Result<Self, CoreError> {
         let key = DecodingKey::from_rsa_pem(pem).map_err(|_| CoreError::auth())?;
+        Self::with_keys(IdentityKeys::Static(key), issuer, audience)
+    }
+    fn with_keys(key: IdentityKeys, issuer: &str, audience: &str) -> Result<Self, CoreError> {
         let mut validation = Validation::new(Algorithm::RS256);
         // Verify the signature/algorithm here. Claims are checked explicitly below
         // because jsonwebtoken and PyJWT differ on NumericDate and issuer coercion.
@@ -37,6 +50,46 @@ impl Authenticator {
             issuer: issuer.into(),
             audience: audience.into(),
         })
+    }
+    pub async fn from_environment(issuer: &str, audience: &str) -> Result<Self, CoreError> {
+        use std::env;
+        match (
+            env::var_os("CORTEX_JWT_PUBLIC_KEY_FILE"),
+            env::var_os("CORTEX_JWKS_URL"),
+        ) {
+            (Some(path), None) => {
+                if env::var_os("CORTEX_JWKS_REFRESH_SECONDS").is_some()
+                    || env::var_os("CORTEX_JWKS_MAX_AGE_SECONDS").is_some()
+                {
+                    return Err(CoreError::auth());
+                }
+                Self::new(
+                    &std::fs::read(path).map_err(|_| CoreError::auth())?,
+                    issuer,
+                    audience,
+                )
+            }
+            (None, Some(url)) => {
+                fn seconds(name: &str, default: u64) -> Result<u64, CoreError> {
+                    match std::env::var_os(name) {
+                        None => Ok(default),
+                        Some(value) => value
+                            .to_str()
+                            .ok_or_else(CoreError::auth)?
+                            .parse()
+                            .map_err(|_| CoreError::auth()),
+                    }
+                }
+                let source = Source::start(
+                    url.to_str().ok_or_else(CoreError::auth)?,
+                    seconds("CORTEX_JWKS_REFRESH_SECONDS", 30)?,
+                    seconds("CORTEX_JWKS_MAX_AGE_SECONDS", 300)?,
+                )
+                .await?;
+                Self::with_keys(IdentityKeys::Rotating(source), issuer, audience)
+            }
+            _ => Err(CoreError::auth()),
+        }
     }
     pub fn authenticate(&self, headers: &HeaderMap) -> Result<Principal, CoreError> {
         if headers.get_all("authorization").iter().count() != 1
@@ -55,7 +108,14 @@ impl Authenticator {
             .and_then(|s| Uuid::parse_str(s).ok())
             .ok_or_else(CoreError::auth)?
             .to_string();
-        let claims = decode::<Value>(token, &self.key, &self.validation)
+        let (key, identity_lease) = match &self.key {
+            IdentityKeys::Static(key) => (key.clone(), None),
+            IdentityKeys::Rotating(source) => {
+                let (key, lease) = source.select(token)?;
+                (key, Some(lease))
+            }
+        };
+        let claims = decode::<Value>(token, &key, &self.validation)
             .map_err(|_| CoreError::auth())?
             .claims;
         let now = SystemTime::now()
@@ -63,11 +123,14 @@ impl Authenticator {
             .map_err(|_| CoreError::auth())?
             .as_secs_f64();
         let subject = validate_claims(&claims, &self.issuer, &self.audience, now)?;
-        Ok(Principal {
+        let principal = Principal {
             subject: subject.to_owned(),
             tenant,
             expires_at: numeric_date(&claims["exp"])?,
-        })
+            identity_lease,
+        };
+        principal.check_fresh()?;
+        Ok(principal)
     }
 }
 
@@ -136,6 +199,9 @@ impl Principal {
             .as_secs_f64();
         if !self.expires_at.is_finite() || self.expires_at <= now {
             return Err(CoreError::auth());
+        }
+        if let Some(lease) = &self.identity_lease {
+            lease.check()?;
         }
         Ok(())
     }

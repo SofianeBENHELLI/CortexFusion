@@ -2,6 +2,8 @@
 
 Le script `scripts/verify_coordinated_restore.py` et le workflow `Synthetic coordinated restore` testent par défaut une **sauvegarde physique intégrale du store TerminusDB arrêté**, coordonnée avec un dump PostgreSQL. Ils n’opèrent que sur des conteneurs synthétiques créés pour cet essai, sans bascule de production. Une restauration n’est considérée comme qualifiée qu’après réussite du workflow du commit concerné.
 
+Le [workflow du lot84409aa](https://github.com/SofianeBENHELLI/CortexFusion/actions/runs/34209906671) a réussi : huit contrôles, trois manifestes, 79 fichiers du store comparés, TerminusDB12.0.7 et PostgreSQL17.11. GitHub Actions a testé le merge de contrôle de la PR intégrant ce lot. La contre-vérification indépendante confirme les oracles et les limites ci-dessous.
+
 ## Procédure testée
 
 Le test crée deux versions publiées natives et un import repris à la génération2, soit trois manifestes. Il conserve les droits propriétaire/lecteur et une relation vers un concept privé. Après arrêt des producteurs applicatifs, il capture le dump PostgreSQL puis arrête le moteur source. Son stockage complet est copié vers un répertoire distinct et archivé. Les empreintes du stockage original et de SQL sont comparées pour vérifier qu’ils restent inchangés pendant l’export.

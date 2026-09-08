@@ -2,7 +2,7 @@
 
 Ce guide concerne le candidat Rust, ses86 opérations HTTP et102 outils MCP. Le serveur et l’analyse de documents sont natifs. PostgreSQL conserve les identités, droits, preuves et reçus ; TerminusDB fournit les snapshots de connaissance publiés. Les migrations SQL, le bootstrap et les outils de vérification utilisent encore Python. Le service Python reste présent comme référence de compatibilité.
 
-Les trois extensions natives de reprise sont décrites dans la [référence française dédiée](rust-extensions.fr.md). Les schémas JSON et types TypeScript `GraphPublication*` sont générés avec les autres contrats.
+Les sept extensions natives d’import et de reprise sont décrites dans la [référence française dédiée](rust-extensions.fr.md). Les schémas JSON et types TypeScript `GraphPublication*` et `GraphImport*` sont générés avec les autres contrats.
 
 ## Préparer un environnement isolé
 
@@ -31,7 +31,8 @@ Remplacer les paramètres par des UUID réels et le `sub` fourni par l’IdP. Ce
 | Variable | Rôle |
 |---|---|
 | `CORTEX_RUST_DATABASE_URL` | Connexion du rôle PostgreSQL applicatif restreint. |
-| `CORTEX_JWT_PUBLIC_KEY_FILE` | Chemin absolu de la clé publique RSA de l’IdP. Le candidat ne charge pas de JWKS. |
+| `CORTEX_JWT_PUBLIC_KEY_FILE` | Chemin de la clé publique RSA de l’IdP, exclusif avec `CORTEX_JWKS_URL`. |
+| `CORTEX_JWKS_URL` | Alternative PEM : URL fixe du jeu de clés avec rotation ; voir la [politique JWKS](jwks-rotation.fr.md). |
 | `CORTEX_JWT_ISSUER` | Émetteur attendu, identique au claim `iss`. |
 | `CORTEX_JWT_AUDIENCE` | Audience attendue ; URL exacte de la ressource si découverte MCP activée. |
 | `CORTEX_RUST_BIND` | Adresse locale, par défaut `127.0.0.1:8010`. Une adresse hors loopback est refusée. |
@@ -81,7 +82,7 @@ uv run python scripts/verify_rust_http.py --output /tmp/cortex-rust-http.json
 
 Le dernier scénario exige `CORTEX_RUST_DATABASE_URL` et `CORTEX_TEST_ADMIN_URL`, toutes deux sur une base dont le nom finit par `_test`. Il démarre le vrai binaire, génère des identités et confirmations éphémères, puis exerce HTTP, MCP, rôles, données personnelles, fichiers, feedback et reçus IA. Les appels OpenRouter/Ollama sont remplacés par un serveur HTTP synthétique local et une clé factice imposée par le test. Il conserve les fixtures dans cette base isolée et ne tronque aucune table. Le binaire de test est la version debug ; le détournement synthétique est interdit dans une compilation release.
 
-Sans les variables TerminusDB, le rapport couvre75 opérations directement testables et annonce95 outils. Avec le moteur configuré, le même scénario couvre79 opérations et le cycle de publication/lecture avec snapshots réels. Ces nombres décrivent l’inventaire du scénario ; ils ne sont pas un pourcentage de couverture de lignes ou de branches.
+Sans les variables TerminusDB, le rapport inventorie 82 opérations directement testables et annonce 102 outils, avec des passerelles moteur synthétiques pour les scénarios de reprise. Avec le moteur configuré, il inventorie les 86 opérations et exerce le cycle de publication/lecture avec snapshots réels. Ces nombres décrivent l’inventaire du scénario ; ils ne sont pas un pourcentage de couverture de lignes ou de branches.
 
 Le test moteur autonome est activé séparément :
 
@@ -101,7 +102,7 @@ Pour l’extraction locale, configurer `CORTEX_MODEL_PROVIDER=ollama`, `CORTEX_L
 
 ## Ce qui reste à qualifier
 
-La surface HTTP/MCP est portée. Restent notamment la reprise des préparations Terminus absentes ou incomplètes (R11), le nettoyage des snapshots orphelins, les sauvegardes/restaurations cohérentes des deux stockages, le déploiement TLS/IdP réel avec rotation de clés, les performances, la haute disponibilité et l’évaluation sur corpus autorisé. Un worker autonome Rust n’est pas livré : les clients déclenchent `process` et relisent les reçus. Le [bilan technique](rust-migration.fr.md) détaille les autres limites des parseurs, du SSE et de la validation sémantique.
+La surface HTTP/MCP est portée. La reprise explicite des préparations Terminus et la restauration complète à froid sont testées ; les [limites de restauration](coordinated-restore.fr.md) restent précises. Restent notamment le nettoyage des snapshots orphelins, la sauvegarde à chaud, le déploiement TLS/IdP réel, les performances, la haute disponibilité et l’évaluation sur corpus autorisé. Un worker autonome Rust n’est pas livré : les clients déclenchent `process` et relisent les reçus. Le [bilan technique](rust-migration.fr.md) détaille les autres limites des parseurs, du SSE et de la validation sémantique.
 
 ## Import initial du graphe publié
 

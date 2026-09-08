@@ -54,3 +54,5 @@ pub mod onboarding;
 mod publication_recovery;
 
 pub mod shutdown;
+
+mod jwks;

@@ -23,10 +23,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         return Err("Synthetic model override is unavailable in release builds".into());
     }
     let url = env::var("CORTEX_RUST_DATABASE_URL")?;
-    let pem = std::fs::read(env::var("CORTEX_JWT_PUBLIC_KEY_FILE")?)?;
     let issuer = env::var("CORTEX_JWT_ISSUER")?;
     let audience = env::var("CORTEX_JWT_AUDIENCE")?;
-    let auth = Authenticator::new(&pem, &issuer, &audience)
+    let auth = Authenticator::from_environment(&issuer, &audience)
+        .await
         .map_err(|_| "Invalid identity configuration")?;
     let db = Database {
         pool: PgPoolOptions::new()
