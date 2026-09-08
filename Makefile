@@ -21,6 +21,7 @@ contracts:
 	$(UV) run python scripts/export_interactions.py --check
 	$(UV) run python scripts/export_contracts.py --check
 	$(UV) run python scripts/export_frontend_reference.py --check
+	$(UV) run python scripts/export_rust_contracts.py --check
 	$(PNPM) contracts:check
 
 test-core:

@@ -6,6 +6,7 @@ import subprocess
 from uuid import uuid4
 
 from sqlalchemy import text
+from sqlalchemy.exc import DBAPIError
 
 
 def verify_graph(binary, env, client, headers, token, admin, tenant, domain):
@@ -152,16 +153,38 @@ def verify_graph(binary, env, client, headers, token, admin, tenant, domain):
             {"t": tenant, "d": domain},
         ).scalar_one()
         assert count == 1
-        conn.execute(
-            text(
-                "UPDATE cf_domains SET accepted_version=2,published_version=2 WHERE tenant_id=:t AND id=:d"
-            ),
-            {"t": tenant, "d": domain},
+    try:
+        with admin.begin() as conn:
+            conn.execute(
+                text(
+                    "UPDATE cf_domains SET accepted_version=2,published_version=2 WHERE tenant_id=:t AND id=:d"
+                ),
+                {"t": tenant, "d": domain},
+            )
+    except DBAPIError as error:
+        assert error.orig.args[0]["C"] == "23514"
+    else:
+        raise AssertionError("An enrolled domain must reject a version without a fenced manifest")
+    with admin.begin() as conn:
+        assert tuple(
+            conn.execute(
+                text(
+                    "SELECT accepted_version,published_version,graph_protocol FROM cf_domains WHERE tenant_id=:t AND id=:d"
+                ),
+                {"t": tenant, "d": domain},
+            ).one()
+        ) == (1, 1, 2)
+        assert (
+            conn.execute(
+                text("SELECT count(*) FROM cf_graph_manifests WHERE tenant_id=:t AND domain_id=:d"),
+                {"t": tenant, "d": domain},
+            ).scalar_one()
+            == 1
         )
-    assert client.get(url, headers=headers()).status_code == 503
     return [
         "real_terminus_native_http",
         "manifest_replay_no_duplicate",
         "current_source_acl_and_hidden_links",
         "version_without_manifest_fails_closed",
+        "enrolled_domain_rejects_unfenced_version",
     ]

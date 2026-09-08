@@ -1,0 +1,347 @@
+{
+  "schemas": {
+    "GraphPublicationRetryInput": {
+      "type": "object",
+      "properties": {
+        "expected_published_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775806
+        },
+        "expected_attempt_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "expected_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775806
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 200
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Motif explicite, non vide après retrait des espaces périphériques."
+        }
+      },
+      "required": [
+        "expected_published_version",
+        "expected_attempt_id",
+        "expected_generation",
+        "idempotency_key",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "GraphPublicationAttempt": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "predecessor_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subject": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "preparing",
+            "uncertain",
+            "ready",
+            "stale",
+            "superseded"
+          ]
+        },
+        "base_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        }
+      },
+      "required": [
+        "id",
+        "generation",
+        "predecessor_id",
+        "subject",
+        "reason",
+        "created_at",
+        "active",
+        "status",
+        "base_version",
+        "digest",
+        "count"
+      ],
+      "additionalProperties": false
+    },
+    "GraphPublicationAttemptPage": {
+      "type": "object",
+      "properties": {
+        "proposal_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "target_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "published_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "active_attempt": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/GraphPublicationAttempt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/GraphPublicationAttempt"
+          }
+        },
+        "next_after": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9223372036854775807
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "proposal_id",
+        "target_version",
+        "published_version",
+        "active_attempt",
+        "items",
+        "next_after"
+      ],
+      "additionalProperties": false
+    },
+    "GraphPublicationRetryReceipt": {
+      "type": "object",
+      "properties": {
+        "proposal_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "target_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "published_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "attempt": {
+          "$ref": "#/components/schemas/GraphPublicationAttempt"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "published",
+            "unresolved",
+            "superseded"
+          ]
+        }
+      },
+      "required": [
+        "proposal_id",
+        "target_version",
+        "published_version",
+        "attempt",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "GraphPublicationEvent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "attempt_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "subject": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "reserved",
+            "uncertain",
+            "ready",
+            "stale",
+            "superseded"
+          ]
+        },
+        "recorded_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "attempt_id",
+        "generation",
+        "subject",
+        "kind",
+        "recorded_at"
+      ],
+      "additionalProperties": false
+    },
+    "GraphPublicationEventPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/GraphPublicationEvent"
+          }
+        },
+        "next_after": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "items",
+        "next_after"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "operations": [
+    {
+      "action_id": "proposals.publication_attempts",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/proposals/{proposal_id}/publication-attempts",
+      "effect": "none",
+      "confirmed": false,
+      "query": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 50
+        },
+        "after": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775806
+        }
+      },
+      "output": "GraphPublicationAttemptPage",
+      "status": 200,
+      "intent": "Inspecte les tentatives de publication de cette proposition et celle encore active.",
+      "description_fr": "Liste les tentatives immuables d’une proposition acceptée, leur génération, leur auteur et leur état connu. Recontrôle le rôle propriétaire et l’accès actuel aux preuves. Ne contacte pas TerminusDB et ne relance aucun traitement.",
+      "frontend_fr": "Présenter l’historique de reprise et la tentative active ; conserver son UUID, sa génération et la version publiée pour préparer une décision exacte."
+    },
+    {
+      "action_id": "proposals.retry_publication",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/proposals/{proposal_id}/publication-attempts",
+      "effect": "trusted",
+      "confirmed": true,
+      "input": "GraphPublicationRetryInput",
+      "output": "GraphPublicationRetryReceipt",
+      "status": 201,
+      "intent": "Prépare une nouvelle tentative de publication pour remplacer cette préparation incertaine.",
+      "description_fr": "Après confirmation signée du propriétaire, vérifie la tentative attendue, crée si nécessaire une nouvelle tentative durable et une base Terminus privée, puis tente de publier. Une préparation complète doit être rapprochée par la publication normale. Les anciens workers ne peuvent plus activer leur ancien état. Le reçu peut rester unresolved sans publication réussie. Le statut201 est également retourné au rejeu d’une clé personnelle déjà enregistrée. Le motif doit contenir un caractère non blanc.",
+      "frontend_fr": "Faire confirmer cible, version publiée, UUID/génération à remplacer et motif. Conserver la clé par intention. Afficher published seulement si le reçu le dit ; après une incertitude, relire le reçu et ne jamais inventer une nouvelle clé automatiquement."
+    },
+    {
+      "action_id": "proposals.publication_events",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/proposals/{proposal_id}/publication-events",
+      "effect": "none",
+      "confirmed": false,
+      "query": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 50
+        },
+        "after": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "output": "GraphPublicationEventPage",
+      "status": 200,
+      "intent": "Montre les événements de préparation et de reprise de cette publication.",
+      "description_fr": "Parcourt le journal immuable des réservations, résultats incertains, activations et remplacements de tentatives, filtré par les droits courants sur la proposition. Les événements décrivent l’état applicatif connu, pas une preuve que toute ancienne requête moteur est terminée.",
+      "frontend_fr": "Afficher la chronologie de reprise avec auteur, date et génération ; poursuivre le curseur reçu pour charger l’historique suivant."
+    }
+  ]
+}

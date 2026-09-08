@@ -30,6 +30,7 @@ pub fn router(state: StateData) -> Router {
         .route("/v1/domains/{domain}/concepts",get(concepts))
         .route("/v1/domains/{domain}/concepts/{concept_id}",get(concept))
         .route("/v1/domains/{domain}/proposals/{proposal_id}/publish",axum::routing::post(publish_target))
+        .merge(crate::publication_recovery::routes())
         .merge(crate::sources::routes())
         .merge(crate::proposals::routes())
         .merge(crate::retrieval::routes())

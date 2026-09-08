@@ -10,6 +10,9 @@ on:
       - 'scripts/verify_rust_graph.py'
       - 'scripts/verify_rust_mcp.py'
       - 'scripts/verify_rust_publication.py'
+      - 'scripts/verify_rust_publication_recovery.py'
+      - 'scripts/export_rust_contracts.py'
+      - 'packages/contracts/rust-extensions.json'
       - 'scripts/verify_rust_sources.py'
       - 'scripts/verify_rust_proposals.py'
       - 'scripts/verify_rust_retrieval.py'
@@ -91,6 +94,7 @@ jobs:
           uv run python scripts/generate_rust_lexical.py
           uv run python scripts/generate_rust_model_contracts.py
           uv run python scripts/generate_rust_onboarding.py
+          uv run python scripts/export_rust_contracts.py --check
           git diff --exit-code -- services/rust-core/src/lexical-unicode.json services/rust-core/src/decimal-unicode.json services/rust-core/src/synthesis-template.json services/rust-core/src/onboarding.json
       - name: Verify native HTTP with real tenant isolation
         run: |

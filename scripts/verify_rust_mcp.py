@@ -92,6 +92,9 @@ def verify_mcp(client, headers, domain):
         "api_concepts_list",
         "api_concepts_read",
         "api_proposals_publish",
+        "api_proposals_publication_attempts",
+        "api_proposals_retry_publication",
+        "api_proposals_publication_events",
         "api_proposals_create",
         "api_proposals_revise",
         "api_sources_propose",
@@ -131,6 +134,11 @@ def verify_mcp(client, headers, domain):
     expected = json.loads(
         (Path(__file__).parents[1] / "packages/contracts/mcp-tools.json").read_text()
     )["tools"]
+    expected.extend(
+        json.loads(
+            (Path(__file__).parents[1] / "packages/contracts/rust-extensions.json").read_text()
+        )["tools"]
+    )
     for tool in result["tools"]:
         original = next(t for t in expected if t["name"] == tool["name"])
         assert tool["inputSchema"] == original["inputSchema"]

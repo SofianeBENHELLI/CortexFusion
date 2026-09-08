@@ -1,6 +1,8 @@
 # Démarrer et tester le backend Rust
 
-Ce guide concerne le candidat Rust, ses79 opérations HTTP et95 outils MCP. Le serveur et l’analyse de documents sont natifs. PostgreSQL conserve les identités, droits, preuves et reçus ; TerminusDB fournit les snapshots de connaissance publiés. Les migrations SQL, le bootstrap et les outils de vérification utilisent encore Python. Le service Python reste présent comme référence de compatibilité.
+Ce guide concerne le candidat Rust, ses82 opérations HTTP et98 outils MCP. Le serveur et l’analyse de documents sont natifs. PostgreSQL conserve les identités, droits, preuves et reçus ; TerminusDB fournit les snapshots de connaissance publiés. Les migrations SQL, le bootstrap et les outils de vérification utilisent encore Python. Le service Python reste présent comme référence de compatibilité.
+
+Les trois extensions natives de reprise sont décrites dans la [référence française dédiée](rust-extensions.fr.md). Les schémas JSON et types TypeScript `GraphPublication*` sont générés avec les autres contrats.
 
 ## Préparer un environnement isolé
 
@@ -14,7 +16,7 @@ uv run alembic upgrade head
 cargo build --workspace --locked
 ```
 
-Alembic attend `CORTEX_MIGRATION_DATABASE_URL`, au format SQLAlchemy `postgresql+pg8000://…`. Le schéma attendu est la migration0022, avec36 tables applicatives. Rust attend séparément `CORTEX_RUST_DATABASE_URL`, au format SQLx `postgresql://cortex_app:…@127.0.0.1:55432/cortex_test`. Les deux URL désignent la même base avec des identités différentes. Les mots de passe doivent être encodés dans les URL.
+Alembic attend `CORTEX_MIGRATION_DATABASE_URL`, au format SQLAlchemy `postgresql+pg8000://…`. Le schéma attendu est la migration0023, avec36 tables applicatives. Rust attend séparément `CORTEX_RUST_DATABASE_URL`, au format SQLx `postgresql://cortex_app:…@127.0.0.1:55432/cortex_test`. Les deux URL désignent la même base avec des identités différentes. Les mots de passe doivent être encodés dans les URL.
 
 Le test automatisé crée ses propres tenants, membres et clés éphémères. Pour une session manuelle persistante, créer le domaine avec le bootstrap existant, muni de l’identité de migration :
 

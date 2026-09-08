@@ -1,0 +1,2660 @@
+{
+  "version": "1",
+  "paths": {
+    "/v1/domains/{domain}/proposals/{proposal_id}/publication-attempts": {
+      "get": {
+        "operationId": "proposals.publication_attempts",
+        "description": "Liste les tentatives immuables d’une proposition acceptée, leur génération, leur auteur et leur état connu. Recontrôle le rôle propriétaire et l’accès actuel aux preuves. Ne contacte pas TerminusDB et ne relance aucun traitement.",
+        "x-cortex-interaction": {
+          "action_id": "proposals.publication_attempts",
+          "roles": [
+            "owner"
+          ],
+          "effect": "none",
+          "effect_description": "Read only; no durable application change.",
+          "intent_example": "Inspecte les tentatives de publication de cette proposition et celle encore active.",
+          "confirmation_policy": "authorized_user_intent",
+          "object_authorization": "Current owner and current access to all proposal evidence are required; the inventory grants no authority."
+        },
+        "x-cortex-runtime": "rust",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775806
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphPublicationAttemptPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameters, evidence, state or model output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role does not authorize this action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Absent or inaccessible object; do not infer its existence.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State/version/idempotency conflict; refresh before deciding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request exceeds body limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Configured domain model attempt limit reached; no new provider call started.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage or configured model unavailable; do not claim completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "proposals.retry_publication",
+        "description": "Après confirmation signée du propriétaire, vérifie la tentative attendue, crée si nécessaire une nouvelle tentative durable et une base Terminus privée, puis tente de publier. Une préparation complète doit être rapprochée par la publication normale. Les anciens workers ne peuvent plus activer leur ancien état. Le reçu peut rester unresolved sans publication réussie. Le statut201 est également retourné au rejeu d’une clé personnelle déjà enregistrée. Le motif doit contenir un caractère non blanc.",
+        "x-cortex-interaction": {
+          "action_id": "proposals.retry_publication",
+          "roles": [
+            "owner"
+          ],
+          "effect": "trusted",
+          "effect_description": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
+          "intent_example": "Prépare une nouvelle tentative de publication pour remplacer cette préparation incertaine.",
+          "confirmation_policy": "explicit_user_decision",
+          "object_authorization": "Current owner and current access to all proposal evidence are required; the inventory grants no authority."
+        },
+        "x-cortex-runtime": "rust",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Durable command receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphPublicationRetryReceipt"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameters, evidence, state or model output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role does not authorize this action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Absent or inaccessible object; do not infer its existence.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State/version/idempotency conflict; refresh before deciding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request exceeds body limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Configured domain model attempt limit reached; no new provider call started.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage or configured model unavailable; do not claim completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Strict HTTP mode requires a signed trusted-host confirmation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "confirmation_request"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "confirmation_request": {
+                      "type": "object",
+                      "required": [
+                        "action",
+                        "command_hash",
+                        "transport_header",
+                        "max_lifetime_seconds"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "command_hash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "transport_header": {
+                          "const": "X-Cortex-Confirmation"
+                        },
+                        "max_lifetime_seconds": {
+                          "const": 300
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphPublicationRetryInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/domains/{domain}/proposals/{proposal_id}/publication-events": {
+      "get": {
+        "operationId": "proposals.publication_events",
+        "description": "Parcourt le journal immuable des réservations, résultats incertains, activations et remplacements de tentatives, filtré par les droits courants sur la proposition. Les événements décrivent l’état applicatif connu, pas une preuve que toute ancienne requête moteur est terminée.",
+        "x-cortex-interaction": {
+          "action_id": "proposals.publication_events",
+          "roles": [
+            "owner"
+          ],
+          "effect": "none",
+          "effect_description": "Read only; no durable application change.",
+          "intent_example": "Montre les événements de préparation et de reprise de cette publication.",
+          "confirmation_policy": "authorized_user_intent",
+          "object_authorization": "Current owner and current access to all proposal evidence are required; the inventory grants no authority."
+        },
+        "x-cortex-runtime": "rust",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphPublicationEventPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameters, evidence, state or model output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role does not authorize this action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Absent or inaccessible object; do not infer its existence.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State/version/idempotency conflict; refresh before deciding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request exceeds body limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Configured domain model attempt limit reached; no new provider call started.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage or configured model unavailable; do not claim completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemas": {
+    "GraphPublicationRetryInput": {
+      "type": "object",
+      "properties": {
+        "expected_published_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775806
+        },
+        "expected_attempt_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "expected_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775806
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 200
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Motif explicite, non vide après retrait des espaces périphériques."
+        }
+      },
+      "required": [
+        "expected_published_version",
+        "expected_attempt_id",
+        "expected_generation",
+        "idempotency_key",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "GraphPublicationAttempt": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "predecessor_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subject": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "preparing",
+            "uncertain",
+            "ready",
+            "stale",
+            "superseded"
+          ]
+        },
+        "base_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        }
+      },
+      "required": [
+        "id",
+        "generation",
+        "predecessor_id",
+        "subject",
+        "reason",
+        "created_at",
+        "active",
+        "status",
+        "base_version",
+        "digest",
+        "count"
+      ],
+      "additionalProperties": false
+    },
+    "GraphPublicationAttemptPage": {
+      "type": "object",
+      "properties": {
+        "proposal_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "target_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "published_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "active_attempt": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/GraphPublicationAttempt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/GraphPublicationAttempt"
+          }
+        },
+        "next_after": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9223372036854775807
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "proposal_id",
+        "target_version",
+        "published_version",
+        "active_attempt",
+        "items",
+        "next_after"
+      ],
+      "additionalProperties": false
+    },
+    "GraphPublicationRetryReceipt": {
+      "type": "object",
+      "properties": {
+        "proposal_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "target_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "published_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "attempt": {
+          "$ref": "#/components/schemas/GraphPublicationAttempt"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "published",
+            "unresolved",
+            "superseded"
+          ]
+        }
+      },
+      "required": [
+        "proposal_id",
+        "target_version",
+        "published_version",
+        "attempt",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "GraphPublicationEvent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "attempt_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "subject": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "reserved",
+            "uncertain",
+            "ready",
+            "stale",
+            "superseded"
+          ]
+        },
+        "recorded_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "attempt_id",
+        "generation",
+        "subject",
+        "kind",
+        "recorded_at"
+      ],
+      "additionalProperties": false
+    },
+    "GraphPublicationEventPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/GraphPublicationEvent"
+          }
+        },
+        "next_after": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "items",
+        "next_after"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "interactions": [
+    {
+      "action_id": "proposals.publication_attempts",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Inspecte les tentatives de publication de cette proposition et celle encore active.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Current owner and current access to all proposal evidence are required; the inventory grants no authority.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/proposals/{proposal_id}/publication-attempts",
+      "operation_id": "proposals.publication_attempts"
+    },
+    {
+      "action_id": "proposals.retry_publication",
+      "roles": [
+        "owner"
+      ],
+      "effect": "trusted",
+      "effect_description": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
+      "intent_example": "Prépare une nouvelle tentative de publication pour remplacer cette préparation incertaine.",
+      "confirmation_policy": "explicit_user_decision",
+      "object_authorization": "Current owner and current access to all proposal evidence are required; the inventory grants no authority.",
+      "method": "POST",
+      "path": "/v1/domains/{domain}/proposals/{proposal_id}/publication-attempts",
+      "operation_id": "proposals.retry_publication"
+    },
+    {
+      "action_id": "proposals.publication_events",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre les événements de préparation et de reprise de cette publication.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Current owner and current access to all proposal evidence are required; the inventory grants no authority.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/proposals/{proposal_id}/publication-events",
+      "operation_id": "proposals.publication_events"
+    }
+  ],
+  "tools": [
+    {
+      "name": "api_proposals_publication_attempts",
+      "description": "Liste les tentatives immuables d’une proposition acceptée, leur génération, leur auteur et leur état connu. Recontrôle le rôle propriétaire et l’accès actuel aux preuves. Ne contacte pas TerminusDB et ne relance aucun traitement.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "proposal_id": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain",
+              "proposal_id"
+            ]
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "default": 50
+              },
+              "after": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775806
+              }
+            },
+            "additionalProperties": false,
+            "required": []
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/GraphPublicationAttemptPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/GraphPublicationAttemptPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "$defs": {
+          "GraphPublicationAttemptPage": {
+            "type": "object",
+            "properties": {
+              "proposal_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "target_version": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "published_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "active_attempt": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/GraphPublicationAttempt"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/GraphPublicationAttempt"
+                }
+              },
+              "next_after": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9223372036854775807
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "proposal_id",
+              "target_version",
+              "published_version",
+              "active_attempt",
+              "items",
+              "next_after"
+            ],
+            "additionalProperties": false
+          },
+          "GraphPublicationAttempt": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "generation": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "predecessor_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "subject": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "preparing",
+                  "uncertain",
+                  "ready",
+                  "stale",
+                  "superseded"
+                ]
+              },
+              "base_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              }
+            },
+            "required": [
+              "id",
+              "generation",
+              "predecessor_id",
+              "subject",
+              "reason",
+              "created_at",
+              "active",
+              "status",
+              "base_version",
+              "digest",
+              "count"
+            ],
+            "additionalProperties": false
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "api_proposals_retry_publication",
+      "description": "Après confirmation signée du propriétaire, vérifie la tentative attendue, crée si nécessaire une nouvelle tentative durable et une base Terminus privée, puis tente de publier. Une préparation complète doit être rapprochée par la publication normale. Les anciens workers ne peuvent plus activer leur ancien état. Le reçu peut rester unresolved sans publication réussie. Le statut201 est également retourné au rejeu d’une clé personnelle déjà enregistrée. Le motif doit contenir un caractère non blanc. Requires a trusted-host signed confirmation header bound to these exact arguments.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "proposal_id": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain",
+              "proposal_id"
+            ]
+          },
+          "body": {
+            "$ref": "#/$defs/GraphPublicationRetryInput"
+          }
+        },
+        "required": [
+          "path",
+          "body"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "GraphPublicationRetryInput": {
+            "type": "object",
+            "properties": {
+              "expected_published_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775806
+              },
+              "expected_attempt_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expected_generation": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775806
+              },
+              "idempotency_key": {
+                "type": "string",
+                "minLength": 8,
+                "maxLength": 200
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Motif explicite, non vide après retrait des espaces périphériques."
+              }
+            },
+            "required": [
+              "expected_published_version",
+              "expected_attempt_id",
+              "expected_generation",
+              "idempotency_key",
+              "reason"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/GraphPublicationRetryReceipt"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          },
+          "confirmation_request": {
+            "$ref": "#/$defs/MCPConfirmationRequest"
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  201
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/GraphPublicationRetryReceipt"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "confirmation_request"
+              ]
+            },
+            "then": {
+              "properties": {
+                "http_status": {
+                  "const": 428
+                }
+              }
+            }
+          }
+        ],
+        "$defs": {
+          "GraphPublicationRetryReceipt": {
+            "type": "object",
+            "properties": {
+              "proposal_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "target_version": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "published_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "attempt": {
+                "$ref": "#/$defs/GraphPublicationAttempt"
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "published",
+                  "unresolved",
+                  "superseded"
+                ]
+              }
+            },
+            "required": [
+              "proposal_id",
+              "target_version",
+              "published_version",
+              "attempt",
+              "outcome"
+            ],
+            "additionalProperties": false
+          },
+          "GraphPublicationAttempt": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "generation": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "predecessor_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "subject": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "preparing",
+                  "uncertain",
+                  "ready",
+                  "stale",
+                  "superseded"
+                ]
+              },
+              "base_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              }
+            },
+            "required": [
+              "id",
+              "generation",
+              "predecessor_id",
+              "subject",
+              "reason",
+              "created_at",
+              "active",
+              "status",
+              "base_version",
+              "digest",
+              "count"
+            ],
+            "additionalProperties": false
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          "MCPConfirmationRequest": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "command_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "transport_header": {
+                "const": "X-Cortex-Confirmation"
+              },
+              "max_lifetime_seconds": {
+                "const": 300
+              }
+            },
+            "required": [
+              "action",
+              "command_hash",
+              "transport_header",
+              "max_lifetime_seconds"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "api_proposals_publication_events",
+      "description": "Parcourt le journal immuable des réservations, résultats incertains, activations et remplacements de tentatives, filtré par les droits courants sur la proposition. Les événements décrivent l’état applicatif connu, pas une preuve que toute ancienne requête moteur est terminée.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "proposal_id": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain",
+              "proposal_id"
+            ]
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "default": 50
+              },
+              "after": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "additionalProperties": false,
+            "required": []
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/GraphPublicationEventPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/GraphPublicationEventPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "$defs": {
+          "GraphPublicationEventPage": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/GraphPublicationEvent"
+                }
+              },
+              "next_after": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "items",
+              "next_after"
+            ],
+            "additionalProperties": false
+          },
+          "GraphPublicationEvent": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "attempt_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "generation": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "subject": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "reserved",
+                  "uncertain",
+                  "ready",
+                  "stale",
+                  "superseded"
+                ]
+              },
+              "recorded_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "attempt_id",
+              "generation",
+              "subject",
+              "kind",
+              "recorded_at"
+            ],
+            "additionalProperties": false
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "functional": {
+    "language": "fr",
+    "version": "1",
+    "notice": "Catalogue documentaire ; aucune autorisation individuelle n'est accordée.",
+    "items": [
+      {
+        "action_id": "proposals.publication_attempts",
+        "roles": [
+          "owner"
+        ],
+        "effect": "none",
+        "effect_description": "Read only; no durable application change.",
+        "intent_example": "Inspecte les tentatives de publication de cette proposition et celle encore active.",
+        "confirmation_policy": "authorized_user_intent",
+        "object_authorization": "Current owner and current access to all proposal evidence are required; the inventory grants no authority.",
+        "method": "GET",
+        "path": "/v1/domains/{domain}/proposals/{proposal_id}/publication-attempts",
+        "operation_id": "proposals.publication_attempts",
+        "description_fr": "Liste les tentatives immuables d’une proposition acceptée, leur génération, leur auteur et leur état connu. Recontrôle le rôle propriétaire et l’accès actuel aux preuves. Ne contacte pas TerminusDB et ne relance aucun traitement.",
+        "frontend_fr": "Présenter l’historique de reprise et la tentative active ; conserver son UUID, sa génération et la version publiée pour préparer une décision exacte.",
+        "effect_fr": "Lecture sans modification métier durable.",
+        "mcp_tool": "api_proposals_publication_attempts",
+        "mcp_confirmation_required": false,
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775806
+            }
+          }
+        ],
+        "request_body": null,
+        "responses": {
+          "200": {
+            "description": "Authorized state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphPublicationAttemptPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "error_contract": "common_error"
+          },
+          "401": {
+            "error_contract": "common_error"
+          },
+          "403": {
+            "error_contract": "common_error"
+          },
+          "404": {
+            "error_contract": "common_error"
+          },
+          "409": {
+            "error_contract": "common_error"
+          },
+          "413": {
+            "error_contract": "common_error"
+          },
+          "429": {
+            "error_contract": "common_error"
+          },
+          "503": {
+            "error_contract": "common_error"
+          }
+        }
+      },
+      {
+        "action_id": "proposals.retry_publication",
+        "roles": [
+          "owner"
+        ],
+        "effect": "trusted",
+        "effect_description": "Accepts or publishes a trusted-knowledge change; approval and publication are separate.",
+        "intent_example": "Prépare une nouvelle tentative de publication pour remplacer cette préparation incertaine.",
+        "confirmation_policy": "explicit_user_decision",
+        "object_authorization": "Current owner and current access to all proposal evidence are required; the inventory grants no authority.",
+        "method": "POST",
+        "path": "/v1/domains/{domain}/proposals/{proposal_id}/publication-attempts",
+        "operation_id": "proposals.retry_publication",
+        "description_fr": "Après confirmation signée du propriétaire, vérifie la tentative attendue, crée si nécessaire une nouvelle tentative durable et une base Terminus privée, puis tente de publier. Une préparation complète doit être rapprochée par la publication normale. Les anciens workers ne peuvent plus activer leur ancien état. Le reçu peut rester unresolved sans publication réussie. Le statut201 est également retourné au rejeu d’une clé personnelle déjà enregistrée. Le motif doit contenir un caractère non blanc.",
+        "frontend_fr": "Faire confirmer cible, version publiée, UUID/génération à remplacer et motif. Conserver la clé par intention. Afficher published seulement si le reçu le dit ; après une incertitude, relire le reçu et ne jamais inventer une nouvelle clé automatiquement.",
+        "effect_fr": "Acceptation ou publication selon l'opération ; consulter le reçu.",
+        "mcp_tool": "api_proposals_retry_publication",
+        "mcp_confirmation_required": true,
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "request_body": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphPublicationRetryInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Durable command receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphPublicationRetryReceipt"
+                }
+              }
+            }
+          },
+          "422": {
+            "error_contract": "common_error"
+          },
+          "401": {
+            "error_contract": "common_error"
+          },
+          "403": {
+            "error_contract": "common_error"
+          },
+          "404": {
+            "error_contract": "common_error"
+          },
+          "409": {
+            "error_contract": "common_error"
+          },
+          "413": {
+            "error_contract": "common_error"
+          },
+          "429": {
+            "error_contract": "common_error"
+          },
+          "503": {
+            "error_contract": "common_error"
+          },
+          "428": {
+            "error_contract": "common_error"
+          }
+        }
+      },
+      {
+        "action_id": "proposals.publication_events",
+        "roles": [
+          "owner"
+        ],
+        "effect": "none",
+        "effect_description": "Read only; no durable application change.",
+        "intent_example": "Montre les événements de préparation et de reprise de cette publication.",
+        "confirmation_policy": "authorized_user_intent",
+        "object_authorization": "Current owner and current access to all proposal evidence are required; the inventory grants no authority.",
+        "method": "GET",
+        "path": "/v1/domains/{domain}/proposals/{proposal_id}/publication-events",
+        "operation_id": "proposals.publication_events",
+        "description_fr": "Parcourt le journal immuable des réservations, résultats incertains, activations et remplacements de tentatives, filtré par les droits courants sur la proposition. Les événements décrivent l’état applicatif connu, pas une preuve que toute ancienne requête moteur est terminée.",
+        "frontend_fr": "Afficher la chronologie de reprise avec auteur, date et génération ; poursuivre le curseur reçu pour charger l’historique suivant.",
+        "effect_fr": "Lecture sans modification métier durable.",
+        "mcp_tool": "api_proposals_publication_events",
+        "mcp_confirmation_required": false,
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "request_body": null,
+        "responses": {
+          "200": {
+            "description": "Authorized state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphPublicationEventPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "error_contract": "common_error"
+          },
+          "401": {
+            "error_contract": "common_error"
+          },
+          "403": {
+            "error_contract": "common_error"
+          },
+          "404": {
+            "error_contract": "common_error"
+          },
+          "409": {
+            "error_contract": "common_error"
+          },
+          "413": {
+            "error_contract": "common_error"
+          },
+          "429": {
+            "error_contract": "common_error"
+          },
+          "503": {
+            "error_contract": "common_error"
+          }
+        }
+      }
+    ],
+    "http_confirmation_mode": "required",
+    "common_error": {
+      "required": [
+        "error"
+      ],
+      "optional": [
+        "message",
+        "details",
+        "confirmation_request"
+      ],
+      "confirmation_request": {
+        "required": [
+          "action",
+          "command_hash",
+          "transport_header",
+          "max_lifetime_seconds"
+        ],
+        "transport_header": "X-Cortex-Confirmation",
+        "max_lifetime_seconds": 300
+      }
+    },
+    "schemas": {
+      "GraphPublicationRetryInput": {
+        "type": "object",
+        "properties": {
+          "expected_published_version": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775806
+          },
+          "expected_attempt_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expected_generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775806
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 200
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Motif explicite, non vide après retrait des espaces périphériques."
+          }
+        },
+        "required": [
+          "expected_published_version",
+          "expected_attempt_id",
+          "expected_generation",
+          "idempotency_key",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "GraphPublicationAttempt": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          },
+          "predecessor_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subject": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "preparing",
+              "uncertain",
+              "ready",
+              "stale",
+              "superseded"
+            ]
+          },
+          "base_version": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          }
+        },
+        "required": [
+          "id",
+          "generation",
+          "predecessor_id",
+          "subject",
+          "reason",
+          "created_at",
+          "active",
+          "status",
+          "base_version",
+          "digest",
+          "count"
+        ],
+        "additionalProperties": false
+      },
+      "GraphPublicationAttemptPage": {
+        "type": "object",
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target_version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          },
+          "published_version": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "active_attempt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GraphPublicationAttempt"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GraphPublicationAttempt"
+            }
+          },
+          "next_after": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "proposal_id",
+          "target_version",
+          "published_version",
+          "active_attempt",
+          "items",
+          "next_after"
+        ],
+        "additionalProperties": false
+      },
+      "GraphPublicationRetryReceipt": {
+        "type": "object",
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target_version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          },
+          "published_version": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "attempt": {
+            "$ref": "#/components/schemas/GraphPublicationAttempt"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "published",
+              "unresolved",
+              "superseded"
+            ]
+          }
+        },
+        "required": [
+          "proposal_id",
+          "target_version",
+          "published_version",
+          "attempt",
+          "outcome"
+        ],
+        "additionalProperties": false
+      },
+      "GraphPublicationEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attempt_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          },
+          "subject": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "reserved",
+              "uncertain",
+              "ready",
+              "stale",
+              "superseded"
+            ]
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "attempt_id",
+          "generation",
+          "subject",
+          "kind",
+          "recorded_at"
+        ],
+        "additionalProperties": false
+      },
+      "GraphPublicationEventPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GraphPublicationEvent"
+            }
+          },
+          "next_after": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "next_after"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

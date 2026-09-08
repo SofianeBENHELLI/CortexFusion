@@ -1,10 +1,10 @@
 # Migration Rust et TerminusDB — état vérifiable
 
-Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La référence historique comporte 79 opérations HTTP, 95 outils MCP et 87 schémas. Les 79 opérations sont maintenant natives. Le remplacement du service existant reste à qualifier : la parité de surface ne constitue pas une homologation de production. Le frontend reste inchangé.
+Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La référence historique comporte 79 opérations HTTP, 95 outils MCP et 87 schémas. Les 79 opérations sont maintenant natives ; trois extensions de reprise portent la surface à82HTTP/98MCP. Le remplacement du service existant reste à qualifier : la parité de surface ne constitue pas une homologation de production. Le frontend reste inchangé.
 
 ## Couverture native actuelle
 
-Soixante-dix-neuf opérations HTTP, leurs soixante-dix-neuf outils MCP et seize outils de compatibilité (95 au total) sont implémentés :
+Quatre-vingt-deux opérations HTTP, leurs outils MCP et seize alias de compatibilité (98 outils au total) sont implémentés :
 
 | Fonction | HTTP | Outil MCP |
 |---|---|---|
@@ -15,6 +15,9 @@ Soixante-dix-neuf opérations HTTP, leurs soixante-dix-neuf outils MCP et seize 
 | Concepts publiés et relations visibles | GET /v1/domains/{domain}/concepts | api_concepts_list |
 | Un concept publié | GET /v1/domains/{domain}/concepts/{concept_id} | api_concepts_read |
 | Publier une proposition déjà acceptée | POST /v1/domains/{domain}/proposals/{proposal_id}/publish | api_proposals_publish |
+| Inspecter les tentatives de publication | GET /v1/domains/{domain}/proposals/{proposal_id}/publication-attempts | api_proposals_publication_attempts |
+| Remplacer une préparation incertaine | POST /v1/domains/{domain}/proposals/{proposal_id}/publication-attempts | api_proposals_retry_publication |
+| Lire le journal des tentatives | GET /v1/domains/{domain}/proposals/{proposal_id}/publication-events | api_proposals_publication_events |
 | Créer une proposition avec preuves | POST /v1/domains/{domain}/proposals | api_proposals_create |
 | Lister les propositions visibles | GET /v1/domains/{domain}/proposals | api_proposals_list |
 | Lire une proposition | GET /v1/domains/{domain}/proposals/{proposal_id} | api_proposals_read |
@@ -235,7 +238,7 @@ Le compteur propriétaire agrège les réservations du domaine sur le jour UTC c
 
 ## Maintenance signée du savoir
 
-Publier au niveau domaine sélectionne le prochain commit accepté et conserve cette cible pendant le traitement. Sans changement en attente, changed=false. La reconstruction lit le snapshot Terminus immuable, compare son contenu au journal SQL reconstruit, puis remplace atomiquement la projection après recontrôle de la version et des droits. Une divergence retourne503 sans effacer la projection ; une publication concurrente retourne409. Ce mécanisme ne répare pas une préparation Terminus incomplète (R11 reste ouvert).
+Publier au niveau domaine sélectionne le prochain commit accepté et conserve cette cible pendant le traitement. Sans changement en attente, changed=false. La reconstruction lit le snapshot Terminus immuable, compare son contenu au journal SQL reconstruit, puis remplace atomiquement la projection après recontrôle de la version et des droits. Une divergence retourne503 sans effacer la projection ; une publication concurrente retourne409. Ce mécanisme ne répare pas une préparation Terminus incomplète ; la commande explicite de reprise décrite plus bas remplit ce rôle.
 
 Compenser un commit publié crée une proposition inverse ready, sans l’accepter ni la publier. Une publication en attente, un changement dépendant ultérieur ou des preuves inaccessibles bloquent la création. Les permissions owner sont revérifiées après lecture réseau, même si l’utilisateur conserve un rôle contributeur. Confirmation signée, base attendue, motif et clé idempotente restent obligatoires.
 
@@ -284,7 +287,7 @@ Les essais de cette migration utilisent exclusivement des réponses OpenRouter/O
 
 ## Ressources et prompts MCP natifs
 
-En plus des95 outils historiques, le serveur expose trois ressources fixes : `cortex://guide` explique les règles d’usage ; `cortex://workspace` décrit l’identité et ses domaines accessibles ; `cortex://actions` décrit les79 interactions. Le modèle de ressource `cortex://domains/{domain_id}/context` fournit versions et préférences personnelles de feedback. Ces lectures sont authentifiées, recontrôlent les accès et n’importent aucun fichier ou URL arbitraire.
+En plus des95 outils historiques, le serveur expose trois ressources fixes : `cortex://guide` explique les règles d’usage ; `cortex://workspace` décrit l’identité et ses domaines accessibles ; `cortex://actions` décrit les82 interactions. Le modèle de ressource `cortex://domains/{domain_id}/context` fournit versions et préférences personnelles de feedback. Ces lectures sont authentifiées, recontrôlent les accès et n’importent aucun fichier ou URL arbitraire.
 
 Trois prompts conservent les noms et arguments historiques : `ask_cortex(domain_id, question)`, `review_cortex_proposal(domain_id, proposal_id)` et `report_cortex_feedback(domain_id, episode_id)`. Ils préparent un parcours choisi par l’utilisateur sans exécuter la question, la revue ou le signal. Une revue exige l’accès à la proposition ; le feedback exige l’épisode personnel courant. Une instruction contenue dans la question demeure une donnée du prompt ; cela ne constitue pas une preuve du comportement futur d’un LLM connecté.
 
@@ -304,4 +307,16 @@ Un domaine enrôlé dans le protocole Terminus possède aussi un marqueur persis
 
 Le backend Rust fournit des preuves transactionnelles contenant l’UUID, la génération et l’acteur courant lors des changements de préparation. Le moteur SQL vérifie ces valeurs contre la tentative active ; un ancien manifeste sans identité explicite est refusé. L’identité et l’intention des tentatives sont immuables, et les changements de préparation ajoutent leurs événements. Les nouvelles importations scellent leur propre intention et peuvent rapprocher un snapshot complet par lecture ; les anciennes importations sans intention demeurent bloquées.
 
-Ce premier socle ne ferme pas encore R11 : la commande utilisateur de remplacement d’une préparation incomplète et ses contre-tests HTTP/MCP sont le lot suivant. Les tests indépendants ont reproduit une publication Python sans manifeste sous REPEATABLE READ avant0022, puis ont confirmé40001 et aucune publication après correction. Les refus des anciens binaires et les barrières de génération ont aussi été exercés sur PostgreSQL réel avec données synthétiques et moteur contrôlé.
+Les tests indépendants ont reproduit une publication Python sans manifeste sous REPEATABLE READ avant0022, puis ont confirmé40001 et aucune publication après correction. Les anciens binaires sans identité de tentative explicite sont refusés. Le test historique de version sans manifeste reste exercé avant enrôlement ; après enrôlement, SQL refuse de fabriquer cet état.
+
+## Reprise R11 — commande HTTP/MCP et reçus
+
+Les trois [extensions natives](rust-extensions.fr.md) complètent les contrats historiques sans inventer de routes dans le serveur Python. Le générateur exporte OpenAPI, inventaire d’interactions, outils MCP, descriptions françaises, six schémas JSON autonomes et les types TypeScript associés. Le serveur fusionne ces extensions dans sa découverte. Leurs droits et la confirmation sont appliqués par les mêmes services natifs pour HTTP et MCP.
+
+Une reprise exige le propriétaire actuel, ses preuves courantes, la version publiée et l’UUID/génération à remplacer. Le moteur est d’abord lu : une préparation complète donne409/PUBLICATION_READY_TO_RECONCILE et doit passer par la publication normale. Sinon une nouvelle tentative conserve exactement l’intention scellée, pointe vers sa précédente, porte sa propre raison et sa clé personnelle. Elle est réservée en SQL avant toute création de base Terminus. Une réponse de commit SQL incertaine ne déclenche pas de POST moteur dans ce processus.
+
+Seul l’appel qui a confirmé la nouvelle réservation peut préparer sa nouvelle base. Tout rejeu de la même clé utilise des lectures, jamais un second POST. La finalisation recontrôle UUID/génération, version, identité et preuves ; l’ancien worker ne peut ni activer son manifeste ni dégrader l’état de son remplaçant. Le reçu201 distingue published, unresolved et superseded. Un nouveau motif ou cible sous la même clé est refusé. Une clé ne constitue jamais une preuve d’autorisation.
+
+Les tentatives et événements sont paginés. La migration0023 ajoute un ordinal interne aux événements pour ordonner les ajouts sans dépendre des variations de l’horloge ; le curseur public reste un UUID filtré par tenant, domaine et proposition. Le transfert des événements existants conserve un ordre déterministe par génération/date/UUID. Les événements n’attestent pas qu’un ancien appel moteur a fini. Aucun mécanisme de suppression des bases abandonnées n’est ajouté.
+
+Validation locale de ce lot : vrai binaire Rust et PostgreSQL restreint, moteur HTTP contrôlé pour pertes d’accusés Terminus. Les scénarios produit couvrent6 groupes, dont parcours source→proposition→approbation→reprise, parité HTTP/MCP, schémas de reçus, pagination, clé rejouée, accès perdu et préparation complète/incomplète. Le vérificateur indépendant ajoute9 groupes avec clés concurrentes, ancienne génération retardée et retrait des droits/expiration pendant traitement. Les tests avec TerminusDB réel sont exécutés séparément en CI. La perte d’accusé de COMMIT PostgreSQL n’a pas encore été reproduite ; ne pas la confondre avec les pertes d’accusés moteur injectées. L’import historique sans intention scellée et la restauration d’exploitation restent des travaux distincts.

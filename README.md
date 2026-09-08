@@ -6,7 +6,7 @@ Cortex Fusion is building a governed memory for people and AI companions. Its ex
 
 ## Rust migration candidate
 
-The native Rust/Axum/SQLx candidate now implements all 79 reference HTTP operations and 95 MCP tools, with immutable TerminusDB snapshots behind PostgreSQL publication manifests. It includes bounded native document parsing, optional OpenRouter/Ollama operations, and authenticated MCP resources/prompts. Start with the [French Rust setup and test guide](docs/rust-start.fr.md). See the [French migration and integration guide](docs/rust-migration.fr.md) for setup, permissions, confirmations, evidence and explicit qualification limits. The Python service remains the compatibility reference; no replacement deployment has been performed.
+The native Rust/Axum/SQLx candidate now implements all 79 reference HTTP operations and 95 MCP tools, plus three native publication recovery operations (82 HTTP / 98 MCP total), with immutable TerminusDB snapshots behind PostgreSQL publication manifests. It includes bounded native document parsing, optional OpenRouter/Ollama operations, and authenticated MCP resources/prompts. Start with the [French Rust setup and test guide](docs/rust-start.fr.md). See the [French migration and integration guide](docs/rust-migration.fr.md) for setup, permissions, confirmations, evidence and explicit qualification limits. The Python service remains the compatibility reference; no replacement deployment has been performed.
 
 ## What works in the reference backend
 

@@ -6,7 +6,7 @@ La [référence exhaustive des endpoints](frontend-api.fr.md) donne, pour chaque
 
 ## Candidat Rust : paramètres à utiliser
 
-Les79 endpoints et95 outils MCP du catalogue sont maintenant implémentés en Rust. Les fonctions et schémas métier ci-dessous restent la référence d’intégration. Pour ce runtime, appliquer les précisions suivantes avant les sections communes :
+Les79 endpoints et95 outils MCP historiques sont implémentés en Rust. Trois extensions natives de reprise portent la surface à **82 opérations HTTP et98 outils MCP** ; leurs [schémas et descriptions françaises](rust-extensions.fr.md) complètent la référence. Les fonctions et schémas métier ci-dessous restent la référence d’intégration. Pour ce runtime, appliquer les précisions suivantes avant les sections communes :
 
 - Base locale : `http://127.0.0.1:8010`, avec OpenAPI sur `/openapi.json` et MCP Streamable HTTP sur `/mcp/`. Aucun écran `/docs` n’est livré par Rust. Le frontend React/Vite peut garder ses clients typés et ses clés de cache.
 - Le serveur exige `CORTEX_RUST_DATABASE_URL` et une clé publique PEM via `CORTEX_JWT_PUBLIC_KEY_FILE`. Le mode JWKS décrit plus bas concerne la référence Python ; Rust ne le charge pas encore. Les rôles viennent toujours de SQL.
@@ -17,6 +17,40 @@ Les79 endpoints et95 outils MCP du catalogue sont maintenant implémentés en Ru
 - Les workers CLI historiques ne sont pas des workers Rust. Le frontend ou l’hôte de confiance doit déclencher les opérations `process`, puis relire les reçus avec polling modéré. Une annulation réseau ne prouve pas l’annulation du traitement durable.
 
 Les [instructions de démarrage Rust](rust-start.fr.md) détaillent la configuration, et le [bilan de migration](rust-migration.fr.md) distingue les validations acquises des limites de production. Les ressources `cortex://guide`, `cortex://workspace`, `cortex://actions` et le contexte par domaine, ainsi que les trois prompts historiques, permettent aussi un usage via compagnon sans frontend dédié.
+
+## Reprendre une publication Rust interrompue
+
+L’approbation accepte une proposition ; la publication active ensuite sa version de savoir. Un timeout ou `503` n’est pas une preuve de succès. Le propriétaire relit d’abord la proposition, la version et `GET /v1/domains/{domain}/proposals/{proposal_id}/publication-attempts`. Ce dernier expose la tentative active (UUID, génération, état), les tentatives précédentes et leur motif. Il ne contacte pas le moteur.
+
+La publication ciblée normale peut rapprocher une préparation déjà complète par lecture TerminusDB. Si la préparation demeure incomplète, l’hôte fait confirmer explicitement son remplacement :
+
+```json
+{
+  "expected_published_version": 0,
+  "expected_attempt_id": "UUID_DE_LA_TENTATIVE_ACTIVE",
+  "expected_generation": 1,
+  "idempotency_key": "CLE_STABLE_DE_CETTE_DECISION",
+  "reason": "Reprendre la préparation interrompue après vérification"
+}
+```
+
+Envoyer ce corps à `POST /v1/domains/{domain}/proposals/{proposal_id}/publication-attempts`, ou à `api_proposals_retry_publication` avec `path` et `body`. La confirmation signée lie exactement cette commande. Les UUID ci-dessus sont des emplacements à remplacer par les valeurs reçues. Une clé appartient à la décision du sujet authentifié ; la réutiliser avec un autre motif ou une autre cible retourne `IDEMPOTENCY_CONFLICT`.
+
+Le statut HTTP `201` accuse réception d’une tentative durable. Afficher le résultat d’après `outcome` :
+
+| Résultat | Sens fonctionnel | Suite pour l’hôte |
+|---|---|---|
+| `published` | Cette tentative a activé la version cible. | Invalider version, concepts, proposition, journal, brief et historique des tentatives. |
+| `unresolved` | La tentative est durable mais sa publication n’est pas confirmée. | Relire l’historique ; un rejeu signé avec la même clé rapproche par lecture seulement, sans recréer la base. |
+| `superseded` | Une décision ultérieure a remplacé cette tentative. | Montrer la tentative active et son résultat ; ne pas relancer l’ancienne. |
+
+Un propriétaire peut décider d’un nouveau remplacement si la tentative active reste incomplète. Cela exige une nouvelle clé, l’UUID/génération actuels et une nouvelle confirmation. Ne jamais générer cette décision automatiquement à la suite d’un `503` ou d’un reçu `unresolved`. Aucun nettoyage automatique de base ancienne n’est effectué.
+
+`PUBLICATION_READY_TO_RECONCILE` (`409`) signifie que le graphe existant est complet : utiliser la publication normale. `PUBLICATION_NOT_PREPARED` invite à démarrer par cette même publication normale. `GRAPH_ATTEMPT_REPLACED` ou `STALE_PUBLICATION` demandent une relecture avant une nouvelle décision. `PUBLICATION_ALREADY_PUBLISHED` interdit une nouvelle tentative inutile. Après perte de droits, les lectures/reprises sont refusées même si une ancienne clé est connue.
+
+`GET .../publication-events` et `api_proposals_publication_events` donnent un journal immuable (`reserved`, `uncertain`, `superseded`, `ready`, `stale`). `recorded_at` est une date d’observation SQL ; un événement ne certifie pas l’arrêt de toute requête moteur ancienne. La pagination retourne un curseur `next_after` à renvoyer tel quel ; les tentatives utilisent une génération numérique, les événements un UUID. Conserver les caches par tenant, domaine, proposition et sujet, puis les vider après changement d’identité ou de droits.
+
+Les variantes GET existent aussi sous `api_proposals_publication_attempts`. Elles restent réservées au propriétaire et à ses preuves actuellement accessibles. Ces opérations portent sur la publication d’une proposition acceptée ; elles ne remplacent ni l’import initial historique, ni la restauration d’une sauvegarde.
 
 ## Correspondance avec les sept parcours du produit
 

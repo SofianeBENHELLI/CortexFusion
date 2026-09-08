@@ -49,3 +49,5 @@ pub mod synthesis;
 pub mod extraction;
 
 pub mod onboarding;
+
+mod publication_recovery;

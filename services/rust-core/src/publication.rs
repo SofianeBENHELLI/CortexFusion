@@ -19,13 +19,13 @@ fn failure(code: &'static str, message: &'static str) -> CoreError {
         status: StatusCode::CONFLICT,
     }
 }
-struct Recipe {
-    sequence: i64,
-    published: i64,
+pub(crate) struct Recipe {
+    pub sequence: i64,
+    pub published: i64,
     changes: Vec<Change>,
     sources: BTreeMap<Uuid, String>,
 }
-async fn recipe(
+pub(crate) async fn recipe(
     tx: &mut Transaction<'_, Postgres>,
     p: &Principal,
     domain: &str,
@@ -114,6 +114,10 @@ async fn recipe(
         sources,
     })
 }
+pub(crate) struct AttemptExecution {
+    pub attempt: Attempt,
+    pub stage_once: bool,
+}
 impl GraphService {
     pub async fn publish_target(
         &self,
@@ -130,7 +134,7 @@ impl GraphService {
         domain: &str,
         id: &str,
         expected: i64,
-        stage: Option<Attempt>,
+        stage: Option<AttemptExecution>,
     ) -> Result<Value, CoreError> {
         if expected < 0 {
             return Err(failure(
@@ -189,12 +193,12 @@ impl GraphService {
             graph_attempts::reserve(&mut tx, p, domain, current.sequence, &intent).await?;
         if stage
             .as_ref()
-            .is_some_and(|requested| requested != &reservation)
+            .is_some_and(|requested| requested.attempt != reservation)
         {
             return Err(graph_attempts::replaced());
         }
         tx.commit().await.map_err(CoreError::sql)?;
-        let prepared = if reconcile && stage.is_none() {
+        let prepared = if reconcile && !stage.as_ref().is_some_and(|s| s.stage_once) {
             self.engine
                 .reconcile_snapshot(reservation.id, expected_digest, expected_count)
                 .await

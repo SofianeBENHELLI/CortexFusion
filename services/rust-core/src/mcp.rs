@@ -91,6 +91,9 @@ pub const NATIVE: &[&str] = &[
     "api_concepts_list",
     "api_concepts_read",
     "api_proposals_publish",
+    "api_proposals_publication_attempts",
+    "api_proposals_retry_publication",
+    "api_proposals_publication_events",
     "api_proposals_create",
     "api_proposals_revise",
     "api_sources_propose",
@@ -255,7 +258,13 @@ fn request_for(
             url.query_pairs_mut().append_pair(
                 key,
                 &value.as_str().map(str::to_owned).unwrap_or_else(|| {
-                    if value.is_null() {
+                    if operation.action.starts_with("proposals.publication_")
+                        && let Some(n) = value
+                            .as_f64()
+                            .filter(|n| n.fract() == 0.0 && *n >= 0.0 && *n < 9223372036854775808.0)
+                    {
+                        (n as i64).to_string()
+                    } else if value.is_null() {
                         "None".into()
                     } else {
                         value.to_string()
@@ -522,13 +531,34 @@ async fn authenticate(
     next.run(request).await
 }
 fn operations() -> Result<BTreeMap<String, Operation>, CoreError> {
-    let tools: Value =
+    let mut tools: Value =
         serde_json::from_str(include_str!("../../../packages/contracts/mcp-tools.json"))
             .map_err(|_| CoreError::database())?;
-    let catalog: Value = serde_json::from_str(include_str!(
+    let mut catalog: Value = serde_json::from_str(include_str!(
         "../../../packages/contracts/interactions.json"
     ))
     .map_err(|_| CoreError::database())?;
+    let extra = crate::discovery::extensions()?;
+    tools["tools"]
+        .as_array_mut()
+        .ok_or_else(CoreError::database)?
+        .extend(
+            extra["tools"]
+                .as_array()
+                .ok_or_else(CoreError::database)?
+                .iter()
+                .cloned(),
+        );
+    catalog["items"]
+        .as_array_mut()
+        .ok_or_else(CoreError::database)?
+        .extend(
+            extra["interactions"]
+                .as_array()
+                .ok_or_else(CoreError::database)?
+                .iter()
+                .cloned(),
+        );
     let mut result = BTreeMap::new();
     for name in NATIVE {
         let raw = tools["tools"]

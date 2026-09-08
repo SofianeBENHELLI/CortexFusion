@@ -6,11 +6,27 @@ use serde_json::{Value, json};
 fn native(action: &str) -> bool {
     crate::mcp::NATIVE.contains(&format!("api_{}", action.replace('.', "_")).as_str())
 }
+pub(crate) fn extensions() -> Result<Value, CoreError> {
+    serde_json::from_str(include_str!(
+        "../../../packages/contracts/rust-extensions.json"
+    ))
+    .map_err(|_| CoreError::database())
+}
 pub fn catalog() -> Result<Value, CoreError> {
     let mut v: Value = serde_json::from_str(include_str!(
         "../../../packages/contracts/interactions.json"
     ))
     .map_err(|_| CoreError::database())?;
+    v["items"]
+        .as_array_mut()
+        .ok_or_else(CoreError::database)?
+        .extend(
+            extensions()?["interactions"]
+                .as_array()
+                .ok_or_else(CoreError::database)?
+                .iter()
+                .cloned(),
+        );
     v["items"]
         .as_array_mut()
         .ok_or_else(CoreError::database)?
@@ -21,6 +37,25 @@ fn schema() -> Result<Value, CoreError> {
     let mut v: Value =
         serde_json::from_str(include_str!("../../../packages/contracts/openapi.json"))
             .map_err(|_| CoreError::database())?;
+    let extra = extensions()?;
+    v["paths"]
+        .as_object_mut()
+        .ok_or_else(CoreError::database)?
+        .extend(
+            extra["paths"]
+                .as_object()
+                .ok_or_else(CoreError::database)?
+                .clone(),
+        );
+    v["components"]["schemas"]
+        .as_object_mut()
+        .ok_or_else(CoreError::database)?
+        .extend(
+            extra["schemas"]
+                .as_object()
+                .ok_or_else(CoreError::database)?
+                .clone(),
+        );
     let paths = v["paths"].as_object_mut().ok_or_else(CoreError::database)?;
     paths.retain(|_, ops| {
         if let Some(ops) = ops.as_object_mut() {
@@ -31,7 +66,7 @@ fn schema() -> Result<Value, CoreError> {
         }
     });
     v["info"]["description"] = json!(
-        "CortexFusion native Rust migration candidate. All 79 reference operations are implemented. Historical schemas are preserved; some detailed validation error shapes differ. Optional configured model calls require signed decisions. No frontend or production deployment is included."
+        "CortexFusion native Rust migration candidate. All 79 reference operations and 3 native publication recovery operations are implemented. Historical schemas are preserved; some detailed validation error shapes differ. Optional configured model calls require signed decisions. No frontend or production deployment is included."
     );
     Ok(v)
 }
