@@ -3,6 +3,7 @@ pub mod canonical;
 pub mod changes;
 pub mod companions;
 pub mod confirmation;
+pub mod conversations;
 pub mod database;
 pub mod error;
 pub mod graph;

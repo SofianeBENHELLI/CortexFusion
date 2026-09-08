@@ -31,6 +31,7 @@ pub fn router(state: StateData) -> Router {
         .merge(crate::retrieval::routes())
         .merge(crate::signals::routes())
         .merge(crate::companions::routes())
+        .merge(crate::conversations::routes())
         .fallback(||async{(StatusCode::NOT_IMPLEMENTED,Json(json!({"error":"MIGRATION_NOT_IMPLEMENTED","message":"This operation is not yet served by the native Rust candidate"})))})
         .with_state(state)
 }
@@ -77,9 +78,22 @@ async fn identity(
     for row in rows {
         let role: String = row.get("role");
         // Candidate only advertises implemented capabilities; no model provider.
-        let capabilities: Vec<&str> = vec!["inspect"];
+        let mut capabilities = vec!["query", "inspect", "personal_history", "feedback"];
+        if matches!(
+            role.as_str(),
+            "owner" | "agent" | "contributor" | "corpus_manager"
+        ) {
+            capabilities.extend(["propose", "read_proposals"]);
+        }
+        if role == "owner" && s.confirmation.is_some() {
+            capabilities.extend(["review", "approve"]);
+            if s.graph.is_some() {
+                capabilities.push("publish");
+            }
+        }
         domains.push(json!({"id":row.get::<String,_>("id"),"name":row.get::<String,_>("name"),"role":role,"capabilities":capabilities}));
     }
+    p.check_fresh()?;
     tx.commit().await.map_err(CoreError::sql)?;
     Ok(Json(
         json!({"subject":p.subject,"tenant_id":p.tenant,"domains":domains,"extraction_provider":null}),

@@ -162,7 +162,7 @@ async fn configure(
     }.await;
     match outcome{Ok(v)=>Json(v).into_response(),Err(e) if e.code=="CONFIRMATION_REQUIRED"=>(e.status,Json(json!({"error":e.code,"message":e.message,"confirmation_request":{"action":action,"command_hash":crate::confirmation::command_hash(action,&args).unwrap_or_default(),"transport_header":"X-Cortex-Confirmation","max_lifetime_seconds":300}}))).into_response(),Err(e)=>e.into_response()}
 }
-fn signal_view(r: &PgRow, episode: &PgRow) -> Value {
+pub(crate) fn signal_view(r: &PgRow, episode: &PgRow) -> Value {
     let mut signal: Value = r.get("payload");
     if signal.get("companion_response_id").is_none() {
         signal["companion_response_id"] = Value::Null;

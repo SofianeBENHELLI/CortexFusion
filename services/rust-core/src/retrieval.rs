@@ -48,14 +48,14 @@ fn default_limit() -> usize {
 fn twenty() -> usize {
     20
 }
-#[derive(Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct QueryInput {
-    question: String,
+pub(crate) struct QueryInput {
+    pub(crate) question: String,
     #[serde(default = "default_chars")]
-    max_chars: usize,
+    pub(crate) max_chars: usize,
     #[serde(default = "default_limit")]
-    limit: usize,
+    pub(crate) limit: usize,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -108,21 +108,54 @@ async fn query(
     let p = s.auth.authenticate(&headers)?;
     let domain = uuid(&domain)?;
     let Json(input) = body.map_err(|_| invalid())?;
+    Ok(Json(query_service(&s, &p, &domain, input, None).await?))
+}
+pub(crate) async fn query_service(
+    s: &StateData,
+    p: &Principal,
+    domain: &str,
+    input: QueryInput,
+    conversation: Option<(&str, &str)>,
+) -> Result<Value, CoreError> {
     if !(1..=2000).contains(&input.question.chars().count())
         || !(100..=20000).contains(&input.max_chars)
         || !(1..=10).contains(&input.limit)
     {
         return Err(invalid());
     }
-    let (served, concepts) = if let Some(graph) = &s.graph {
-        graph.published_concepts(&p, &domain).await?
+    let fingerprint = if let Some((_, key)) = conversation {
+        let mut value = serde_json::to_value(&input).map_err(|_| invalid())?;
+        value["idempotency_key"] = json!(key);
+        Some(crate::canonical::digest(&value).map_err(|_| invalid())?)
     } else {
-        let mut tx = transaction(&s, &p, &domain).await?;
+        None
+    };
+    if let Some((id, key)) = conversation {
+        let mut tx = transaction(s, p, domain).await?;
+        if let Some(result) = crate::conversations::retry(
+            &mut tx,
+            p,
+            domain,
+            id,
+            key,
+            fingerprint.as_deref().ok_or_else(invalid)?,
+        )
+        .await?
+        {
+            p.check_fresh()?;
+            return Ok(result);
+        }
+        tx.commit().await.map_err(CoreError::sql)?;
+    }
+    let (served, concepts) = if let Some(graph) = &s.graph {
+        graph.published_concepts(p, domain).await?
+    } else {
+        let mut tx = transaction(s, p, domain).await?;
         let version: i64 = sqlx::query_scalar(
             "SELECT published_version FROM cf_domains WHERE tenant_id=$1 AND id=$2",
         )
         .bind(&p.tenant)
-        .bind(&domain)
+        .bind(domain)
         .fetch_one(&mut *tx)
         .await
         .map_err(CoreError::sql)?;
@@ -133,8 +166,22 @@ async fn query(
         (0, Vec::new())
     };
     // Final source/identity checks and episode insertion share one authorization boundary.
-    let mut tx = transaction(&s, &p, &domain).await?;
-    let sources = accessible(&mut tx, &p, &domain).await?;
+    let mut tx = transaction(s, p, domain).await?;
+    if let Some((id, key)) = conversation
+        && let Some(result) = crate::conversations::retry(
+            &mut tx,
+            p,
+            domain,
+            id,
+            key,
+            fingerprint.as_deref().ok_or_else(invalid)?,
+        )
+        .await?
+    {
+        p.check_fresh()?;
+        return Ok(result);
+    }
+    let sources = accessible(&mut tx, p, domain).await?;
     let visible: Vec<Concept> = concepts
         .into_iter()
         .filter(|c| c.sources.iter().all(|r| sources.contains_key(&r.source_id)))
@@ -180,12 +227,24 @@ async fn query(
     let episode = Uuid::new_v4().to_string();
     let gap = snippets.is_empty();
     let result = json!({"episode_id":episode,"answer":if gap{"No matching approved evidence was found within the requested context budget.".to_owned()}else{snippets.join("\n\n")},"status":if gap{"knowledge_gap"}else{"evidence_found"},"mode":"extractive","served_version":served,"concepts":selected,"citations":citations,"processing":"local_no_model"});
-    sqlx::query("INSERT INTO cf_episodes(tenant_id,domain_id,id,subject,question,result,source_ids,served_version) VALUES($1,$2,$3,$4,$5,$6,$7,$8)").bind(&p.tenant).bind(&domain).bind(&episode).bind(&p.subject).bind(&input.question).bind(&result).bind(json!(source_ids)).bind(served).execute(&mut *tx).await.map_err(CoreError::sql)?;
+    sqlx::query("INSERT INTO cf_episodes(tenant_id,domain_id,id,subject,question,result,source_ids,served_version) VALUES($1,$2,$3,$4,$5,$6,$7,$8)").bind(&p.tenant).bind(domain).bind(&episode).bind(&p.subject).bind(&input.question).bind(&result).bind(json!(source_ids)).bind(served).execute(&mut *tx).await.map_err(CoreError::sql)?;
+    if let Some((id, key)) = conversation {
+        crate::conversations::associate(
+            &mut tx,
+            p,
+            domain,
+            id,
+            key,
+            fingerprint.as_deref().ok_or_else(invalid)?,
+            &episode,
+        )
+        .await?;
+    }
     if gap {
         issue(
             &mut tx,
-            &p,
-            &domain,
+            p,
+            domain,
             &episode,
             "knowledge_gap",
             &input.question,
@@ -194,9 +253,9 @@ async fn query(
     }
     p.check_fresh()?;
     tx.commit().await.map_err(CoreError::sql)?;
-    Ok(Json(result))
+    Ok(result)
 }
-fn can_read(row: &PgRow, sources: &BTreeMap<Uuid, PgRow>) -> Result<bool, CoreError> {
+pub(crate) fn can_read(row: &PgRow, sources: &BTreeMap<Uuid, PgRow>) -> Result<bool, CoreError> {
     let ids: Vec<Uuid> =
         serde_json::from_value(row.get("source_ids")).map_err(|_| CoreError::database())?;
     Ok(ids.iter().all(|id| sources.contains_key(id)))

@@ -147,7 +147,17 @@ def run(binary, rust_url, admin_url):
                         "id": domain,
                         "name": "Rust synthetic domain",
                         "role": "owner",
-                        "capabilities": ["inspect"],
+                        "capabilities": [
+                            "query",
+                            "inspect",
+                            "personal_history",
+                            "feedback",
+                            "propose",
+                            "read_proposals",
+                            "review",
+                            "approve",
+                        ]
+                        + (["publish"] if os.environ.get("CORTEX_TERMINUS_URL") else []),
                     }
                 ]
                 forged = client.get("/v1/me", headers=headers(sub="bob", role="owner")).json()
@@ -213,8 +223,8 @@ def run(binary, rust_url, admin_url):
             return {
                 "status": "passed",
                 "checks": checks,
-                "native_http_operations": 30 if os.environ.get("CORTEX_TERMINUS_URL") else 27,
-                "native_mcp_operations": 30,
+                "native_http_operations": 37 if os.environ.get("CORTEX_TERMINUS_URL") else 34,
+                "native_mcp_operations": 37,
                 "terminus_application_integration": bool(os.environ.get("CORTEX_TERMINUS_URL")),
                 "model_calls": 0,
             }

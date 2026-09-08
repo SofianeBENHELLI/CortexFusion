@@ -37,6 +37,13 @@ pub const NATIVE: &[&str] = &[
     "api_responses_create",
     "api_responses_read",
     "api_responses_list",
+    "api_conversations_create",
+    "api_conversations_list",
+    "api_conversations_read",
+    "api_conversations_update",
+    "api_conversations_messages",
+    "api_conversations_query",
+    "api_conversations_timeline",
     "api_knowledge_query",
     "api_episodes_list",
     "api_episodes_read",
@@ -169,6 +176,10 @@ fn request_for(
             );
         }
     }
+    request.headers_mut().insert(
+        http::header::ACCEPT,
+        http::HeaderValue::from_static("application/json"),
+    );
     Ok(request)
 }
 fn failure(error: CoreError, confirmation: Option<Value>) -> CallToolResponse {

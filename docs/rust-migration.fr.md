@@ -4,7 +4,7 @@ Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La
 
 ## Couverture native actuelle
 
-Trente opérations HTTP et trente outils MCP sont implémentés :
+Trente-sept opérations HTTP et trente-sept outils MCP sont implémentés :
 
 | Fonction | HTTP | Outil MCP |
 |---|---|---|
@@ -34,12 +34,19 @@ Trente opérations HTTP et trente outils MCP sont implémentés :
 | Enregistrer une réponse de compagnon | POST /v1/domains/{domain}/episodes/{episode_id}/companion-responses | api_responses_create |
 | Relire sa réponse de compagnon | GET /v1/domains/{domain}/companion-responses/{response_id} | api_responses_read |
 | Lister ses réponses de compagnons | GET /v1/domains/{domain}/companion-responses | api_responses_list |
+| Créer une conversation personnelle | POST /v1/domains/{domain}/conversations | api_conversations_create |
+| Lister ses conversations | GET /v1/domains/{domain}/conversations | api_conversations_list |
+| Lire sa conversation | GET /v1/domains/{domain}/conversations/{ident} | api_conversations_read |
+| Renommer, archiver ou restaurer | PUT /v1/domains/{domain}/conversations/{ident} | api_conversations_update |
+| Lire les messages visibles | GET /v1/domains/{domain}/conversations/{ident}/messages | api_conversations_messages |
+| Poser une question idempotente, JSON ou SSE | POST /v1/domains/{domain}/conversations/{ident}/query | api_conversations_query |
+| Lire la timeline avec réponses et signaux | GET /v1/domains/{domain}/conversations/{ident}/timeline | api_conversations_timeline |
 | Créer une source textuelle | POST /v1/domains/{domain}/sources | api_sources_create |
 | Chercher et paginer les sources accessibles | GET /v1/domains/{domain}/sources | api_sources_list |
 | Lire une source et son contenu | GET /v1/domains/{domain}/sources/{source_id} | api_sources_read |
 | Parcourir ses extraits déterministes | GET /v1/domains/{domain}/sources/{source_id}/chunks | api_sources_chunks |
 
-Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Réviser une proposition, les conversations, les imports de fichiers, les collections et l’administration restent à migrer. `/v1/me` annonce prudemment uniquement `inspect` et aucun fournisseur d’extraction ; ses capacités seront étendues avec les parcours complets.
+Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Réviser une proposition, les imports de fichiers, les collections et l’administration restent à migrer. `/v1/me` annonce query, inspect, personal_history et feedback ; les rôles rédacteurs reçoivent propose/read_proposals. Un owner reçoit review/approve si les confirmations sont configurées, et publish si TerminusDB est également configuré. Aucun fournisseur d’extraction n’est annoncé.
 
 ## Fonctionnement et intégration frontend
 
@@ -73,9 +80,9 @@ La commande interne `cortex-rust-core --import-published <domainUUID>` utilise `
 
 ## Preuves et limites de vérification
 
-- Formatage, Clippy sans avertissement et18 tests Rust passent localement. Le test Terminus réel est explicitement ignoré hors moteur isolé et exécuté séparément en CI.
-- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques : vingt-sept routes directement testables sans moteur et trente schémas/outils MCP annoncés. Les scénarios source contrôlent ACL, rôle, déduplication, pagination et découpe Unicode comparée à Python.
-- Le lot sources et pont MCP générique a passé la CI avec le moteur TerminusDB12.0.7 épinglé par digest : onze opérations HTTP/MCP, publication signée, rejeu ciblé et lectures avec droits. Le lot propositions a ensuite validé dix-huit HTTP/MCP et le cycle complet source → création → revue → approbation → publication avec TerminusDB réel. Le lot recherche/feedback a ensuite passé sa CI avec TerminusDB réel, citations et épisodes privés (vingt-deux opérations). Le lot signaux/préférences nécessite encore sa propre CI.
+- Formatage, Clippy sans avertissement et19 tests Rust passent localement. Le test Terminus réel est explicitement ignoré hors moteur isolé et exécuté séparément en CI.
+- Le scénario local HTTP/MCP utilise le vrai binaire, PostgreSQL, clés éphémères et données synthétiques : trente-quatre routes directement testables sans moteur et trente-sept schémas/outils MCP annoncés. Les scénarios source contrôlent ACL, rôle, déduplication, pagination et découpe Unicode comparée à Python.
+- Le lot sources et pont MCP générique a passé la CI avec le moteur TerminusDB12.0.7 épinglé par digest : onze opérations HTTP/MCP, publication signée, rejeu ciblé et lectures avec droits. Le lot propositions a ensuite validé dix-huit HTTP/MCP et le cycle complet source → création → revue → approbation → publication avec TerminusDB réel. Le lot recherche/feedback a ensuite passé sa CI avec TerminusDB réel, citations et épisodes privés (vingt-deux opérations). Les lots signaux/préférences puis compagnons ont passé leurs trois workflows, dont TerminusDB réel (trente opérations). Le lot conversations attend sa CI dédiée.
 - La suite historique sur la migration0020 passe :514 tests Python et11 Node. Elle protège la référence, sans prouver que ses79 routes ont été portées en Rust.
 - Le vérificateur indépendant a exécuté100018 vecteurs de JSON canonique sans divergence après correction Ryu ;2044 cas de changements de graphe concordent avec Python ;23 cas de confirmations concordent. Ses campagnes de concurrence couvrent isolation tenant, révocation, expiration pendant réseau/verrou SQL, publication concurrente et retour arrière atomique après panne SQL injectée.
 - Les courses sont déclenchées avec un moteur contrôlé, distinct du test TerminusDB réel. Les NumericDate sous forme de chaînes exotiques restent plus restrictifs que Python. Les autres confirmations personnelles, opérations non portées, performances, haute disponibilité et perte d’accusé de commit PostgreSQL ne sont pas déclarées validées.
@@ -121,3 +128,13 @@ Un compagnon peut enregistrer sa réponse personnelle après interrogation : tex
 Le reçu est immuable et idempotent par utilisateur/domaine/clé. Il reste privé, même vis-à-vis d’un owner, et devient inaccessible si les preuves de l’épisode ne sont plus accessibles. La liste accepte pagination et filtre d’épisode. Les signaux peuvent se rattacher à ce reçu pour distinguer le contexte fourni par CortexFusion de la réponse réellement montrée par le compagnon.
 
 La vérification indépendante couvre180 cas de validation/références face à l’oracle, deux créations concurrentes, rejouabilité HTTP/MCP, confidentialité, pagination et révocation. Le scénario produit relie également recherche, reçu et signal ; la CI moteur réel complète ce lot.
+
+## Conversations, streaming et timeline
+
+Une conversation appartient exclusivement à son auteur. Création et interrogation utilisent des clés d’idempotence ; modifier le titre ou archiver exige la révision attendue. Une conversation archivée refuse les questions, y compris leurs replays, jusqu’à restauration. Épisode et association à la conversation sont enregistrés dans une seule transaction, après recontrôle des droits et de l’archivage.
+
+Pour HTTP, `Accept: text/event-stream` reçoit `started`, puis `result` ou `error`. Les erreurs déjà connues sont renvoyées avant ouverture du flux ; celles survenant ensuite sont des événements structurés. Une égalité de préférence avec JSON conserve JSON. Il n’y a pas de génération token par token ni de reprise par Last-Event-ID : relire l’état ou réutiliser la même clé de question. MCP conserve le résultat JSON final, même si son transport externe utilise SSE.
+
+Les messages ont un curseur de séquence ; la timeline ajoute les reçus de compagnons, signaux et éléments de suivi, avec curseurs enfants. Elle accepte avant/arrière, borne les scans à100 épisodes et la réponse à500000 octets UTF-8. Une page vide avec curseur et scan_limited=true doit être poursuivie. Les données dont les preuves ne sont plus accessibles sont masquées avant pagination ; aucun owner ne reçoit l’historique personnel d’un autre utilisateur.
+
+La vérification indépendante couvre les questions concurrentes, archivage/révocation/expiration pendant lecture moteur, événement started avant libération du moteur, relecture idempotente, directions et curseurs,101 épisodes masqués et refus d’un tour trop volumineux. Les scénarios HTTP/MCP produits passent localement avec PostgreSQL ; le moteur réel est vérifié séparément en CI.
