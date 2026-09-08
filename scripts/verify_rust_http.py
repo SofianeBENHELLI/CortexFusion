@@ -278,6 +278,9 @@ def run(binary, rust_url, admin_url):
                 from verify_rust_aliases import verify_aliases
 
                 checks.extend(verify_aliases(client, headers, domain))
+                from verify_rust_onboarding import verify_onboarding
+
+                checks.extend(verify_onboarding(client, headers, domain))
                 from verify_rust_model_receipts import verify_model_receipts
 
                 checks.extend(verify_model_receipts(client, headers, admin, tenant, domain))

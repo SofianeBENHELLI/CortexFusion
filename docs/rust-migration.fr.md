@@ -1,6 +1,6 @@
 # Migration Rust et TerminusDB — état vérifiable
 
-Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La référence historique comporte 79 opérations HTTP, 95 outils MCP et 87 schémas. Les79 opérations sont maintenant natives. Le remplacement du service existant reste à qualifier : la parité de surface ne constitue pas une homologation de production. Le frontend reste inchangé.
+Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La référence historique comporte 79 opérations HTTP, 95 outils MCP et 87 schémas. Les 79 opérations sont maintenant natives. Le remplacement du service existant reste à qualifier : la parité de surface ne constitue pas une homologation de production. Le frontend reste inchangé.
 
 ## Couverture native actuelle
 
@@ -88,7 +88,7 @@ Soixante-dix-neuf opérations HTTP, leurs soixante-dix-neuf outils MCP et seize 
 | Sélectionner un passage avec destination explicite | POST /v1/domains/{domain}/sources/{source_id}/extract | api_sources_extract |
 | Sélectionner un passage avec Ollama local | POST /v1/domains/{domain}/sources/{source_id}/extract-local | api_sources_extract_local |
 
-Les79 opérations HTTP et95 outils historiques sont implémentés en Rust. Les routes inconnues répondent501/MIGRATION_NOT_IMPLEMENTED. Une fonctionnalité non configurée répond par son erreur explicite, par exemple SYNTHESIS_DISABLED, MODEL_DISABLED ou DISCOVERY_DISABLED. Le catalogue décrit les contrats ; /v1/me décrit les capacités courantes. Les rôles rédacteurs reçoivent propose/read_proposals, owner et corpus_manager manage_corpus. Review/approve/manage_members/source_acl et extract sont réservés au propriétaire, avec confirmations configurées ; publish/compensate exigent également TerminusDB. Synthesize est disponible à tous les membres lorsque fournisseur et confirmations sont configurés.
+Les 79 opérations HTTP et 95 outils historiques sont implémentés en Rust. Les routes inconnues répondent501/MIGRATION_NOT_IMPLEMENTED. Une fonctionnalité non configurée répond par son erreur explicite, par exemple SYNTHESIS_DISABLED, MODEL_DISABLED ou DISCOVERY_DISABLED. Le catalogue décrit les contrats ; /v1/me décrit les capacités courantes. Les rôles rédacteurs reçoivent propose/read_proposals, owner et corpus_manager manage_corpus. Review/approve/manage_members/source_acl et extract sont réservés au propriétaire, avec confirmations configurées ; publish/compensate exigent également TerminusDB. Synthesize est disponible à tous les membres lorsque fournisseur et confirmations sont configurés.
 
 ## Fonctionnement et intégration frontend
 
@@ -127,11 +127,11 @@ La commande interne `cortex-rust-core --import-published <domainUUID>` utilise `
 - Le lot sources et pont MCP générique a passé la CI avec le moteur TerminusDB12.0.7 épinglé par digest : onze opérations HTTP/MCP, publication signée, rejeu ciblé et lectures avec droits. Le lot propositions a ensuite validé dix-huit HTTP/MCP et le cycle complet source → création → revue → approbation → publication avec TerminusDB réel. Le lot recherche/feedback a ensuite passé sa CI avec TerminusDB réel, citations et épisodes privés (vingt-deux opérations). Les lots signaux/préférences puis compagnons ont passé leurs trois workflows, dont TerminusDB réel (trente opérations). Le lot conversations a également passé les contrôles Rust avec TerminusDB réel (trente-sept opérations). Les lots issues, collections et CORS ont passé les trois workflows (quarante-quatre opérations). Les imports textuels et la gouvernance ont passé les trois workflows (cinquante-cinq opérations). Le lot révisions, droits de sources et alias MCP attend sa CI dédiée.
 - La suite historique sur la migration0020 passe :514 tests Python et11 Node. Elle protège la référence, sans prouver que ses79 routes ont été portées en Rust.
 - Le vérificateur indépendant a exécuté100018 vecteurs de JSON canonique sans divergence après correction Ryu ;2044 cas de changements de graphe concordent avec Python ;23 cas de confirmations concordent. Ses campagnes de concurrence couvrent isolation tenant, révocation, expiration pendant réseau/verrou SQL, publication concurrente et retour arrière atomique après panne SQL injectée.
-- Les courses sont déclenchées avec un moteur contrôlé, distinct du test TerminusDB réel. Les NumericDate sous forme de chaînes exotiques restent plus restrictifs que Python. Les autres confirmations personnelles, opérations non portées, performances, haute disponibilité et perte d’accusé de commit PostgreSQL ne sont pas déclarées validées.
+- Les courses sont déclenchées avec un moteur contrôlé, distinct du test TerminusDB réel. Les NumericDate sous forme de chaînes exotiques restent plus restrictifs que Python. Les performances, la haute disponibilité et la perte d’accusé de commit PostgreSQL ne sont pas déclarées validées.
 
 Aucun corpus d’entreprise ni appel modèle payant n’est utilisé dans ces campagnes. Les rapports détaillés et contre-exemples indépendants restent dans les livrables locaux.
 
-## Cycle de validation natif — lot en vérification
+## Cycle de validation natif
 
 Un owner, corpus_manager, contributor ou agent peut créer une proposition ; le viewer ne peut pas accéder à la file de propositions. Les changements s’appuient sur le snapshot Terminus publié, avec nouvelle vérification de version, appartenance et preuves après lecture réseau. Le corps conserve uniquement des passages verbatim. Les contraintes de graphe, les preuves des anciennes valeurs et des cibles liées sont conservées dans la validation. La normalisation des UUID, des valeurs par défaut et des empreintes est comparée à Pydantic/Python.
 
@@ -143,15 +143,15 @@ Les replays de création/revue/approbation contrôlent l’empreinte d’idempot
 
 Contre-vérification des décisions : neuf groupes supplémentaires passent avec PostgreSQL réel et moteur contrôlé, dont concurrence des approbations, révocation pendant lecture moteur, comparaisons historiques et cible liée masquée. Un écart de désérialisation des poids flottants explicites (R12) a été corrigé et le script indépendant inchangé confirme le correctif ; une régression HTTP avec lien implicite puis normalisé est conservée dans la CI.
 
-## Interrogation et retours explicites natifs — lot en vérification
+## Interrogation et retours explicites natifs
 
 L’interrogation lit le snapshot Terminus publié et renvoie uniquement des extraits approuvés, leur version, leurs citations et les relations visibles. Le classement lexical, les mots ignorés, le départage par UUID et les budgets de caractères reprennent Python. Les tables Unicode15.0.0 sont générées avec Python3.12 à la construction des sources puis utilisées directement en Rust, sans processus Python au runtime. Leur régénération est contrôlée en CI. Le vérificateur a comparé les1 112 064 scalaires Unicode à l’oracle, sans divergence.
 
 Une absence de preuve dans le budget donne explicitement `knowledge_gap` et crée un élément de suivi. Chaque interrogation crée un épisode personnel ; même un owner ne lit pas celui d’un autre utilisateur. Les droits sur les sources sont revérifiés avant enregistrement et lors de chaque relecture/liste. Un retour `unhelpful` crée un élément `disputed_answer` ; son rejeu idempotent ne duplique ni feedback ni élément de suivi. Les préférences et signaux observés/inférés sont décrits dans le lot suivant.
 
-La réponse indique `mode=extractive` et `processing=local_no_model`. Ce lot n’ajoute ni synthèse LLM ni appel OpenRouter. La version servie reste celle du snapshot lu, y compris si une nouvelle publication survient ensuite. La revue indépendante couvre classement, budgets Unicode, citations, épisodes privés, concurrence du feedback et révocation pendant lecture moteur, avec PostgreSQL réel et moteur contrôlé.
+La réponse indique `mode=extractive` et `processing=local_no_model`. Cette recherche déterministe ne déclenche pas de modèle ; une synthèse distincte peut ensuite être demandée explicitement. La version servie reste celle du snapshot lu, y compris si une nouvelle publication survient ensuite. La revue indépendante couvre classement, budgets Unicode, citations, épisodes privés, concurrence du feedback et révocation pendant lecture moteur, avec PostgreSQL réel et moteur contrôlé.
 
-## Signaux des compagnons et préférences personnelles — lot en vérification
+## Signaux des compagnons et préférences personnelles
 
 Les signaux déclarent leur origine : explicite (pouces, commentaire, résolution), observée (reformulation, correction, abandon, résolution), ou inférée (estimation de satisfaction). Un signal inféré exige commentaire, confiance bornée et sentiment ; un indice d’itération appartient uniquement aux observations. Le backend contrôle cette déclaration mais ne certifie pas que le compagnon a correctement interprété l’utilisateur.
 
@@ -163,7 +163,7 @@ La synthèse utilise une fenêtre avec fuseau horaire, croissante et limitée à
 
 Le vérificateur indépendant confirme224 cas de validation de provenance face à Pydantic, les confirmations personnelles HTTP/MCP, le maintien du rôleowner pour publier, l’idempotence, les préférencesBIGINT et les références de compagnons privées. Les contre-tests de synthèse passent : filtre conversation propre/autre auteur, fenêtres invalides et31 jours, plafond de10001 signaux refusé sans résultat partiel, puis même fenêtre après révocation des preuves donnant zéro signal visible. Une erreur de colonne du filtre conversation (R13) a été corrigée et le test indépendant confirme le correctif.
 
-## Réponses de compagnons natives — lot en vérification
+## Réponses de compagnons natives
 
 Un compagnon peut enregistrer sa réponse personnelle après interrogation : texte, nature (réponse, abstention ou clarification), citations, identifiant du compagnon et modèle déclaré facultatif. Une réponse au corpus doit citer au moins un passage exactement renvoyé dans cet épisode. Une référence étrangère, une sous-plage différente ou un doublon est refusé. Les références sont vérifiées, mais le texte généré n’est pas certifié : `semantic_validation=not_performed` reste explicite et cet enregistrement ne publie aucune connaissance.
 
@@ -193,7 +193,7 @@ Les collections regroupent le corpus : création owner/corpus_manager, lecteurs 
 
 Définir par exemple `CORTEX_CORS_ORIGINS='["http://localhost:5173"]'` pour le frontend Vite. La liste contient au plus20 origines canoniques uniques, HTTPS ou HTTP loopback explicite, sans chemin, wildcard, identifiants ni slash final. Par défaut elle est vide. Les origines absentes restent utilisables par les clients API ; une origine présente non autorisée ou répétée est refusée403 avant exécution.
 
-Les prévols OPTIONS sont sans bearer et ne déclenchent aucune action métier. Les requêtes réelles restent authentifiées par Authorization et X-Tenant-ID ; aucune authentification par cookie n’est activée. GET/POST/PUT/DELETE/OPTIONS et les en-têtes de confirmation, idempotence, SSE et MCP sont déclarés. HTTP et MCP partagent la liste, le SDK MCP conserve son contrôle d’hôte loopback. Le binaire reste lié à loopback : un déploiement distant ne fait pas partie de ce lot.
+Les prévols OPTIONS sont sans bearer et ne déclenchent aucune action métier. Les requêtes réelles restent authentifiées par Authorization et X-Tenant-ID ; aucune authentification par cookie n’est activée. GET/POST/PUT/DELETE/OPTIONS et les en-têtes de confirmation, idempotence, SSE et MCP sont déclarés. HTTP et MCP partagent la liste, le SDK MCP conserve son contrôle d’hôte loopback et accepte l’autorité publique HTTPS explicitement configurée. Le binaire reste lié à loopback : un déploiement distant ne fait pas partie de ce lot.
 
 ## Imports textuels durables
 
@@ -278,3 +278,12 @@ L’extraction propriétaire signée sélectionne un passage exact, au plus2000 
 Les offsets sont recalés sur la source originale et l’identifiant UUIDv5 reste compatible avec la référence. Proposition ready, reçu d’extraction et succès de tentative sont enregistrés dans une transaction unique après recontrôle owner, preuves et version publiée. Aucune acceptation ni publication implicite n’a lieu. Une publication concurrente peut imposer STALE_BASE après l’appel ; le résultat de tentative demeure consultable. Les échecs connus sont appendus à leur tentative d’origine, même si les droits ont été retirés, sans exposer les données désormais masquées.
 
 Les essais de cette migration utilisent exclusivement des réponses OpenRouter/Ollama simulées sur loopback : zéro appel payant et aucune donnée d’entreprise. Le point d’injection de fournisseur synthétique n’existe que dans les builds debug, exige la clé fixe synthetic-test-key et une URL sur IP loopback ; un build release refuse sa configuration. Il ne faut pas confondre ces tests de contrats avec une évaluation du modèle réel.
+
+
+## Ressources et prompts MCP natifs
+
+En plus des95 outils historiques, le serveur expose trois ressources fixes : `cortex://guide` explique les règles d’usage ; `cortex://workspace` décrit l’identité et ses domaines accessibles ; `cortex://actions` décrit les79 interactions. Le modèle de ressource `cortex://domains/{domain_id}/context` fournit versions et préférences personnelles de feedback. Ces lectures sont authentifiées, recontrôlent les accès et n’importent aucun fichier ou URL arbitraire.
+
+Trois prompts conservent les noms et arguments historiques : `ask_cortex(domain_id, question)`, `review_cortex_proposal(domain_id, proposal_id)` et `report_cortex_feedback(domain_id, episode_id)`. Ils préparent un parcours choisi par l’utilisateur sans exécuter la question, la revue ou le signal. Une revue exige l’accès à la proposition ; le feedback exige l’épisode personnel courant. Une instruction contenue dans la question demeure une donnée du prompt ; cela ne constitue pas une preuve du comportement futur d’un LLM connecté.
+
+Les métadonnées et le guide sont générés depuis la référence Python et contrôlés en CI. La contre-vérification indépendante couvre les3 ressources, le template, les3 prompts, les arguments/URI/curseurs invalides, la séparation des identités, les révocations et l’absence de mutation ou d’appel modèle.

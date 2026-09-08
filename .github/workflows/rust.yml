@@ -30,6 +30,8 @@ on:
       - 'scripts/verify_rust_synthesis.py'
       - 'scripts/verify_rust_extraction.py'
       - 'scripts/verify_rust_configured.py'
+      - 'scripts/verify_rust_onboarding.py'
+      - 'scripts/generate_rust_onboarding.py'
       - 'scripts/generate_rust_lexical.py'
       - 'scripts/generate_rust_model_contracts.py'
       - 'packages/contracts/interactions.json'
@@ -87,7 +89,8 @@ jobs:
           uv run alembic upgrade head
           uv run python scripts/generate_rust_lexical.py
           uv run python scripts/generate_rust_model_contracts.py
-          git diff --exit-code -- services/rust-core/src/lexical-unicode.json services/rust-core/src/decimal-unicode.json services/rust-core/src/synthesis-template.json
+          uv run python scripts/generate_rust_onboarding.py
+          git diff --exit-code -- services/rust-core/src/lexical-unicode.json services/rust-core/src/decimal-unicode.json services/rust-core/src/synthesis-template.json services/rust-core/src/onboarding.json
       - name: Verify native HTTP with real tenant isolation
         run: |
           cargo build --workspace --locked

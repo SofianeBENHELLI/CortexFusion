@@ -201,7 +201,7 @@ struct Operation {
     alias: Option<&'static str>,
 }
 #[derive(Clone)]
-struct NativeMcp {
+pub(crate) struct NativeMcp {
     http: Router,
     operations: Arc<BTreeMap<String, Operation>>,
     auth: Authenticator,
@@ -324,7 +324,45 @@ fn failure(error: CoreError, confirmation: Option<Value>) -> CallToolResponse {
 }
 impl ServerHandler for NativeMcp {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build()).with_instructions("CortexFusion native Rust migration candidate. Only listed operations are implemented. Sensitive actions require a trusted-host signed confirmation. Knowledge is subject to current source permissions.")
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().enable_resources().enable_prompts().build()).with_instructions("CortexFusion native Rust migration candidate. Only listed operations are implemented. Sensitive actions require a trusted-host signed confirmation. Knowledge is subject to current source permissions.")
+    }
+    async fn list_resources(
+        &self,
+        request: Option<PaginatedRequestParams>,
+        ctx: RequestContext<RoleServer>,
+    ) -> Result<ListResourcesResult, ErrorData> {
+        self.context_headers(&ctx)?;
+        crate::onboarding::list("resources", request)
+    }
+    async fn list_resource_templates(
+        &self,
+        request: Option<PaginatedRequestParams>,
+        ctx: RequestContext<RoleServer>,
+    ) -> Result<ListResourceTemplatesResult, ErrorData> {
+        self.context_headers(&ctx)?;
+        crate::onboarding::list("resourceTemplates", request)
+    }
+    async fn list_prompts(
+        &self,
+        request: Option<PaginatedRequestParams>,
+        ctx: RequestContext<RoleServer>,
+    ) -> Result<ListPromptsResult, ErrorData> {
+        self.context_headers(&ctx)?;
+        crate::onboarding::list("prompts", request)
+    }
+    async fn read_resource(
+        &self,
+        request: ReadResourceRequestParams,
+        ctx: RequestContext<RoleServer>,
+    ) -> Result<ReadResourceResponse, ErrorData> {
+        crate::onboarding::read(self, request, ctx).await
+    }
+    async fn get_prompt(
+        &self,
+        request: GetPromptRequestParams,
+        ctx: RequestContext<RoleServer>,
+    ) -> Result<GetPromptResponse, ErrorData> {
+        crate::onboarding::prompt(self, request, ctx).await
     }
     async fn list_tools(
         &self,
@@ -633,5 +671,56 @@ mod tests {
         let request = request_for(&operations["api_proposals_publish"], &args, &headers).unwrap();
         assert_eq!(request.method(), http::Method::POST);
         assert!(request.uri().path().ends_with("/publish"));
+    }
+}
+
+impl NativeMcp {
+    pub(crate) fn context_headers(
+        &self,
+        ctx: &RequestContext<RoleServer>,
+    ) -> Result<http::HeaderMap, ErrorData> {
+        let headers = ctx
+            .extensions
+            .get::<http::request::Parts>()
+            .ok_or_else(|| ErrorData::internal_error("Missing HTTP identity context", None))?
+            .headers
+            .clone();
+        self.auth.authenticate(&headers).map_err(|_| {
+            ErrorData::invalid_params("NOT_AUTHORIZED: Valid current identity required", None)
+        })?;
+        Ok(headers)
+    }
+    pub(crate) async fn context_read(
+        &self,
+        ctx: &RequestContext<RoleServer>,
+        path: &str,
+    ) -> Result<Value, ErrorData> {
+        let headers = self.context_headers(ctx)?;
+        let mut request = http::Request::builder()
+            .method("GET")
+            .uri(path)
+            .body(Body::empty())
+            .map_err(|_| ErrorData::invalid_params("Invalid context path", None))?;
+        *request.headers_mut() = headers;
+        let response = self
+            .http
+            .clone()
+            .oneshot(request)
+            .await
+            .map_err(|_| ErrorData::internal_error("Context unavailable", None))?;
+        let status = response.status();
+        let bytes = to_bytes(response.into_body(), 4_000_000)
+            .await
+            .map_err(|_| ErrorData::internal_error("Context exceeded bound", None))?;
+        let value: Value = serde_json::from_slice(&bytes)
+            .map_err(|_| ErrorData::internal_error("Invalid context response", None))?;
+        if !status.is_success() {
+            return Err(ErrorData::invalid_params(
+                "Context not authorized or unavailable",
+                Some(value),
+            ));
+        };
+        self.context_headers(ctx)?;
+        Ok(value)
     }
 }

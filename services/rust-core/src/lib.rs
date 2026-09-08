@@ -46,3 +46,5 @@ pub mod model_provider;
 pub mod synthesis;
 
 pub mod extraction;
+
+pub mod onboarding;
