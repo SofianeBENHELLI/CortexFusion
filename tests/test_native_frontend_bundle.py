@@ -34,7 +34,7 @@ def test_native_bundle_preserves_complete_functional_and_mcp_contracts_without_m
     assert bundle["items"] == baseline["items"] + extension["functional"]["items"]
     assert bundle["components"]["schemas"] == {**baseline["schemas"], **extension["schemas"]}
     assert bundle["mcp_tools"] == tools["tools"] + extension["tools"]
-    assert bundle["http_operations_count"] == 86 and bundle["mcp_tools_count"] == 102
+    assert bundle["http_operations_count"] == 87 and bundle["mcp_tools_count"] == 103
     assert bundle["http_confirmation_mode"] == "required" and bundle["runtime"] == "rust"
 
 

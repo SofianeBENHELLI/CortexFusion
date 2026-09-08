@@ -2,9 +2,9 @@
 
 Générée par `scripts/export_frontend_reference.py` depuis OpenAPI, le catalogue HTTP/MCP et les descriptions relues de `docs/fr/actions.json`. Ne pas modifier ce fichier directement. Le contrôle `make contracts` refuse une opération non documentée.
 
-Lire d'abord le [guide des parcours frontend](frontend-guide.fr.md). Cette référence décrit les opérations de référence communes, pas des fonctions futures. Les sept extensions natives Rust sont décrites dans [leur référence](rust-extensions.fr.md). Le catalogue machine français est `packages/contracts/functional-interactions.fr.json`.
+Lire d'abord le [guide des parcours frontend](frontend-guide.fr.md). Cette référence décrit les opérations de référence communes, pas des fonctions futures. Les huit extensions natives Rust sont décrites dans [leur référence](rust-extensions.fr.md). Le catalogue machine français est `packages/contracts/functional-interactions.fr.json`.
 
-Couverture : **79 opérations HTTP de référence communes**, chacune liée à son outil MCP généré. Les sept extensions portent le runtime Rust à **86 opérations HTTP et 102 outils MCP**. Les outils de compatibilité et les ressources/prompts sont décrits dans le guide MCP.
+Couverture : **79 opérations HTTP de référence communes**, chacune liée à son outil MCP généré. Les huit extensions portent le runtime Rust à **87 opérations HTTP et 103 outils MCP**. Les outils de compatibilité et les ressources/prompts sont décrits dans le guide MCP.
 
 ## Règles communes
 

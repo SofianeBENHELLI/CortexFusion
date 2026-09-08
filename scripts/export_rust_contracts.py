@@ -126,11 +126,11 @@ def build_extensions():
 def render_native(functional):
     document = render(functional)
     start = document.index("## Règles communes")
-    document = """# Extensions natives Rust — import et reprise des graphes
+    document = """# Extensions natives Rust — graphes et gouvernance
 
 Généré par `scripts/export_rust_contracts.py` depuis `services/rust-core/contracts/extensions.json`. Ne pas modifier directement. Le catalogue machine est `packages/contracts/rust-extensions.json` (section `functional` pour les descriptions françaises).
 
-Ces **7 opérations HTTP et MCP** complètent les 79 opérations de référence. Lire le [guide frontend](frontend-guide.fr.md) et les contrats servis par le runtime Rust.
+Ces **8 opérations HTTP et MCP** complètent les 79 opérations de référence. Lire le [guide frontend](frontend-guide.fr.md) et les contrats servis par le runtime Rust.
 
 """ + document[start:]
     lines = document.splitlines()

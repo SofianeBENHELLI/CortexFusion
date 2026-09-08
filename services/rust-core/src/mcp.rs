@@ -109,6 +109,7 @@ pub const NATIVE: &[&str] = &[
     "api_proposals_reviews",
     "api_sources_create",
     "api_sources_access",
+    "api_sources_access_events",
     "api_sources_list",
     "api_sources_read",
     "api_sources_chunks",

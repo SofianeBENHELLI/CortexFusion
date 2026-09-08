@@ -1,10 +1,10 @@
 # Migration Rust et TerminusDB — état vérifiable
 
-Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La référence historique comporte 79 opérations HTTP, 95 outils MCP et 87 schémas. Les 79 opérations sont maintenant natives ; sept extensions d’import et de reprise portent la surface à86HTTP/102MCP. Le remplacement du service existant reste à qualifier : la parité de surface ne constitue pas une homologation de production. Le frontend reste inchangé.
+Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La référence historique comporte 79 opérations HTTP, 95 outils MCP et 87 schémas. Les 79 opérations sont maintenant natives ; huit extensions de graphes et de gouvernance portent la surface à87HTTP/103MCP. Le remplacement du service existant reste à qualifier : la parité de surface ne constitue pas une homologation de production. Le frontend reste inchangé.
 
 ## Couverture native actuelle
 
-Quatre-vingt-six opérations HTTP, leurs outils MCP et seize alias de compatibilité (102 outils au total) sont implémentés :
+Quatre-vingt-sept opérations HTTP, leurs outils MCP et seize alias de compatibilité (103 outils au total) sont implémentés :
 
 | Fonction | HTTP | Outil MCP |
 |---|---|---|
@@ -105,7 +105,7 @@ La publication conserve `expected_published_version`. Accepter et publier resten
 
 ## Stockage et cohérence
 
-PostgreSQL conserve identité, appartenances, preuves, ACL, propositions, journal et manifestes. Les migrations0019 et0020 ajoutent réservations et manifestes immuables tenant/domaine/version avec RLS forcée, puis l’intention de publication attendue. Le readiness exige la révision 0024 et les 36 tables attendues, leurs protections RLS et un rôle SQL non privilégié.
+PostgreSQL conserve identité, appartenances, preuves, ACL, propositions, journal et manifestes. Les migrations0019 et0020 ajoutent réservations et manifestes immuables tenant/domaine/version avec RLS forcée, puis l’intention de publication attendue. Le readiness exige la révision 0025 et les 37 tables attendues, leurs protections RLS et un rôle SQL non privilégié.
 
 TerminusDB contient les concepts typés, preuves sous-documents ordonnés et relations vers d’autres concepts. Chaque snapshot utilise une base privée neuve, exige le commit retourné, puis relit ce commit et vérifie digest/nombre de concepts. Les lectures applicatives résolvent exclusivement le manifeste SQL de la version publiée. Elles recontrôlent les droits après l’appel moteur, filtrent les concepts dont une preuve est masquée et leurs relations. Une version publiée supérieure à0 sans manifeste renvoie503 ; la version0 représente le graphe vide ; aucun repli implicite vers la projection SQL. Cette stratégie par snapshot consomme davantage de bases ; son optimisation reste ouverte.
 
@@ -289,7 +289,7 @@ Les essais de cette migration utilisent exclusivement des réponses OpenRouter/O
 
 ## Ressources et prompts MCP natifs
 
-En plus des95 outils historiques, le serveur expose trois ressources fixes : `cortex://guide` explique les règles d’usage ; `cortex://workspace` décrit l’identité et ses domaines accessibles ; `cortex://actions` décrit les86 interactions. Le modèle de ressource `cortex://domains/{domain_id}/context` fournit versions et préférences personnelles de feedback. Ces lectures sont authentifiées, recontrôlent les accès et n’importent aucun fichier ou URL arbitraire.
+En plus des95 outils historiques, le serveur expose trois ressources fixes : `cortex://guide` explique les règles d’usage ; `cortex://workspace` décrit l’identité et ses domaines accessibles ; `cortex://actions` décrit les87 interactions. Le modèle de ressource `cortex://domains/{domain_id}/context` fournit versions et préférences personnelles de feedback. Ces lectures sont authentifiées, recontrôlent les accès et n’importent aucun fichier ou URL arbitraire.
 
 Trois prompts conservent les noms et arguments historiques : `ask_cortex(domain_id, question)`, `review_cortex_proposal(domain_id, proposal_id)` et `report_cortex_feedback(domain_id, episode_id)`. Ils préparent un parcours choisi par l’utilisateur sans exécuter la question, la revue ou le signal. Une revue exige l’accès à la proposition ; le feedback exige l’épisode personnel courant. Une instruction contenue dans la question demeure une donnée du prompt ; cela ne constitue pas une preuve du comportement futur d’un LLM connecté.
 
@@ -365,3 +365,7 @@ Le binaire `cortex-corpus-worker` orchestre les lectures et traitements de fichi
 ## Lectures simultanées
 
 Les lectures d’un même instantané publié encore en cours peuvent être regroupées, avec réautorisation et copie filtrée par appel. Aucun résultat terminé n’est conservé. Les validations de mutations restent indépendantes. Voir le [fonctionnement, les annulations et les limites](concurrent-graph-reads.fr.md).
+
+## Journal des droits des sources — migration0025
+
+Le nouveau GET d’historique et son outil MCP portent la surface à87 HTTP/103 MCP et100 schémas/types de domaine exportés. Les sections de campagne précédentes conservent leurs comptes historiques. La capture transactionnelle inclut les anciens écrivains avec un acteur explicitement non renseigné. Voir les [contrats, droits, pagination et limites](source-access-audit.fr.md).

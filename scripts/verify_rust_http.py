@@ -361,6 +361,11 @@ def run(binary, rust_url, admin_url):
                 from verify_rust_mcp import verify_mcp
 
                 checks.extend(verify_mcp(client, headers, domain))
+                from verify_rust_source_access_audit import verify_source_access_audit
+
+                checks.extend(
+                    verify_source_access_audit(client, headers, admin, tenant, confirmation_private)
+                )
                 from verify_rust_publication_recovery import verify_publication_recovery
 
                 checks.extend(
@@ -396,10 +401,10 @@ def run(binary, rust_url, admin_url):
             return {
                 "status": "passed",
                 "checks": checks,
-                "native_http_operations": 86 if os.environ.get("CORTEX_TERMINUS_URL") else 82,
-                "http_inventory_operations": 86,
+                "native_http_operations": 87 if os.environ.get("CORTEX_TERMINUS_URL") else 83,
+                "http_inventory_operations": 87,
                 "native_http_count_scope": "Scenario surface: four engine-dependent operations require the real TerminusDB integration; not exhaustive branch coverage",
-                "native_mcp_operations": 102,
+                "native_mcp_operations": 103,
                 "native_mcp_count_scope": "Advertised native tools; not exhaustive branch coverage",
                 "publication_recovery_engine": "real TerminusDB with ACK-loss gateway"
                 if os.environ.get("CORTEX_TERMINUS_URL")

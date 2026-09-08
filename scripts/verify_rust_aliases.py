@@ -26,7 +26,7 @@ def verify_aliases(client, headers, domain):
     assert workspace == client.get("/v1/me", headers=headers(sub="bob")).json()
     catalog = call("describe_actions", {})
     assert catalog == client.get("/v1/interactions", headers=headers(sub="bob")).json()
-    assert len(catalog["items"]) == 86
+    assert len(catalog["items"]) == 87
     spec = client.get("/openapi.json").json()
     assert {op["operationId"] for methods in spec["paths"].values() for op in methods.values()} == {
         x["operation_id"] for x in catalog["items"]

@@ -8435,6 +8435,111 @@
           "error_contract": "common_error"
         }
       }
+    },
+    {
+      "action_id": "sources.access_events",
+      "roles": [
+        "owner"
+      ],
+      "effect": "none",
+      "effect_description": "Read only; no durable application change.",
+      "intent_example": "Montre qui a changé les accès à cette source et les droits avant/après.",
+      "confirmation_policy": "authorized_user_intent",
+      "object_authorization": "Current domain owner and current source access are required; past authorship grants no access.",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/sources/{source_id}/access-events",
+      "operation_id": "sources.access_events",
+      "description_fr": "Liste les changements effectifs des accès à une source depuis la migration0025. Le journal est enregistré atomiquement avec chaque modification SQL, y compris par les anciens exécutables. actor_source=runtime_context indique le contexte déclaré par le runtime ; unattributed et actor=null indiquent un auteur non renseigné. Aucun passé ni auteur inconnu n’est reconstruit.",
+      "frontend_fr": "Afficher avant/après, date et auteur ou « Auteur non renseigné ». Après un changement d’accès, invalider cette liste et les vues dépendantes de la source. Paginer avec next_after ; le curseur appartient à cette source. Un propriétaire qui retire son propre accès reçoit ensuite404 sur cet historique.",
+      "effect_fr": "Lecture sans modification métier durable.",
+      "mcp_tool": "api_sources_access_events",
+      "mcp_confirmation_required": false,
+      "parameters": [
+        {
+          "name": "domain",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "source_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "x-tenant-id",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20
+          }
+        },
+        {
+          "name": "after",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "request_body": null,
+      "responses": {
+        "200": {
+          "description": "Authorized state",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceAccessEventPage"
+              }
+            }
+          }
+        },
+        "422": {
+          "error_contract": "common_error"
+        },
+        "401": {
+          "error_contract": "common_error"
+        },
+        "403": {
+          "error_contract": "common_error"
+        },
+        "404": {
+          "error_contract": "common_error"
+        },
+        "409": {
+          "error_contract": "common_error"
+        },
+        "413": {
+          "error_contract": "common_error"
+        },
+        "429": {
+          "error_contract": "common_error"
+        },
+        "503": {
+          "error_contract": "common_error"
+        }
+      }
     }
   ],
   "http_confirmation_mode": "required",
@@ -34002,6 +34107,233 @@
         "destructiveHint": false,
         "openWorldHint": false
       }
+    },
+    {
+      "name": "api_sources_access_events",
+      "description": "Liste les changements effectifs des accès à une source depuis la migration0025. Le journal est enregistré atomiquement avec chaque modification SQL, y compris par les anciens exécutables. actor_source=runtime_context indique le contexte déclaré par le runtime ; unattributed et actor=null indiquent un auteur non renseigné. Aucun passé ni auteur inconnu n’est reconstruit.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "source_id": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "domain",
+              "source_id"
+            ]
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "default": 20
+              },
+              "after": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "additionalProperties": false,
+            "required": []
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "http_status": {
+            "type": "integer"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SourceAccessEventPage"
+              },
+              {
+                "$ref": "#/$defs/MCPError"
+              }
+            ]
+          }
+        },
+        "required": [
+          "http_status",
+          "data"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "http_status": {
+                "enum": [
+                  200
+                ]
+              },
+              "data": {
+                "$ref": "#/$defs/SourceAccessEventPage"
+              }
+            },
+            "not": {
+              "required": [
+                "confirmation_request"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "http_status": {
+                "minimum": 400,
+                "maximum": 599
+              },
+              "data": {
+                "$ref": "#/$defs/MCPError"
+              }
+            }
+          }
+        ],
+        "$defs": {
+          "SourceAccessEventPage": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "source_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "current_allowed_subjects": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              },
+              "history_scope": {
+                "type": "string",
+                "const": "changes_since_audit_migration"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/SourceAccessEvent"
+                }
+              },
+              "next_after": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "source_id",
+              "current_allowed_subjects",
+              "history_scope",
+              "items",
+              "next_after"
+            ]
+          },
+          "SourceAccessEvent": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "actor": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "actor_source": {
+                "type": "string",
+                "enum": [
+                  "runtime_context",
+                  "unattributed"
+                ]
+              },
+              "previous_allowed_subjects": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              },
+              "allowed_subjects": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "actor",
+              "actor_source",
+              "previous_allowed_subjects",
+              "allowed_subjects",
+              "created_at"
+            ]
+          },
+          "MCPError": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
     }
   ],
   "components": {
@@ -38999,12 +39331,110 @@
           "outcome"
         ],
         "additionalProperties": false
+      },
+      "SourceAccessEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "actor_source": {
+            "type": "string",
+            "enum": [
+              "runtime_context",
+              "unattributed"
+            ]
+          },
+          "previous_allowed_subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "allowed_subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "actor",
+          "actor_source",
+          "previous_allowed_subjects",
+          "allowed_subjects",
+          "created_at"
+        ]
+      },
+      "SourceAccessEventPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "current_allowed_subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "history_scope": {
+            "type": "string",
+            "const": "changes_since_audit_migration"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceAccessEvent"
+            }
+          },
+          "next_after": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "source_id",
+          "current_allowed_subjects",
+          "history_scope",
+          "items",
+          "next_after"
+        ]
       }
     }
   },
   "runtime": "rust",
-  "http_operations_count": 86,
-  "mcp_tools_count": 102,
+  "http_operations_count": 87,
+  "mcp_tools_count": 103,
   "schema_resolution": {
     "http": "Resolve #/components/schemas references against this document.",
     "mcp": "Evaluate each tool inputSchema/outputSchema as its own JSON Schema document; its $defs references are local to that schema."

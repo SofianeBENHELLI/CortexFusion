@@ -555,6 +555,104 @@
         "outcome"
       ],
       "additionalProperties": false
+    },
+    "SourceAccessEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "actor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "actor_source": {
+          "type": "string",
+          "enum": [
+            "runtime_context",
+            "unattributed"
+          ]
+        },
+        "previous_allowed_subjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "allowed_subjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "actor",
+        "actor_source",
+        "previous_allowed_subjects",
+        "allowed_subjects",
+        "created_at"
+      ]
+    },
+    "SourceAccessEventPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "current_allowed_subjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "history_scope": {
+          "type": "string",
+          "const": "changes_since_audit_migration"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/SourceAccessEvent"
+          }
+        },
+        "next_after": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "source_id",
+        "current_allowed_subjects",
+        "history_scope",
+        "items",
+        "next_after"
+      ]
     }
   },
   "operations": [
@@ -733,6 +831,35 @@
         "domain"
       ],
       "object_authorization": "Current owner and current access to every source in the complete target graph are required; the inventory grants no authority."
+    },
+    {
+      "action_id": "sources.access_events",
+      "method": "GET",
+      "path": "/v1/domains/{domain}/sources/{source_id}/access-events",
+      "effect": "none",
+      "confirmed": false,
+      "query": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        },
+        "after": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "output": "SourceAccessEventPage",
+      "status": 200,
+      "intent": "Montre qui a changé les accès à cette source et les droits avant/après.",
+      "description_fr": "Liste les changements effectifs des accès à une source depuis la migration0025. Le journal est enregistré atomiquement avec chaque modification SQL, y compris par les anciens exécutables. actor_source=runtime_context indique le contexte déclaré par le runtime ; unattributed et actor=null indiquent un auteur non renseigné. Aucun passé ni auteur inconnu n’est reconstruit.",
+      "frontend_fr": "Afficher avant/après, date et auteur ou « Auteur non renseigné ». Après un changement d’accès, invalider cette liste et les vues dépendantes de la source. Paginer avec next_after ; le curseur appartient à cette source. Un propriétaire qui retire son propre accès reçoit ensuite404 sur cet historique.",
+      "path_parameters": [
+        "domain",
+        "source_id"
+      ],
+      "object_authorization": "Current domain owner and current source access are required; past authorship grants no access."
     }
   ]
 }

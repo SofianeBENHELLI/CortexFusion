@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SourceAccessEventPage",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "source_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "current_allowed_subjects": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "history_scope": {
+      "type": "string",
+      "const": "changes_since_audit_migration"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SourceAccessEvent"
+      }
+    },
+    "next_after": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "source_id",
+    "current_allowed_subjects",
+    "history_scope",
+    "items",
+    "next_after"
+  ],
+  "$defs": {
+    "SourceAccessEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "actor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "actor_source": {
+          "type": "string",
+          "enum": [
+            "runtime_context",
+            "unattributed"
+          ]
+        },
+        "previous_allowed_subjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "allowed_subjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "actor",
+        "actor_source",
+        "previous_allowed_subjects",
+        "allowed_subjects",
+        "created_at"
+      ]
+    }
+  }
+}

@@ -1,8 +1,8 @@
-# Extensions natives Rust — import et reprise des graphes
+# Extensions natives Rust — graphes et gouvernance
 
 Généré par `scripts/export_rust_contracts.py` depuis `services/rust-core/contracts/extensions.json`. Ne pas modifier directement. Le catalogue machine est `packages/contracts/rust-extensions.json` (section `functional` pour les descriptions françaises).
 
-Ces **7 opérations HTTP et MCP** complètent les 79 opérations de référence. Lire le [guide frontend](frontend-guide.fr.md) et les contrats servis par le runtime Rust.
+Ces **8 opérations HTTP et MCP** complètent les 79 opérations de référence. Lire le [guide frontend](frontend-guide.fr.md) et les contrats servis par le runtime Rust.
 
 ## Règles communes
 
@@ -24,6 +24,7 @@ Ces **7 opérations HTTP et MCP** complètent les 79 opérations de référence.
 | [graph.import_attempts](#action-graph-import_attempts) | `GET /v1/domains/{domain}/graph-import-attempts` | Inspecte la migration de cette version et la concordance entre journal et projection. |
 | [graph.retry_import](#action-graph-retry_import) | `POST /v1/domains/{domain}/graph-import-attempts` | Remplace cette tentative d’import incertaine par une nouvelle tentative du contenu confirmé. |
 | [graph.import_events](#action-graph-import_events) | `GET /v1/domains/{domain}/graph-import-events` | Affiche le journal des tentatives de migration de cette version. |
+| [sources.access_events](#action-sources-access_events) | `GET /v1/domains/{domain}/sources/{source_id}/access-events` | Montre qui a changé les accès à cette source et les droits avant/après. |
 
 <a id="action-proposals-publication_attempts"></a>
 ## proposals.publication_attempts
@@ -220,6 +221,35 @@ Liste les événements immuables d’import et de reprise du graphe, à la versi
 - Succès HTTP 200, `application/json` : [GraphPublicationEventPage](#schema-graphpublicationeventpage).
 - Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
 
+<a id="action-sources-access_events"></a>
+## sources.access_events
+
+Liste les changements effectifs des accès à une source depuis la migration0025. Le journal est enregistré atomiquement avec chaque modification SQL, y compris par les anciens exécutables. actor_source=runtime_context indique le contexte déclaré par le runtime ; unattributed et actor=null indiquent un auteur non renseigné. Aucun passé ni auteur inconnu n’est reconstruit.
+
+**Utilisation frontend :** Afficher avant/après, date et auteur ou « Auteur non renseigné ». Après un changement d’accès, invalider cette liste et les vues dépendantes de la source. Paginer avec next_after ; le curseur appartient à cette source. Un propriétaire qui retire son propre accès reçoit ensuite404 sur cet historique.
+
+- HTTP : `GET /v1/domains/{domain}/sources/{source_id}/access-events`.
+- MCP : `api_sources_access_events` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.
+- Rôles préalables : owner.
+- Effet : Lecture sans modification métier durable.
+- Décision : intention utilisateur autorisée ; aucune élévation de rôle implicite.
+
+### Paramètres
+
+| Emplacement | Nom | Requis | Type | Contraintes |
+|---|---|---|---|---|
+| path | `domain` | oui | texte | format : `"uuid"` |
+| path | `source_id` | oui | texte | format : `"uuid"` |
+| header | `x-tenant-id` | oui | texte | format : `"uuid"` |
+| query | `limit` | non | entier | minimum : `1`; maximum : `100`; défaut : `20` |
+| query | `after` | non | texte | format : `"uuid"` |
+
+### Corps et résultat
+
+- Aucun corps attendu.
+- Succès HTTP 200, `application/json` : [SourceAccessEventPage](#schema-sourceaccesseventpage).
+- Erreurs déclarées : 422, 401, 403, 404, 409, 413, 429, 503.
+
 ## Schémas des données
 
 Les noms techniques restent identiques dans HTTP, TypeScript et MCP. Les champs d'un objet imbriqué sont décrits par le lien vers son schéma. Le JSON machine conserve toutes les contraintes, y compris les alternatives complexes.
@@ -380,3 +410,30 @@ Champs non déclarés interdits.
 | `published_version` | oui | entier | minimum : `0`; maximum : `9223372036854775807` |
 | `attempt` | oui | [GraphPublicationAttempt](#schema-graphpublicationattempt) | — |
 | `outcome` | oui | `"published"`, `"unresolved"`, `"superseded"` | — |
+
+<a id="schema-sourceaccessevent"></a>
+### SourceAccessEvent
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `id` | oui | texte | format : `"uuid"` |
+| `actor` | oui | texte / null | — |
+| `actor_source` | oui | `"runtime_context"`, `"unattributed"` | — |
+| `previous_allowed_subjects` | oui | liste de texte | éléments min. : `1` |
+| `allowed_subjects` | oui | liste de texte | éléments min. : `1` |
+| `created_at` | oui | texte | format : `"date-time"` |
+
+<a id="schema-sourceaccesseventpage"></a>
+### SourceAccessEventPage
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `source_id` | oui | texte | format : `"uuid"` |
+| `current_allowed_subjects` | oui | liste de texte | éléments min. : `1` |
+| `history_scope` | oui | `"changes_since_audit_migration"` | — |
+| `items` | oui | liste de [SourceAccessEvent](#schema-sourceaccessevent) | — |
+| `next_after` | oui | texte / null | — |

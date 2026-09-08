@@ -2,11 +2,11 @@
 
 Cette référence cadre les fonctions utilisateur, corpus manager et propriétaire de Cortex Fusion. Elle ne prescrit pas de layout. Elle accompagne le frontend React 18 / TypeScript / Vite développé séparément, avec TanStack Query pour les données serveur, Zustand pour les brouillons et états locaux, et une interface française.
 
-La [référence exhaustive des endpoints](frontend-api.fr.md) donne, pour chaque opération, sa fonction, ses paramètres, ses schémas d'entrée/sortie, ses rôles et son outil MCP. Le [catalogue français Rust complet](../packages/contracts/functional-interactions.rust.fr.json) réunit les 86 opérations, leurs paramètres et réponses, ainsi que les 102 définitions MCP, dans un seul JSON utilisable par un générateur ou un agent. Le [catalogue de référence commun](../packages/contracts/functional-interactions.fr.json) conserve les 79 opérations historiques. Les contrats de types sont dans `packages/contracts/src/`. Les fonctions décrites ici sont celles effectivement livrées ; le tableau suivant distingue les écarts.
+La [référence exhaustive des endpoints](frontend-api.fr.md) donne, pour chaque opération, sa fonction, ses paramètres, ses schémas d'entrée/sortie, ses rôles et son outil MCP. Le [catalogue français Rust complet](../packages/contracts/functional-interactions.rust.fr.json) réunit les 87 opérations, leurs paramètres et réponses, ainsi que les 103 définitions MCP, dans un seul JSON utilisable par un générateur ou un agent. Le [catalogue de référence commun](../packages/contracts/functional-interactions.fr.json) conserve les 79 opérations historiques. Les contrats de types sont dans `packages/contracts/src/`. Les fonctions décrites ici sont celles effectivement livrées ; le tableau suivant distingue les écarts.
 
 ## Candidat Rust : paramètres à utiliser
 
-Les79 endpoints et95 outils MCP historiques sont implémentés en Rust. Sept extensions natives d’import et de reprise portent la surface à **86 opérations HTTP et102 outils MCP** ; leurs [schémas et descriptions françaises](rust-extensions.fr.md) complètent la référence. Les fonctions et schémas métier ci-dessous restent la référence d’intégration. Pour ce runtime, appliquer les précisions suivantes avant les sections communes :
+Les79 endpoints et95 outils MCP historiques sont implémentés en Rust. Huit extensions natives de graphes et de gouvernance portent la surface à **87 opérations HTTP et103 outils MCP** ; leurs [schémas et descriptions françaises](rust-extensions.fr.md) complètent la référence. Les fonctions et schémas métier ci-dessous restent la référence d’intégration. Pour ce runtime, appliquer les précisions suivantes avant les sections communes :
 
 - Base locale : `http://127.0.0.1:8010`, avec OpenAPI sur `/openapi.json` et MCP Streamable HTTP sur `/mcp/`. Aucun écran `/docs` n’est livré par Rust. Le frontend React/Vite peut garder ses clients typés et ses clés de cache.
 - Le serveur exige `CORTEX_RUST_DATABASE_URL` et exactement une source d’identité : PEM via `CORTEX_JWT_PUBLIC_KEY_FILE`, ou JWKS fixe via `CORTEX_JWKS_URL`. La [rotation JWKS native](jwks-rotation.fr.md) refuse les clés retirées et les caches expirés, y compris aux contrôles des requêtes en cours. Les rôles viennent toujours de SQL.
@@ -451,3 +451,5 @@ Un [worker Rust optionnel](corpus-worker.fr.md) peut traiter les fichiers et imp
 ## Tailles et erreurs du pont MCP natif
 
 Le [guide des limites de transport](transport-limits.fr.md) distingue les octets du corps HTTP interne et ceux du JSON-RPC transmis, les refus HTTP, les erreurs protocolaires et les reçus métier. Une réponse HTTP directe volumineuse peut nécessiter des pages plus petites via MCP. Une erreur de réponse ne prouve jamais qu’une mutation n’a pas eu lieu : relire le reçu avant toute reprise.
+
+L’[historique des accès aux sources](source-access-audit.fr.md) décrit les droits avant/après, l’attribution des anciens exécutables et le rafraîchissement des vues après retrait d’accès.

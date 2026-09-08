@@ -1,8 +1,8 @@
 # Démarrer et tester le backend Rust
 
-Ce guide concerne le candidat Rust, ses86 opérations HTTP et102 outils MCP. Le serveur et l’analyse de documents sont natifs. PostgreSQL conserve les identités, droits, preuves et reçus ; TerminusDB fournit les snapshots de connaissance publiés. Les migrations SQL, le bootstrap et les outils de vérification utilisent encore Python. Le service Python reste présent comme référence de compatibilité.
+Ce guide concerne le candidat Rust, ses87 opérations HTTP et103 outils MCP. Le serveur et l’analyse de documents sont natifs. PostgreSQL conserve les identités, droits, preuves et reçus ; TerminusDB fournit les snapshots de connaissance publiés. Les migrations SQL, le bootstrap et les outils de vérification utilisent encore Python. Le service Python reste présent comme référence de compatibilité.
 
-Les sept extensions natives d’import et de reprise sont décrites dans la [référence française dédiée](rust-extensions.fr.md). Les schémas JSON et types TypeScript `GraphPublication*` et `GraphImport*` sont générés avec les autres contrats.
+Les huit extensions natives de graphes et de gouvernance sont décrites dans la [référence française dédiée](rust-extensions.fr.md). Les schémas JSON et types TypeScript `GraphPublication*` et `GraphImport*` sont générés avec les autres contrats.
 
 ## Préparer un environnement isolé
 
@@ -16,7 +16,7 @@ uv run alembic upgrade head
 cargo build --workspace --locked
 ```
 
-Alembic attend `CORTEX_MIGRATION_DATABASE_URL`, au format SQLAlchemy `postgresql+pg8000://…`. Le schéma attendu est la migration0024, avec36 tables applicatives. Rust attend séparément `CORTEX_RUST_DATABASE_URL`, au format SQLx `postgresql://cortex_app:…@127.0.0.1:55432/cortex_test`. Les deux URL désignent la même base avec des identités différentes. Les mots de passe doivent être encodés dans les URL.
+Alembic attend `CORTEX_MIGRATION_DATABASE_URL`, au format SQLAlchemy `postgresql+pg8000://…`. Le schéma attendu est la migration0025, avec37 tables applicatives. Rust attend séparément `CORTEX_RUST_DATABASE_URL`, au format SQLx `postgresql://cortex_app:…@127.0.0.1:55432/cortex_test`. Les deux URL désignent la même base avec des identités différentes. Les mots de passe doivent être encodés dans les URL.
 
 Le test automatisé crée ses propres tenants, membres et clés éphémères. Pour une session manuelle persistante, créer le domaine avec le bootstrap existant, muni de l’identité de migration :
 
@@ -82,7 +82,7 @@ uv run python scripts/verify_rust_http.py --output /tmp/cortex-rust-http.json
 
 Le dernier scénario exige `CORTEX_RUST_DATABASE_URL` et `CORTEX_TEST_ADMIN_URL`, toutes deux sur une base dont le nom finit par `_test`. Il démarre le vrai binaire, génère des identités et confirmations éphémères, puis exerce HTTP, MCP, rôles, données personnelles, fichiers, feedback et reçus IA. Les appels OpenRouter/Ollama sont remplacés par un serveur HTTP synthétique local et une clé factice imposée par le test. Il conserve les fixtures dans cette base isolée et ne tronque aucune table. Le binaire de test est la version debug ; le détournement synthétique est interdit dans une compilation release.
 
-Sans les variables TerminusDB, le rapport inventorie 82 opérations directement testables et annonce 102 outils, avec des passerelles moteur synthétiques pour les scénarios de reprise. Avec le moteur configuré, il inventorie les 86 opérations et exerce le cycle de publication/lecture avec snapshots réels. Ces nombres décrivent l’inventaire du scénario ; ils ne sont pas un pourcentage de couverture de lignes ou de branches.
+Sans les variables TerminusDB, le rapport inventorie 83 opérations directement testables et annonce 103 outils, avec des passerelles moteur synthétiques pour les scénarios de reprise. Avec le moteur configuré, il inventorie les 87 opérations et exerce le cycle de publication/lecture avec snapshots réels. Ces nombres décrivent l’inventaire du scénario ; ils ne sont pas un pourcentage de couverture de lignes ou de branches.
 
 Le test moteur autonome est activé séparément :
 
@@ -120,3 +120,5 @@ Prévoir un délai d’arrêt du superviseur supérieur à cette grâce. Les par
 
 
 Le binaire séparé `cortex-corpus-worker` permet de traiter les reçus du corpus sans garder un frontend ouvert. Sa [configuration et son périmètre](corpus-worker.fr.md) sont distincts de ceux du serveur ; il utilise uniquement les API publiques et ne demande pas d’accès aux bases.
+
+L’[historique des accès aux sources](source-access-audit.fr.md) décrit les droits avant/après, l’attribution des anciens exécutables et le rafraîchissement des vues après retrait d’accès.
