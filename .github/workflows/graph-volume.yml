@@ -69,9 +69,15 @@ jobs:
           timeout --signal=TERM --kill-after=45s 900s uv run python scripts/benchmark_rust_graph.py --synthetic-only --build-profile release --output "$RUNNER_TEMP/graph-volume.json"
       - name: Measure native Unicode excerpt allocations
         run: cargo run --release --locked --example benchmark_excerpt
+      - name: Measure shared long document workloads
+        run: |
+          timeout --signal=TERM --kill-after=45s 900s uv run python scripts/benchmark_rust_graph.py --synthetic-only --build-profile release --source-profile shared_long --output "$RUNNER_TEMP/graph-volume-long.json"
       - name: Report measurements and qualification limits
         if: always()
         run: |
           if [ -f "$RUNNER_TEMP/graph-volume.json" ]; then
             cat "$RUNNER_TEMP/graph-volume.json"
+          fi
+          if [ -f "$RUNNER_TEMP/graph-volume-long.json" ]; then
+            cat "$RUNNER_TEMP/graph-volume-long.json"
           fi

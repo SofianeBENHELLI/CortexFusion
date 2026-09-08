@@ -28,7 +28,8 @@ from verify_rust_publication_recovery import start_graph
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def fixture_data(size, tenant):
+def fixture_data(size, tenant, source_profile="short_distinct"):
+    assert source_profile in {"short_distinct", "shared_long"}
     namespace = UUID(tenant)
     concepts, sources = [], []
     for index in range(size):
@@ -65,12 +66,41 @@ def fixture_data(size, tenant):
                 ],
             }
         )
+    if source_profile == "shared_long":
+        # Two independently protected documents, each at the source codepoint limit.
+        # Padding distributes proof spans through the document, including its end.
+        sources = []
+        for parity in (0, 1):
+            group = concepts[parity::2]
+            padding = 200_000 - sum(len(c["body"]) + 1 for c in group)
+            assert group and padding >= 0
+            quotient, remainder = divmod(padding, len(group))
+            sid = str(uuid5(namespace, f"shared-source-{parity}"))
+            parts, cursor = [], 0
+            for index, concept in enumerate(group):
+                count = quotient + (index < remainder)
+                filler = ("e🧠\u0301" * math.ceil(count / 3))[:count]
+                parts.extend([filler, concept["body"], "\n"])
+                start = cursor + count
+                end = start + len(concept["body"])
+                concept["sources"] = [{"source_id": sid, "start": start, "end": end}]
+                cursor = end + 1
+            content = "".join(parts)
+            assert len(content) == cursor == 200_000
+            sources.append(
+                {
+                    "id": sid,
+                    "content": content,
+                    "hash": hashlib.sha256(content.encode()).hexdigest(),
+                    "readers": ["alice", "bob"] if parity == 0 else ["alice"],
+                }
+            )
     return concepts, sources
 
 
-def seed(admin, fixture, size):
+def seed(admin, fixture, size, source_profile="short_distinct"):
     domain = str(uuid4())
-    concepts, sources = fixture_data(size, fixture.tenant)
+    concepts, sources = fixture_data(size, fixture.tenant, source_profile)
     version = math.ceil(size / 50)
     with admin.begin() as conn:
         conn.execute(
@@ -231,11 +261,6 @@ def measure(client, fixture, domain, version, concepts, sources, operation, conc
     mcp = "mcp" in operation
     query = operation.startswith("query")
     single = operation.startswith("concept")
-    arguments = {"path": {"domain": domain}}
-    if query:
-        arguments["body"] = {"question": "Signal00000", "limit": 1, "max_chars": 8000}
-    if single:
-        arguments["path"]["concept_id"] = concepts[0]["concept_id"]
     rpc = {
         "jsonrpc": "2.0",
         "id": 1,
@@ -246,34 +271,46 @@ def measure(client, fixture, domain, version, concepts, sources, operation, conc
             else "api_concepts_read"
             if single
             else "api_concepts_list",
-            "arguments": arguments,
         },
     }
     expected = concepts if subject == "alice" else [{**c, "links": []} for c in concepts[::2]]
 
-    def oracle(data):
+    targets = [concepts[i] for i in sorted({0, 2 * (len(concepts) // 4), len(concepts) - 2})]
+
+    def oracle(data, target):
         if query:
             assert data["status"] == "evidence_found" and data["served_version"] == version
-            assert data["answer"] == concepts[0]["body"] and data["concepts"] == [expected[0]]
+            assert data["answer"] == target["body"] and data["concepts"] == [
+                {**target, "links": []}
+            ]
             assert len(data["citations"]) == 1
             citation = data["citations"][0]
+            reference = target["sources"][0]
+            source = next(s for s in sources if s["id"] == reference["source_id"])
             assert (
-                citation["source_id"] == sources[0]["id"]
-                and citation["content_hash"] == sources[0]["hash"]
+                citation["source_id"] == source["id"] and citation["content_hash"] == source["hash"]
             )
             assert (
-                citation["start"] == 0
-                and citation["end"] == len(sources[0]["content"])
-                and citation["excerpt"] == sources[0]["content"]
+                citation["start"] == reference["start"]
+                and citation["end"] == reference["end"]
+                and citation["excerpt"] == source["content"][reference["start"] : reference["end"]]
             )
             return data["episode_id"]
-        assert data == (expected[0] if single else expected), "Concept payload differs from oracle"
+        assert data == ({**target, "links": []} if single else expected), (
+            "Concept payload differs from oracle"
+        )
         return None
 
     count = max(12, concurrency * 2)
     barrier = threading.Barrier(concurrency)
 
     def request(index):
+        target = targets[index % len(targets)]
+        request_arguments = {"path": {"domain": domain}}
+        if query:
+            request_arguments["body"] = {"question": target["title"], "limit": 1, "max_chars": 8000}
+        if single:
+            request_arguments["path"]["concept_id"] = target["concept_id"]
         if index < concurrency:
             barrier.wait(timeout=10)
         headers = fixture.headers(subject)
@@ -283,16 +320,16 @@ def measure(client, fixture, domain, version, concepts, sources, operation, conc
                 response = client.post(
                     "/mcp/",
                     headers={**headers, "Accept": "application/json, text/event-stream"},
-                    json=rpc,
+                    json={**rpc, "params": {**rpc["params"], "arguments": request_arguments}},
                 )
             elif query:
                 response = client.post(
-                    f"/v1/domains/{domain}/query", headers=headers, json=arguments["body"]
+                    f"/v1/domains/{domain}/query", headers=headers, json=request_arguments["body"]
                 )
             else:
                 response = client.get(
                     f"/v1/domains/{domain}/concepts"
-                    + ("/" + concepts[0]["concept_id"] if single else ""),
+                    + ("/" + target["concept_id"] if single else ""),
                     headers=headers,
                 )
         except httpx.HTTPError:
@@ -305,7 +342,7 @@ def measure(client, fixture, domain, version, concepts, sources, operation, conc
         status, data = response.status_code, response.json()
         if mcp and status == 200:
             status, data = mcp_result(data)
-        episode = oracle(data) if status == 200 else None
+        episode = oracle(data, target) if status == 200 else None
         assert status in {200, 503}, f"Unexpected benchmark HTTP status {status}"
         return {
             "latency_ms": elapsed,
@@ -338,6 +375,7 @@ def measure(client, fixture, domain, version, concepts, sources, operation, conc
         },
         "response_bytes_max": max(sample["bytes"] for sample in samples),
         "query_episodes": len(episodes),
+        "target_titles": [c["title"] for c in targets] if query or single else [],
         "samples": [{k: v for k, v in sample.items() if k != "episode_id"} for sample in samples],
     }
 
@@ -355,7 +393,13 @@ def run(args, report):
         {
             "status": "running",
             "model_calls": 0,
-            "profile": "one short source per concept; public/private pairs; one public-to-private link per pair",
+            "source_profile": args.source_profile,
+            "profile": (
+                "one short source per concept"
+                if args.source_profile == "short_distinct"
+                else "two shared 200000-codepoint documents; proof spans distributed through each document"
+            )
+            + "; public/private pairs; one public-to-private link per pair",
             "pool": {"sql_connections": 10, "acquire_timeout_seconds": 3, "http_connections": 32},
             "quantile": "nearest rank, all attempts including errors; small diagnostic samples only",
             "runtime": {
@@ -426,7 +470,9 @@ def run(args, report):
                     report["volumes"].append(volume)
                     save(args.output, report)
                     started = time.monotonic()
-                    domain, version, concepts, sources = seed(admin, fixture, size)
+                    domain, version, concepts, sources = seed(
+                        admin, fixture, size, args.source_profile
+                    )
                     volume.update(
                         {
                             "seed_seconds": time.monotonic() - started,
@@ -435,6 +481,11 @@ def run(args, report):
                             "sources": len(sources),
                             "links": size // 2,
                             "source_codepoints_max": max(len(s["content"]) for s in sources),
+                            "source_utf8_bytes_max": max(
+                                len(s["content"].encode()) for s in sources
+                            ),
+                            "proof_start_min": min(c["sources"][0]["start"] for c in concepts),
+                            "proof_end_max": max(c["sources"][0]["end"] for c in concepts),
                             "concept_json_bytes": len(
                                 json.dumps(concepts, ensure_ascii=False).encode()
                             ),
@@ -599,6 +650,9 @@ def main():
     parser.add_argument("--simulate-engine", action="store_true")
     parser.add_argument("--binary", type=Path, default=ROOT / "target/release/cortex-rust-core")
     parser.add_argument("--build-profile", choices=["debug", "release"], default="release")
+    parser.add_argument(
+        "--source-profile", choices=["short_distinct", "shared_long"], default="short_distinct"
+    )
     parser.add_argument("--sizes", type=int, nargs="+", default=[100, 500, 2000])
     parser.add_argument("--concurrency", type=int, nargs="+", default=[1, 4, 12])
     parser.add_argument("--output", type=Path, required=True)
@@ -612,10 +666,10 @@ def main():
     report = {
         "status": "starting",
         "limitations": [
-            "Synthetic short-source profile, not production capacity or a latency SLO",
+            "Synthetic explicit source profile, not production capacity or a latency SLO",
             "Query includes durable history writes and domain-lock contention",
             "Each graph read loads and validates the whole immutable snapshot",
-            "Small diagnostic samples; no hidden retries; source-long profile not measured",
+            "Small diagnostic samples; no hidden retries; no inference to other document shapes",
         ],
     }
     try:

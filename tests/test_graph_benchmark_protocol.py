@@ -43,6 +43,25 @@ def test_import_authentication_and_contract_failure_is_not_a_capacity_result():
         classify_import(200, {"outcome": "superseded"})
 
 
+@pytest.mark.parametrize("size", [100, 500, 2000])
+def test_shared_long_documents_keep_exact_spans_hashes_and_separate_visibility(size):
+    concepts, sources = fixture_data(size, str(UUID(int=1)), "shared_long")
+    assert len(sources) == 2
+    assert all(len(s["content"]) == 200_000 for s in sources)
+    assert all(s["hash"] == hashlib.sha256(s["content"].encode()).hexdigest() for s in sources)
+    by_id = {s["id"]: s for s in sources}
+    for index, concept in enumerate(concepts):
+        proof = concept["sources"][0]
+        source = by_id[proof["source_id"]]
+        assert source["content"][proof["start"] : proof["end"]] == concept["body"]
+        assert ("bob" in source["readers"]) == (index % 2 == 0)
+        assert proof["start"] > 0
+    assert concepts[-2]["sources"][0]["end"] == 199_999
+    assert concepts[-1]["sources"][0]["end"] == 199_999
+    assert "Signal00001" not in sources[0]["content"]
+    assert "Signal00000" not in sources[1]["content"]
+
+
 def test_mcp_error_flag_cannot_disguise_a_success():
     payload = {
         "jsonrpc": "2.0",
