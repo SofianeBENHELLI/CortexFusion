@@ -25,6 +25,8 @@ on:
       - 'scripts/verify_rust_aliases.py'
       - 'scripts/verify_rust_model_receipts.py'
       - 'scripts/verify_rust_maintenance.py'
+      - 'scripts/verify_rust_files.py'
+      - 'scripts/verify_rust_document_parser.py'
       - 'scripts/generate_rust_lexical.py'
       - 'packages/contracts/interactions.json'
       - 'packages/contracts/mcp-tools.json'

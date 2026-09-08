@@ -37,3 +37,7 @@ pub mod discovery;
 pub mod model_receipts;
 
 pub mod maintenance;
+
+pub mod files;
+
+pub mod document_parser;

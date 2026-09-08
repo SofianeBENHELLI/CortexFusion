@@ -5,6 +5,11 @@ edition = "2024"
 publish = false
 
 [dependencies]
+base64 = "0.22"
+pdf-extract = "0.12"
+roxmltree = "0.21"
+zip = { version = "8.6", default-features = false, features = ["deflate"] }
+libc = "0.2"
 futures-util = "0.3"
 jsonschema = { version = "0.55", default-features = false, features = ["arbitrary-precision"] }
 rmcp = { version = "3.2", default-features = false, features = ["server", "transport-streamable-http-server"] }
@@ -22,6 +27,6 @@ sha1 = "0.10"
 ryu = "1"
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "json", "chrono", "uuid"] }
 thiserror = "2"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal", "process", "io-util", "time"] }
 uuid = { version = "1", features = ["serde", "v4"] }
 

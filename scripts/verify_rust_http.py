@@ -200,6 +200,7 @@ def run(binary, rust_url, admin_url):
                             "personal_issues",
                             "propose",
                             "read_proposals",
+                            "manage_corpus",
                             "review",
                             "approve",
                             "manage_members",
@@ -240,6 +241,12 @@ def run(binary, rust_url, admin_url):
                 from verify_rust_imports import verify_imports
 
                 checks.extend(verify_imports(client, headers, domain))
+                from verify_rust_files import verify_files
+
+                checks.extend(verify_files(client, headers, admin, tenant, domain))
+                from verify_rust_document_parser import verify_document_parser
+
+                checks.extend(verify_document_parser(client, headers, domain))
                 from verify_rust_governance import verify_governance
 
                 checks.extend(
@@ -285,7 +292,7 @@ def run(binary, rust_url, admin_url):
                 checks.append("membership_revocation")
                 assert (
                     client.post(
-                        f"/v1/domains/{domain}/files/{uuid4()}/process", headers=headers()
+                        f"/v1/domains/{domain}/sources/{uuid4()}/extract", headers=headers()
                     ).status_code
                     == 501
                 )
@@ -307,8 +314,8 @@ def run(binary, rust_url, admin_url):
             return {
                 "status": "passed",
                 "checks": checks,
-                "native_http_operations": 68 if os.environ.get("CORTEX_TERMINUS_URL") else 64,
-                "native_mcp_operations": 84,
+                "native_http_operations": 75 if os.environ.get("CORTEX_TERMINUS_URL") else 71,
+                "native_mcp_operations": 91,
                 "terminus_application_integration": bool(os.environ.get("CORTEX_TERMINUS_URL")),
                 "model_calls": 0,
             }

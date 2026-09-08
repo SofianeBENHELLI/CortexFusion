@@ -4,7 +4,7 @@ Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La
 
 ## Couverture native actuelle
 
-Soixante-huit opérations HTTP, leurs soixante-huit outils MCP et seize outils de compatibilité (84 au total) sont implémentés :
+Soixante-quinze opérations HTTP, leurs soixante-quinze outils MCP et seize outils de compatibilité (91 au total) sont implémentés :
 
 | Fonction | HTTP | Outil MCP |
 |---|---|---|
@@ -76,8 +76,15 @@ Soixante-huit opérations HTTP, leurs soixante-huit outils MCP et seize outils d
 | Publier le prochain commit accepté | POST /v1/domains/{domain}/publish | api_domain_publish |
 | Reconstruire la projection publiée vérifiée | POST /v1/domains/{domain}/replay | api_domain_replay |
 | Préparer une proposition inverse | POST /v1/domains/{domain}/commits/{sequence}/compensate | api_commits_compensate |
+| Déposer un fichier immuable dans une collection | POST /v1/domains/{domain}/collections/{collection}/files | api_files_upload |
+| Lister les fichiers accessibles ou à traiter | GET /v1/domains/{domain}/files | api_files_list |
+| Lire le reçu de fichier | GET /v1/domains/{domain}/files/{ident} | api_files_read |
+| Télécharger les octets originaux | GET /v1/domains/{domain}/files/{ident}/download | api_files_download |
+| Traiter un fichier avec bail exclusif | POST /v1/domains/{domain}/files/{ident}/process | api_files_process |
+| Remettre un échec en attente | POST /v1/domains/{domain}/files/{ident}/retry | api_files_retry |
+| Annuler un traitement non terminé | POST /v1/domains/{domain}/files/{ident}/cancel | api_files_cancel |
 
-Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Onze opérations restent à porter : sept opérations de fichiers binaires, trois appels de fournisseurs (extractions et synthèse), et la découverte OAuth MCP. `/v1/me` annonce query, inspect, personal_history, feedback et personal_issues ; les rôles rédacteurs reçoivent propose/read_proposals. Un owner reçoit review/approve/manage_members/source_acl si les confirmations sont configurées, et publish/compensate si TerminusDB est également configuré. Aucun fournisseur d’extraction n’est annoncé.
+Les opérations non portées répondent HTTP501/MIGRATION_NOT_IMPLEMENTED ; elles ne sont pas annoncées comme outils natifs. Les 95 outils de référence restent dans le service Python. Quatre opérations restent à porter : trois appels de fournisseurs (extractions et synthèse), et la découverte OAuth MCP. `/v1/me` annonce query, inspect, personal_history, feedback et personal_issues ; les rôles rédacteurs reçoivent propose/read_proposals ; owner et corpus_manager reçoivent manage_corpus. Un owner reçoit review/approve/manage_members/source_acl si les confirmations sont configurées, et publish/compensate si TerminusDB est également configuré. Aucun fournisseur d’extraction n’est annoncé.
 
 ## Fonctionnement et intégration frontend
 
@@ -176,7 +183,7 @@ Un signalement reste personnel à travers son épisode, même pour un owner. Dé
 
 Une correction facultative peut accompagner démarrer ou résoudre. Elle exige le droit courant de lire la proposition et ses preuves. Résoudre avec correction exige son statut published et enregistre sa version publiée et son digest. Les corrections rejetées, différées, superseded ou changes_requested sont refusées. Le journal filtre les preuves des corrections avant pagination ; un replay dont la correction est désormais masquée renvoie404. Les révisions sont BIGINT et la concurrence est sérialisée.
 
-Les collections regroupent le corpus : création owner/corpus_manager, lecteurs membres et accès conservé par le créateur. La clé de création porte les arguments normalisés ; changer leur ordre ou leurs doublons change cette empreinte, même si l’ACL enregistrée est triée et dédupliquée. Nom, description et ACL sont immuables dans le modèle actuel ; aucune modification d’ACL de collection n’est annoncée. Lecture et recherche filtrent l’appartenance et les lecteurs ; la recherche utilise lower PostgreSQL, donc ses règles de collation. Les imports textuels associés sont maintenant natifs ; le traitement des fichiers binaires reste à porter.
+Les collections regroupent le corpus : création owner/corpus_manager, lecteurs membres et accès conservé par le créateur. La clé de création porte les arguments normalisés ; changer leur ordre ou leurs doublons change cette empreinte, même si l’ACL enregistrée est triée et dédupliquée. Nom, description et ACL sont immuables dans le modèle actuel ; aucune modification d’ACL de collection n’est annoncée. Lecture et recherche filtrent l’appartenance et les lecteurs ; la recherche utilise lower PostgreSQL, donc ses règles de collation. Les imports textuels associés sont maintenant natifs ; le dépôt et le traitement des fichiers sont maintenant natifs.
 
 ## Connexion navigateur locale
 
@@ -227,3 +234,19 @@ Publier au niveau domaine sélectionne le prochain commit accepté et conserve c
 Compenser un commit publié crée une proposition inverse ready, sans l’accepter ni la publier. Une publication en attente, un changement dépendant ultérieur ou des preuves inaccessibles bloquent la création. Les permissions owner sont revérifiées après lecture réseau, même si l’utilisateur conserve un rôle contributeur. Confirmation signée, base attendue, motif et clé idempotente restent obligatoires.
 
 La campagne indépendante couvre les historiques privés et quotas, une reconstruction réparatrice, une divergence moteur, un rollback SQL injecté après suppression, une publication concurrente pendant lecture, des révocations owner et la compensation idempotente. Les scénarios locaux utilisent PostgreSQL et un moteur contrôlé ; la CI vérifie séparément TerminusDB réel.
+
+## Fichiers et traitement documentaire natifs
+
+Le dépôt202 conserve1 à500000 octets immuables reçus en base64, un nom de fichier sans séparateur ni caractère de contrôle et une ACL incluse dans la collection avec le déposant. La clé idempotente est personnelle, mais les fichiers sont partagés avec leurs lecteurs autorisés : un fichier n’est pas un historique de conversation. Collection, appartenance et éventuelle source produite restent vérifiées à chaque lecture, téléchargement, traitement et replay. Les limites base64 sont comparées au runtime Python de référence ;350 cas indépendants passent après correction d’un padding excédentaire.
+
+HTTP télécharge application/octet-stream, attachment/source.bin, nosniff et no-store. MCP conserve l’enveloppe historique data.media_type/data.base64. La pagination filtre les droits avant limite ; pending=true inclut les jobs pending et processing dont le bail a expiré.
+
+Process acquiert un bail de60 secondes et incrémente les tentatives avant de lancer un processus Rust séparé. Le processus lit les octets sur stdin, sans héritage des variables de base de données ou de fournisseur, sans ouvrir de chemin documentaire, macro ni URL. Limites :500000 octets,15 secondes murales,10 secondes CPU POSIX et512MiB de mémoire virtuelle sur Linux. Le résultat est borné à4Mo. Le processus est tué si son attente est abandonnée. Deux traitements au plus sont simultanés par processus serveur ; au-delà FILE_BUSY/503 est renvoyé avant réservation de bail ou incrément de tentative. Cette limite globale ne constitue pas encore un ordonnanceur équitable par tenant.
+
+TXT/Markdown acceptent UTF-8 et un BOM initial. PDF utilise pdf-extract0.12, refuse le chiffrement et plus de100 pages ; DOCX utilise zip8.6 et roxmltree0.21, limite2000 entrées/8Mo décompressés/ratio200 et refuse DTD/ENTITY. Aucun OCR n’est fourni. Les espaces et offsets du texte extrait PDF peuvent différer de pypdf : les citations portent sur la source réellement créée, jamais sur une équivalence inventée entre parseurs. Le XML DOCX accepte UTF-8 et UTF-16 LE/BE avec BOM ou déclaration. UTF-16 sans ces deux marqueurs et ISO8859-1 restent refusés ; les autres encodages restent à qualifier.
+
+Les extraits sont limités à30000 points de code Unicode avec repères section/page/paragraphe. Fichier vide, encodage invalide, format inexploitable, XML dangereux ou texte trop grand produisent un reçu failed explicite, sans source partielle. Retry remet uniquement failed en pending ; cancel annule pending/processing et invalide son bail. Succeeded/failed sont des résultats terminaux lors d’un nouveau process. Il n’y a pas de worker automatique dans le candidat : le client pilote process puis relit le reçu.
+
+Après parsing, droits et bail sont revérifiés. Source, rattachement à la collection et reçu sont atomiques ; une erreur SQL inattendue conserve le bail durable pour une reprise après expiration, sans source orpheline. La campagne indépendante injecte une erreur de reçu, vérifie le rollback puis la reprise ; elle distingue le moteur documentaire réel du moteur Terminus contrôlé.
+
+Références des composants : [pdf-extract](https://docs.rs/pdf-extract/0.12.0/pdf_extract/), [ZipArchive](https://docs.rs/zip/8.6.0/zip/struct.ZipArchive.html), [roxmltree](https://docs.rs/roxmltree/0.21.1/roxmltree/). Les limites du processus sont appliquées par CortexFusion en plus des bibliothèques.

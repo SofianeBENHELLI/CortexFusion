@@ -6,8 +6,18 @@ use cortex_rust_core::{
 use sqlx::postgres::PgPoolOptions;
 use std::{env, net::SocketAddr, time::Duration};
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args: Vec<String> = env::args().skip(1).collect();
+    if args.len() == 2 && args[0] == "--parse-document" {
+        cortex_rust_core::document_parser::child(&args[1]);
+        return Ok(());
+    }
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?
+        .block_on(run())
+}
+async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let url = env::var("CORTEX_RUST_DATABASE_URL")?;
     let pem = std::fs::read(env::var("CORTEX_JWT_PUBLIC_KEY_FILE")?)?;
     let issuer = env::var("CORTEX_JWT_ISSUER")?;

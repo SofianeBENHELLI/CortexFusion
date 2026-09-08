@@ -26,6 +26,13 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 pub const NATIVE: &[&str] = &[
+    "api_files_upload",
+    "api_files_process",
+    "api_files_list",
+    "api_files_read",
+    "api_files_download",
+    "api_files_retry",
+    "api_files_cancel",
     "api_domain_publish",
     "api_domain_replay",
     "api_commits_compensate",
@@ -422,11 +429,22 @@ impl ServerHandler for NativeMcp {
             .await
             .map_err(|_| ErrorData::internal_error("Native operation unavailable", None))?;
         let status = response.status().as_u16();
+        let media_type = response
+            .headers()
+            .get(http::header::CONTENT_TYPE)
+            .and_then(|x| x.to_str().ok())
+            .unwrap_or("application/octet-stream")
+            .to_owned();
         let bytes = to_bytes(response.into_body(), 4_000_000)
             .await
             .map_err(|_| ErrorData::internal_error("Native response exceeded bound", None))?;
-        let mut data: Value = serde_json::from_slice(&bytes)
-            .map_err(|_| ErrorData::internal_error("Invalid native response", None))?;
+        let mut data: Value = if media_type.contains("application/json") {
+            serde_json::from_slice(&bytes)
+                .map_err(|_| ErrorData::internal_error("Invalid native response", None))?
+        } else {
+            use base64::Engine;
+            json!({"media_type":media_type,"base64":base64::engine::general_purpose::STANDARD.encode(&bytes)})
+        };
         if operation.alias.is_some() && status < 400 {
             return Ok(CallToolResult::structured(data).into());
         }

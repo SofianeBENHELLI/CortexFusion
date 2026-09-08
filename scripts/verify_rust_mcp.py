@@ -27,6 +27,13 @@ def verify_mcp(client, headers, domain):
     assert initialized.status_code == 200, initialized.text
     result = rpc("tools/list", {}).json()["result"]
     expected_names = {
+        "api_files_upload",
+        "api_files_process",
+        "api_files_list",
+        "api_files_read",
+        "api_files_download",
+        "api_files_retry",
+        "api_files_cancel",
         "api_domain_publish",
         "api_domain_replay",
         "api_commits_compensate",
