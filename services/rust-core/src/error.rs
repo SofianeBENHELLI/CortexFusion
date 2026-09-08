@@ -26,20 +26,40 @@ impl CoreError {
             status: StatusCode::NOT_FOUND,
         }
     }
+    pub fn sql(error: sqlx::Error) -> Self {
+        if error
+            .as_database_error()
+            .and_then(|e| e.code())
+            .is_some_and(|s| matches!(s.as_ref(), "40001" | "40P01" | "23505"))
+        {
+            return Self {
+                code: "CONCURRENT_CHANGE",
+                message: "Refresh and retry the same idempotent command",
+                status: StatusCode::CONFLICT,
+            };
+        }
+        Self::database()
+    }
     pub fn database() -> Self {
         Self {
-            code: "DATABASE_UNAVAILABLE",
-            message: "Database operation could not be completed",
+            code: "STORAGE_ERROR",
+            message: "The operation did not complete",
             status: StatusCode::SERVICE_UNAVAILABLE,
         }
     }
 }
 impl IntoResponse for CoreError {
     fn into_response(self) -> Response {
-        (
+        let mut response = (
             self.status,
             Json(json!({"error":self.code,"message":self.message})),
         )
-            .into_response()
+            .into_response();
+        if self.status == StatusCode::UNAUTHORIZED {
+            response
+                .headers_mut()
+                .insert("www-authenticate", http::HeaderValue::from_static("Bearer"));
+        }
+        response
     }
 }

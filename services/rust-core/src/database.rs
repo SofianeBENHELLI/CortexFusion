@@ -12,7 +12,7 @@ impl Database {
         )
         .fetch_one(&self.pool)
         .await
-        .map_err(|_| CoreError::database())?;
+        .map_err(CoreError::sql)?;
         let owns:i64=sqlx::query_scalar("SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'cf_%' AND tableowner=current_user").fetch_one(&self.pool).await.map_err(|_|CoreError::database())?;
         if unsafe_role || owns != 0 {
             return Err(CoreError::database());
@@ -25,16 +25,16 @@ impl Database {
         domain: &str,
         owner: bool,
     ) -> Result<Transaction<'_, Postgres>, CoreError> {
-        let mut tx = self.pool.begin().await.map_err(|_| CoreError::database())?;
+        let mut tx = self.pool.begin().await.map_err(CoreError::sql)?;
         sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
             .execute(&mut *tx)
             .await
-            .map_err(|_| CoreError::database())?;
+            .map_err(CoreError::sql)?;
         sqlx::query("SELECT set_config('cortex.tenant',$1,true)")
             .bind(&p.tenant)
             .execute(&mut *tx)
             .await
-            .map_err(|_| CoreError::database())?;
+            .map_err(CoreError::sql)?;
         let role: Option<String> = sqlx::query_scalar(
             "SELECT role FROM cf_memberships WHERE tenant_id=$1 AND domain_id=$2 AND subject=$3",
         )
@@ -43,7 +43,7 @@ impl Database {
         .bind(&p.subject)
         .fetch_optional(&mut *tx)
         .await
-        .map_err(|_| CoreError::database())?;
+        .map_err(CoreError::sql)?;
         let role = role.ok_or_else(CoreError::not_found)?;
         if owner && role != "owner" {
             return Err(CoreError {
