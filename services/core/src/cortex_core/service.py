@@ -507,6 +507,13 @@ class KnowledgeService:
             **self.keys(p, domain),
             seq=seq,
         )
+        proposal = one(
+            conn,
+            "SELECT * FROM cf_proposals WHERE tenant_id=:tenant AND domain_id=:domain AND id=:id",
+            **self.keys(p, domain),
+            id=commit["proposal_id"],
+        )
+        self._check_proposal_access(conn, p, domain, proposal)
         self._apply(conn, p, domain, seq, commit["changes"])
         run(
             conn,

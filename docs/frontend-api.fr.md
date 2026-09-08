@@ -1991,9 +1991,9 @@ Publie uniquement la proposition acceptée désignée, avec contrôle de la vers
 <a id="action-domain-publish"></a>
 ## domain.publish
 
-Publie le prochain changement accepté du domaine, sans désigner une proposition dans la requête.
+Publie le prochain changement accepté du domaine, sans désigner une proposition dans la requête. Le propriétaire doit encore pouvoir lire toutes les preuves de la proposition acceptée.
 
-**Utilisation frontend :** Commande globale conservée pour les hôtes qui souhaitent publier le prochain changement en attente. Pour une fiche et une reprise ciblée, préférer proposals.publish. Après timeout, relire version et journal avant une nouvelle décision globale : une autre acceptation peut avoir eu lieu.
+**Utilisation frontend :** Commande globale conservée pour les hôtes qui souhaitent publier le prochain changement en attente. Pour une fiche et une reprise ciblée, préférer proposals.publish. Après timeout, relire version et journal avant une nouvelle décision globale : une autre acceptation peut avoir eu lieu. Un retrait de preuves retourne 404 avant publication ; un propriétaire disposant toujours des preuves peut reprendre. Ne pas élargir automatiquement les droits pour débloquer cette action.
 
 - HTTP : `POST /v1/domains/{domain}/publish`.
 - MCP : `api_domain_publish` ; arguments structurés `path`, `query`, `body` et éventuellement `header` selon `mcp-tools.json`. Authentification et confirmation sont ajoutées par le transport de l'hôte.

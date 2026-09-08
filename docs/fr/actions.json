@@ -148,8 +148,8 @@
     "frontend": "Recueillir la décision sur cette version puis envoyer la confirmation signée. Afficher accepté, pas publié."
   },
   "domain.publish": {
-    "description": "Publie le prochain changement accepté du domaine, sans désigner une proposition dans la requête.",
-    "frontend": "Commande globale conservée pour les hôtes qui souhaitent publier le prochain changement en attente. Pour une fiche et une reprise ciblée, préférer proposals.publish. Après timeout, relire version et journal avant une nouvelle décision globale : une autre acceptation peut avoir eu lieu."
+    "description": "Publie le prochain changement accepté du domaine, sans désigner une proposition dans la requête. Le propriétaire doit encore pouvoir lire toutes les preuves de la proposition acceptée.",
+    "frontend": "Commande globale conservée pour les hôtes qui souhaitent publier le prochain changement en attente. Pour une fiche et une reprise ciblée, préférer proposals.publish. Après timeout, relire version et journal avant une nouvelle décision globale : une autre acceptation peut avoir eu lieu. Un retrait de preuves retourne 404 avant publication ; un propriétaire disposant toujours des preuves peut reprendre. Ne pas élargir automatiquement les droits pour débloquer cette action."
   },
   "domain.replay": {
     "description": "Reconstruit la projection publiée à partir du journal existant sans rejouer le modèle ni inventer de nouveaux changements.",

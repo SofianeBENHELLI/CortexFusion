@@ -252,6 +252,8 @@ Une proposition non acceptée donne `PUBLICATION_NOT_ACCEPTED` (409), une versio
 
 La commande historique `domain.publish` (`POST /publish`) conserve son sens global : publier le prochain changement accepté. Elle ne lie pas une proposition au corps de la requête. La réserver aux hôtes qui veulent explicitement cette action globale, et préférer la publication ciblée pour une fiche frontend ou un companion qui reprend une action précise.
 
+Les deux chemins de publication contrôlent les preuves actuelles de la proposition avant de modifier la connaissance. Une acceptation antérieure ne suffit pas si le publieur a depuis perdu accès aux preuves : 404, sans changement de version, projection, outbox ni trace de publication. Un propriétaire qui conserve les droits peut reprendre. Ne pas modifier automatiquement les ACL pour contourner ce refus. Une commande globale sans changement en attente reste sans effet ; une reprise ciblée reste soumise au contrôle des preuves de sa cible historique.
+
 Après un timeout d'approbation, relire la proposition et réutiliser sa clé lorsque le contrat le permet. Après un timeout de publication globale, lire la version et le journal avant une nouvelle décision. Après conflit de révision, présenter à nouveau les changements actualisés ; ne pas approuver automatiquement un contenu différent.
 
 ## Parcours 4 — corriger un concept et ses relations
