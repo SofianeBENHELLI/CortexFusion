@@ -1,3 +1,4 @@
+import { IssueWorkspace } from "./IssueWorkspace";
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { IdentityView } from "../../../../packages/contracts/src/IdentityView";
@@ -170,6 +171,11 @@ export function ApiConnection() {
                         Savoir accepté : v{version.data.accepted_version} ·
                         Savoir publié : v{version.data.published_version}
                       </p>
+                      <IssueWorkspace
+                        key={`issues-${domain}`}
+                        api={api}
+                        domain={domain}
+                      />
                       <ProposalWorkspace
                         key={`proposals-${domain}`}
                         api={api}

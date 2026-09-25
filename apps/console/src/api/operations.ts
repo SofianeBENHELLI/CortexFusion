@@ -1,3 +1,5 @@
+import type { IssuePage } from "../../../../packages/contracts/src/IssuePage";
+import type { IssueView } from "../../../../packages/contracts/src/IssueView";
 import type { ReviewPage } from "../../../../packages/contracts/src/ReviewPage";
 import type { SourceDetail } from "../../../../packages/contracts/src/SourceDetail";
 import type { ProposalPage } from "../../../../packages/contracts/src/ProposalPage";
@@ -17,6 +19,21 @@ import type { VersionView } from "../../../../packages/contracts/src/VersionView
 
 import type { ConversationPage } from "../../../../packages/contracts/src/ConversationPage";
 export interface Operations {
+  "issues.list": {
+    params: { domain: string };
+    body: undefined;
+    response: IssuePage;
+  };
+  "issues.read": {
+    params: { domain: string; ident: string };
+    body: undefined;
+    response: IssueView;
+  };
+  "episodes.read": {
+    params: { domain: string; episode_id: string };
+    body: undefined;
+    response: QueryResult;
+  };
   "proposals.reviews": {
     params: { domain: string; ident: string };
     body: undefined;
@@ -80,6 +97,12 @@ export interface Operations {
   };
 }
 export const operations = {
+  "issues.list": { method: "GET", path: "/v1/domains/{domain}/issues" },
+  "issues.read": { method: "GET", path: "/v1/domains/{domain}/issues/{ident}" },
+  "episodes.read": {
+    method: "GET",
+    path: "/v1/domains/{domain}/episodes/{episode_id}",
+  },
   "proposals.reviews": {
     method: "GET",
     path: "/v1/domains/{domain}/proposals/{ident}/reviews",
