@@ -77,7 +77,7 @@ function Answer({
         <strong>
           {result.status === "knowledge_gap"
             ? "Connaissance insuffisante"
-            : "Réponse extractive sourcée"}
+            : "Extraits sourcés retrouvés"}
         </strong>{" "}
         · version {result.served_version}
       </p>
@@ -90,6 +90,19 @@ function Answer({
       >
         {result.answer}
       </Markdown>
+      {result.status === "evidence_found" && (
+        <p>
+          Ces passages correspondent aux termes recherchés. Vérifiez leur portée
+          : ils ne garantissent pas une réponse complète à la question.
+        </p>
+      )}
+      {result.status === "knowledge_gap" && (
+        <p>
+          Aucun extrait ne couvre tous les termes utiles de la recherche dans le
+          budget demandé. Essayez des mots-clés précis ou signalez la
+          connaissance manquante.
+        </p>
+      )}
       {result.citations.map((c, i) => (
         <details key={`${c.source_id}-${i}`}>
           <summary>

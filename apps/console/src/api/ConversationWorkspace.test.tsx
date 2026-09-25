@@ -76,7 +76,7 @@ function ask() {
 it("renders the served version, opens the citation, and binds feedback to the episode", async () => {
   const call = setup();
   ask();
-  await screen.findByText("Réponse extractive sourcée");
+  await screen.findByText("Extraits sourcés retrouvés");
   expect(screen.getByText(/version 2/)).toBeTruthy();
   fireEvent.click(screen.getByText("Source 1 : Source de test"));
   expect(screen.getByText("synthetic://test/page/1")).toBeTruthy();
@@ -109,7 +109,7 @@ it("retains the same intention and idempotency key after uncertain query failure
   fireEvent.click(
     screen.getByRole("button", { name: "Réessayer la même demande" }),
   );
-  await screen.findByText("Réponse extractive sourcée");
+  await screen.findByText("Extraits sourcés retrouvés");
   const queries = call.mock.calls.filter((c) => c[0] === "conversations.query");
   expect(queries).toHaveLength(2);
   expect(queries[0][2]).toEqual(queries[1][2]);

@@ -191,9 +191,7 @@ pub(crate) async fn query_service(
     let mut ranked: Vec<(usize, Concept)> = visible
         .into_iter()
         .filter_map(|c| {
-            let words = crate::lexical::words(&format!("{} {}", c.title, c.body));
-            let score = terms.intersection(&words).count();
-            (score > 0).then_some((score, c))
+            crate::lexical::extractive_score(&terms, &c.title, &c.body).map(|score| (score, c))
         })
         .collect();
     ranked.sort_by(|a, b| {
