@@ -1,3 +1,4 @@
+import { ConceptCorrection } from "./ConceptCorrection";
 import { EvidenceProposal } from "./EvidenceProposal";
 import { IssueActions } from "./IssueActions";
 import { useState } from "react";
@@ -153,6 +154,12 @@ export function IssueWorkspace({
                     </h3>
                     <p>{detail.data.reason || "Sans commentaire"}</p>
                     <p>Épisode : {episodeId}</p>
+                    <ConceptCorrection
+                      key={`correction-${selected}`}
+                      api={api}
+                      domain={domain}
+                      issueId={selected}
+                    />
                     <IssueActions
                       key={selected}
                       api={api}
