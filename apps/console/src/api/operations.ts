@@ -10,7 +10,13 @@ import type { IdentityView } from "../../../../packages/contracts/src/IdentityVi
 import type { QueryResult } from "../../../../packages/contracts/src/QueryResult";
 import type { VersionView } from "../../../../packages/contracts/src/VersionView";
 
+import type { ConversationPage } from "../../../../packages/contracts/src/ConversationPage";
 export interface Operations {
+  "conversations.list": {
+    params: { domain: string };
+    body: undefined;
+    response: ConversationPage;
+  };
   "conversations.create": {
     params: { domain: string };
     body: ConversationInput;
@@ -44,6 +50,10 @@ export interface Operations {
   };
 }
 export const operations = {
+  "conversations.list": {
+    method: "GET",
+    path: "/v1/domains/{domain}/conversations",
+  },
   "conversations.create": {
     method: "POST",
     path: "/v1/domains/{domain}/conversations",

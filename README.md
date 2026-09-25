@@ -75,4 +75,4 @@ A Python [reference MCP companion](docs/reference-companion.md) provides a bound
 
 La [console React de démonstration](apps/console/README.md) reproduit la maquette v3 avec données locales, droits simulés, propositions/publication, feedback et imports. Démarrer avec `pnpm console:dev`, puis ouvrir `http://127.0.0.1:5173`. Aucun backend ni clé API ne sont nécessaires. La correspondance avec les opérations réelles et les limites du mock sont documentées dans son guide.
 
-Un mode API initial permet de vérifier l’identité et les versions du backend avec un jeton utilisateur Cortex ; voir le [guide de branchement](apps/console/API-INTEGRATION.md). Les parcours métier complets restent en mode mock à ce stade.
+Un mode API permet de consulter l’identité, les versions et les conversations du backend, poser une question extractive et enregistrer un feedback avec un jeton utilisateur Cortex ; voir le [guide de branchement](apps/console/API-INTEGRATION.md). La revue et la publication restent à raccorder ; le mock demeure disponible.

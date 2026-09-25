@@ -67,7 +67,7 @@ La réponse progressive est une simulation dans le navigateur, pas un endpoint S
 
 ## Tests
 
-Les tests de modèle vérifient les transitions de publication, l’échec/reprise, les versions obsolètes, les droits, les corrections et les refus d’import. Le test de correspondance recherche chaque identifiant d’opération dans les contrats OpenAPI et extensions Rust du dépôt. Playwright vérifie les trois parcours principaux, la confirmation par chat, la résolution du contexte implicite, les droits et le mobile. Validation du 25 septembre 2026 : 28 tests unitaires/composants/contrats et 7 parcours Playwright réussis, compilation TypeScript et build Vite réussis. Une vérification Computer Use a aussi couvert le contexte de proposition, le formulaire de correction, Échap dans les réglages et les accès mobiles à 390 × 844. Ces tests qualifient le mock, pas la connexion au backend réel.
+Les tests de modèle vérifient les transitions de publication, l’échec/reprise, les versions obsolètes, les droits, les corrections et les refus d’import. Le test de correspondance recherche chaque identifiant d’opération dans les contrats OpenAPI et extensions Rust du dépôt. Playwright vérifie les trois parcours principaux, la confirmation par chat, la résolution du contexte implicite, les droits et le mobile. Validation du 25 septembre 2026 : 32 tests unitaires/composants/contrats et 7 parcours Playwright réussis, compilation TypeScript et build Vite réussis. Une vérification Computer Use a aussi couvert le contexte de proposition, le formulaire de correction, Échap dans les réglages et les accès mobiles à 390 × 844. Ces tests qualifient le mock, pas la connexion au backend réel.
 
 ## Historique mobile et limites restantes
 
@@ -75,4 +75,4 @@ Sur mobile, le bouton « Historique des conversations » ouvre un panneau dédi�
 
 ## Préparation du mode API
 
-Le [guide de branchement API](API-INTEGRATION.md) décrit le mode `api`, la session en mémoire, les sept opérations typées et les erreurs. Seuls identité, domaines et versions sont branchés dans ce mode ; les autres vues restent disponibles dans le mock.
+Le [guide de branchement API](API-INTEGRATION.md) décrit le mode `api`, la session en mémoire, les huit opérations typées et les erreurs. Identité, domaines, versions, conversations, citations et feedback sont branchés dans ce mode ; la gouvernance reste disponible dans le mock.

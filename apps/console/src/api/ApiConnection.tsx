@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { IdentityView } from "../../../../packages/contracts/src/IdentityView";
 import { ApiError, CortexApi, type Session } from "./client";
+import { ConversationWorkspace } from "./ConversationWorkspace";
 
 function validateIdentity(value: IdentityView): IdentityView {
   if (
@@ -71,9 +72,8 @@ export function ApiConnection() {
       <span className="kicker">Cortex Fusion · Connexion au serveur</span>
       <h1>Votre espace Cortex</h1>
       <p>
-        Cette première étape vérifie votre identité, vos accès et les versions
-        des domaines. Les parcours de conversation et de publication seront
-        raccordés ensuite.
+        Interrogez le savoir publié de votre domaine et signalez les réponses à
+        améliorer. Les brouillons ne sont pas utilisés pour répondre.
       </p>
       {!connected ? (
         <form
@@ -124,7 +124,7 @@ export function ApiConnection() {
               <button onClick={() => void identity.refetch()}>Réessayer</button>
             </div>
           )}
-          {identity.data && (
+          {identity.data && !identity.error && (
             <section>
               <h2>Domaines accessibles</h2>
               <p>Connecté en tant que {identity.data.subject}</p>
@@ -163,11 +163,18 @@ export function ApiConnection() {
                       </button>
                     </div>
                   )}
-                  {version.data && (
-                    <p>
-                      Savoir accepté : v{version.data.accepted_version} · Savoir
-                      publié : v{version.data.published_version}
-                    </p>
+                  {version.data && !version.error && (
+                    <>
+                      <p>
+                        Savoir accepté : v{version.data.accepted_version} ·
+                        Savoir publié : v{version.data.published_version}
+                      </p>
+                      <ConversationWorkspace
+                        key={domain}
+                        api={api}
+                        domain={domain}
+                      />
+                    </>
                   )}
                 </>
               )}

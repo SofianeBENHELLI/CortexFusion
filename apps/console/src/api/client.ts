@@ -42,7 +42,11 @@ export class CortexApi {
     operation: K,
     params: Operations[K]["params"],
     body: Operations[K]["body"],
-    options: { signal?: AbortSignal; timeoutMs?: number } = {},
+    options: {
+      signal?: AbortSignal;
+      timeoutMs?: number;
+      query?: { after?: string | number; limit?: number };
+    } = {},
   ): Promise<Operations[K]["response"]> {
     const session = this.session();
     if (!session?.token.trim() || !uuid.test(session.tenant))
@@ -64,20 +68,31 @@ export class CortexApi {
       controller.abort();
     }, options.timeoutMs ?? 30000);
     try {
-      const response = await this.transport(`/api${path}`, {
-        method: route.method,
-        credentials: "omit",
-        redirect: "error",
-        cache: "no-store",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${session.token}`,
-          "x-tenant-id": session.tenant,
-          ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+      const search = new URLSearchParams(
+        Object.entries(options.query ?? {}).map(([key, value]) => [
+          key,
+          String(value),
+        ]),
+      );
+      const response = await this.transport(
+        `/api${path}${search.size ? `?${search}` : ""}`,
+        {
+          method: route.method,
+          credentials: "omit",
+          redirect: "error",
+          cache: "no-store",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${session.token}`,
+            "x-tenant-id": session.tenant,
+            ...(body === undefined
+              ? {}
+              : { "Content-Type": "application/json" }),
+          },
+          body: body === undefined ? undefined : JSON.stringify(body),
+          signal: controller.signal,
         },
-        body: body === undefined ? undefined : JSON.stringify(body),
-        signal: controller.signal,
-      });
+      );
       if (!response.ok)
         throw new ApiError(response.status, `http_${response.status}`);
       if (!response.headers.get("content-type")?.includes("application/json"))

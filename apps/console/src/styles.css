@@ -1204,4 +1204,38 @@ main {
 .api-connection p {
   line-height: 1.6;
 }
-.api-connection { display: block; flex: initial; width: min(720px, 100%); }
+.api-connection {
+  display: block;
+  flex: initial;
+  width: min(720px, 100%);
+}
+.api-conversations {
+  margin-top: 32px;
+}
+.api-answer {
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background: white;
+}
+.api-conversations textarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 12px;
+  border: 1px solid #bbb;
+  border-radius: 8px;
+}
+.api-answer details {
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+.api-answer summary {
+  cursor: pointer;
+}
+.api-answer blockquote {
+  margin: 12px 0;
+  padding: 12px;
+  background: #f5f6f8;
+  white-space: pre-wrap;
+}
