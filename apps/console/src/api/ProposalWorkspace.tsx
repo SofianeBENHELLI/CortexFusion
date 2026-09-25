@@ -1,3 +1,4 @@
+import { ReviewCommand } from "./ReviewCommand";
 import { ReviewHistory } from "./ReviewHistory";
 import { useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
@@ -322,6 +323,11 @@ export function ProposalWorkspace({
                 detail.data && (
                   <>
                     <h3>{detail.data.reason}</h3>
+                    <ReviewCommand
+                      key={`${selected}-${detail.data.review_revision}`}
+                      domain={domain}
+                      proposal={detail.data}
+                    />
                     <ReviewHistory
                       key={`${selected}-${detail.data.review_revision}`}
                       api={api}

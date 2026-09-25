@@ -24,3 +24,9 @@ Validation : tests de composants sur données synthétiques pour pagination, ét
 Les décisions `reject`, `defer`, `request_changes` et `reopen` passent par `POST /v1/domains/{domain}/proposals/{ident}/reviews` ou le tool MCP `api_proposals_review`. Elles exigent, comme l’approbation, une confirmation signée : elles ne peuvent pas être raccordées à un simple bouton envoyant uniquement le JWT utilisateur. Un hôte de confiance doit confirmer la commande exacte (action, chemin et corps). La clé privée ne doit jamais être embarquée dans le frontend. L’absence de preuve donne HTTP428 ; une révision/digest périmé donne409. Une reprise conserve la clé d’idempotence et le corps, avec une nouvelle preuve de confirmation valable.
 
 Le cycle de revue ne publie aucun savoir. La consultation des décisions est disponible ; leur déclenchement depuis le navigateur attend l’intégration explicite à un hôte de confirmation. L’hôte local de recette permet déjà d’exécuter et vérifier ce cycle via MCP sans modifier ces contrôles.
+
+## Préparer une commande de revue
+
+Depuis une proposition prête, différée ou en correction, le frontend peut préparer les transitions autorisées sous forme de commande MCP `api_proposals_review`. Le JSON inclut l’identifiant, le digest, la révision attendue, le motif et la clé d’idempotence. Il est affiché dans une zone de texte sélectionnable. Modifier le motif efface la commande précédente ; une nouvelle préparation crée une nouvelle intention.
+
+Cette étape n’exécute rien, ne fournit aucune signature et ne remplace pas une confirmation de l’hôte. L’hôte doit relire la proposition, faire confirmer l’action exacte et transmettre la preuve signée selon le protocole existant. Après exécution, actualiser le détail et l’historique. L’approbation et la publication restent des opérations distinctes ; elles ne sont pas ajoutées à ce formulaire de préparation.
