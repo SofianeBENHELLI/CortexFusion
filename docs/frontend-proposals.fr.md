@@ -16,3 +16,11 @@ Cette étape permet la consultation uniquement. La correction, la décision et l
 L’actualisation relit liste, détail et comparaison. Une erreur de lecture masque les données de la zone concernée plutôt que présenter un ancien résultat comme valide. La déconnexion purge le cache API. Les preuves sont chargées à la demande ; leur contenu ne devient ni un lien actif automatique ni du HTML exécutable. Les API appliquent les droits, y compris lorsque l’identité a perdu son accès.
 
 Validation : tests de composants sur données synthétiques pour pagination, état obsolète, refus d’accès, absence de mélange entre deux détails et plage Unicode. Les tests de contrats comparent méthodes et chemins à OpenAPI. La vérification sur le corpus privé reste hors dépôt.
+
+## Historique des décisions et confirmations
+
+« Consulter les décisions » charge à la demande `GET /v1/domains/{domain}/proposals/{ident}/reviews`, avec pagination `limit`/`after`. Chaque événement affiche l’action, le motif, l’auteur, la date et la révision. Une erreur d’accès masque les événements précédemment chargés.
+
+Les décisions `reject`, `defer`, `request_changes` et `reopen` passent par `POST /v1/domains/{domain}/proposals/{ident}/reviews` ou le tool MCP `api_proposals_review`. Elles exigent, comme l’approbation, une confirmation signée : elles ne peuvent pas être raccordées à un simple bouton envoyant uniquement le JWT utilisateur. Un hôte de confiance doit confirmer la commande exacte (action, chemin et corps). La clé privée ne doit jamais être embarquée dans le frontend. L’absence de preuve donne HTTP428 ; une révision/digest périmé donne409. Une reprise conserve la clé d’idempotence et le corps, avec une nouvelle preuve de confirmation valable.
+
+Le cycle de revue ne publie aucun savoir. La consultation des décisions est disponible ; leur déclenchement depuis le navigateur attend l’intégration explicite à un hôte de confirmation. L’hôte local de recette permet déjà d’exécuter et vérifier ce cycle via MCP sans modifier ces contrôles.

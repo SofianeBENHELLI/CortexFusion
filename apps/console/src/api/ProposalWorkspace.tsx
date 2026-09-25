@@ -1,3 +1,4 @@
+import { ReviewHistory } from "./ReviewHistory";
 import { useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { ProposalView } from "../../../../packages/contracts/src/ProposalView";
@@ -321,6 +322,12 @@ export function ProposalWorkspace({
                 detail.data && (
                   <>
                     <h3>{detail.data.reason}</h3>
+                    <ReviewHistory
+                      key={`${selected}-${detail.data.review_revision}`}
+                      api={api}
+                      domain={domain}
+                      proposal={selected}
+                    />
                     <p>
                       {labels[detail.data.status]} · base v
                       {detail.data.base_version} · révision de revue{" "}

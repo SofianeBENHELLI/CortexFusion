@@ -1,3 +1,4 @@
+import type { ReviewPage } from "../../../../packages/contracts/src/ReviewPage";
 import type { SourceDetail } from "../../../../packages/contracts/src/SourceDetail";
 import type { ProposalPage } from "../../../../packages/contracts/src/ProposalPage";
 import type { ProposalView } from "../../../../packages/contracts/src/ProposalView";
@@ -16,6 +17,11 @@ import type { VersionView } from "../../../../packages/contracts/src/VersionView
 
 import type { ConversationPage } from "../../../../packages/contracts/src/ConversationPage";
 export interface Operations {
+  "proposals.reviews": {
+    params: { domain: string; ident: string };
+    body: undefined;
+    response: ReviewPage;
+  };
   "sources.read": {
     params: { domain: string; source_id: string };
     body: undefined;
@@ -74,6 +80,10 @@ export interface Operations {
   };
 }
 export const operations = {
+  "proposals.reviews": {
+    method: "GET",
+    path: "/v1/domains/{domain}/proposals/{ident}/reviews",
+  },
   "sources.read": {
     method: "GET",
     path: "/v1/domains/{domain}/sources/{source_id}",
