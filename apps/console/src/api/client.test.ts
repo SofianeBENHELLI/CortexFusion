@@ -112,3 +112,12 @@ it("honors caller cancellation", async () => {
   controller.abort();
   await expect(request).rejects.toMatchObject({ name: "AbortError" });
 });
+it("does not bind the native transport to the API instance", async () => {
+  let receiver: unknown = "unset";
+  const transport = async function (this: unknown) {
+    receiver = this;
+    return Response.json({});
+  };
+  await new CortexApi(session, transport).call("identity.read", {}, undefined);
+  expect(receiver).toBeUndefined();
+});

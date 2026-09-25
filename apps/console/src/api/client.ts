@@ -74,7 +74,9 @@ export class CortexApi {
           String(value),
         ]),
       );
-      const response = await this.transport(
+      // Native fetch must not receive this CortexApi instance as its receiver.
+      const transport = this.transport;
+      const response = await transport(
         `/api${path}${search.size ? `?${search}` : ""}`,
         {
           method: route.method,

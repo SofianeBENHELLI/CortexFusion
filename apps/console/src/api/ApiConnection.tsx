@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { IdentityView } from "../../../../packages/contracts/src/IdentityView";
 import { ApiError, CortexApi, type Session } from "./client";
+import { ProposalWorkspace } from "./ProposalWorkspace";
 import { ConversationWorkspace } from "./ConversationWorkspace";
 
 function validateIdentity(value: IdentityView): IdentityView {
@@ -169,6 +170,11 @@ export function ApiConnection() {
                         Savoir accepté : v{version.data.accepted_version} ·
                         Savoir publié : v{version.data.published_version}
                       </p>
+                      <ProposalWorkspace
+                        key={`proposals-${domain}`}
+                        api={api}
+                        domain={domain}
+                      />
                       <ConversationWorkspace
                         key={domain}
                         api={api}

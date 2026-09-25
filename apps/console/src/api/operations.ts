@@ -1,3 +1,7 @@
+import type { SourceDetail } from "../../../../packages/contracts/src/SourceDetail";
+import type { ProposalPage } from "../../../../packages/contracts/src/ProposalPage";
+import type { ProposalView } from "../../../../packages/contracts/src/ProposalView";
+import type { ProposalDifference } from "../../../../packages/contracts/src/ProposalDifference";
 // Wire types imported from the checked-in backend contracts. Contract tests guard methods and paths.
 import type { Concept } from "../../../../packages/contracts/src/QueryResult";
 import type { ConversationInput } from "../../../../packages/contracts/src/ConversationInput";
@@ -12,6 +16,26 @@ import type { VersionView } from "../../../../packages/contracts/src/VersionView
 
 import type { ConversationPage } from "../../../../packages/contracts/src/ConversationPage";
 export interface Operations {
+  "sources.read": {
+    params: { domain: string; source_id: string };
+    body: undefined;
+    response: SourceDetail;
+  };
+  "proposals.list": {
+    params: { domain: string };
+    body: undefined;
+    response: ProposalPage;
+  };
+  "proposals.read": {
+    params: { domain: string; proposal_id: string };
+    body: undefined;
+    response: ProposalView;
+  };
+  "proposals.diff": {
+    params: { domain: string; ident: string };
+    body: undefined;
+    response: ProposalDifference;
+  };
   "conversations.list": {
     params: { domain: string };
     body: undefined;
@@ -50,6 +74,19 @@ export interface Operations {
   };
 }
 export const operations = {
+  "sources.read": {
+    method: "GET",
+    path: "/v1/domains/{domain}/sources/{source_id}",
+  },
+  "proposals.list": { method: "GET", path: "/v1/domains/{domain}/proposals" },
+  "proposals.read": {
+    method: "GET",
+    path: "/v1/domains/{domain}/proposals/{proposal_id}",
+  },
+  "proposals.diff": {
+    method: "GET",
+    path: "/v1/domains/{domain}/proposals/{ident}/diff",
+  },
   "conversations.list": {
     method: "GET",
     path: "/v1/domains/{domain}/conversations",
