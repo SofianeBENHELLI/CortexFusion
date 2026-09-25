@@ -1,3 +1,4 @@
+import { IssueActions } from "./IssueActions";
 import { useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { IssueView } from "../../../../packages/contracts/src/IssueView";
@@ -151,6 +152,15 @@ export function IssueWorkspace({
                     </h3>
                     <p>{detail.data.reason || "Sans commentaire"}</p>
                     <p>Épisode : {episodeId}</p>
+                    <IssueActions
+                      key={selected}
+                      api={api}
+                      domain={domain}
+                      issue={detail.data}
+                      onChanged={async () => {
+                        await Promise.all([detail.refetch(), list.refetch()]);
+                      }}
+                    />
                     {episode.error ? (
                       <p role="alert">{episode.error.message}</p>
                     ) : episode.isPending ? (

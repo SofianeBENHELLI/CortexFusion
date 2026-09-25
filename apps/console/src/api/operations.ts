@@ -1,3 +1,5 @@
+import type { IssueDecisionInput } from "../../../../packages/contracts/src/IssueDecisionInput";
+import type { IssueEvent } from "../../../../packages/contracts/src/IssueEvent";
 import type { IssuePage } from "../../../../packages/contracts/src/IssuePage";
 import type { IssueView } from "../../../../packages/contracts/src/IssueView";
 import type { ReviewPage } from "../../../../packages/contracts/src/ReviewPage";
@@ -19,6 +21,11 @@ import type { VersionView } from "../../../../packages/contracts/src/VersionView
 
 import type { ConversationPage } from "../../../../packages/contracts/src/ConversationPage";
 export interface Operations {
+  "issues.decide": {
+    params: { domain: string; ident: string };
+    body: IssueDecisionInput;
+    response: IssueEvent;
+  };
   "issues.list": {
     params: { domain: string };
     body: undefined;
@@ -97,6 +104,10 @@ export interface Operations {
   };
 }
 export const operations = {
+  "issues.decide": {
+    method: "POST",
+    path: "/v1/domains/{domain}/issues/{ident}/decisions",
+  },
   "issues.list": { method: "GET", path: "/v1/domains/{domain}/issues" },
   "issues.read": { method: "GET", path: "/v1/domains/{domain}/issues/{ident}" },
   "episodes.read": {
