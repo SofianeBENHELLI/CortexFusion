@@ -70,3 +70,9 @@ evals/              Synthetic feedback/synthesis scenarios and evaluation method
 The repository license has not been selected. The dependency policy does not grant a license to Cortex Fusion. Installed dependency metadata is checked separately; see the [executable-core decision](docs/architecture/decisions/0001-executable-core.md).
 
 A Python [reference MCP companion](docs/reference-companion.md) provides a bounded question → cited synthesis → personal receipt workflow without a frontend. Its optional live synthetic demo uses OpenRouter; semantic correctness and external identity-provider integration remain separate validation work.
+
+## Frontend mock — référence v3
+
+La [console React de démonstration](apps/console/README.md) reproduit la maquette v3 avec données locales, droits simulés, propositions/publication, feedback et imports. Démarrer avec `pnpm console:dev`, puis ouvrir `http://127.0.0.1:5173`. Aucun backend ni clé API ne sont nécessaires. La correspondance avec les opérations réelles et les limites du mock sont documentées dans son guide.
+
+Un mode API initial permet de vérifier l’identité et les versions du backend avec un jeton utilisateur Cortex ; voir le [guide de branchement](apps/console/API-INTEGRATION.md). Les parcours métier complets restent en mode mock à ce stade.

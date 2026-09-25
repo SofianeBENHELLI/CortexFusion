@@ -1,3 +1,4 @@
 packages:
   - 'packages/contracts'
   - 'apps/harness'
+  - 'apps/console'

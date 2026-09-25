@@ -41,3 +41,7 @@ htmlcov/
 
 # Rust build output
 /target/
+
+# Frontend browser tests
+apps/console/test-results/
+apps/console/playwright-report/

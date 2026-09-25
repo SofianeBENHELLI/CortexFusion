@@ -20,6 +20,11 @@ ALLOWED = {
 ALIASES = {"BSD 3-Clause License": "BSD-3-Clause", "MIT No Attribution": "MIT-0"}
 # Exact artifact reviewed against its installed license classifiers/files.
 OVERRIDES = {("python-dateutil", "2.9.0.post0"): "Apache-2.0 OR BSD-3-Clause"}
+# Exact frontend artifacts; notices are shipped in apps/console/public/licenses.
+FRONTEND_LICENSES = {
+    ("node", "@fontsource/manrope", "5.2.8"): "OFL-1.1",
+    ("node", "tslib", "2.8.1"): "0BSD",
+}
 INTACT_MPL = {("certifi", "2026.7.22")}
 
 
@@ -49,8 +54,10 @@ if __name__ == "__main__":
     rows = inventory()
     failed = []
     for (ecosystem, name, version), declared in sorted(rows.items()):
-        allowed = declared in ALLOWED or (
-            declared == "MPL-2.0" and (name.lower(), version) in INTACT_MPL
+        allowed = (
+            declared in ALLOWED
+            or FRONTEND_LICENSES.get((ecosystem, name, version)) == declared
+            or (declared == "MPL-2.0" and (name.lower(), version) in INTACT_MPL)
         )
         if not allowed:
             failed.append(f"{ecosystem}: {name}@{version}: {declared}")

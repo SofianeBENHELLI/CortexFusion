@@ -8,7 +8,10 @@
     "contracts:check": "node scripts/generate-types.mjs --check",
     "test": "node --test packages/contracts/test/*.test.mjs apps/harness/test/*.test.mjs",
     "typecheck": "tsc --noEmit",
-    "build": "tsc"
+    "build": "tsc",
+    "console:dev": "pnpm --filter @cortexfusion/console dev",
+    "console:build": "pnpm --filter @cortexfusion/console build",
+    "console:test": "pnpm --filter @cortexfusion/console test"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.2",
