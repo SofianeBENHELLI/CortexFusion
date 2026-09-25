@@ -1,3 +1,4 @@
+import type { ProposalInput } from "../../../../packages/contracts/src/ProposalInput";
 import type { IssueDecisionInput } from "../../../../packages/contracts/src/IssueDecisionInput";
 import type { IssueEvent } from "../../../../packages/contracts/src/IssueEvent";
 import type { IssuePage } from "../../../../packages/contracts/src/IssuePage";
@@ -21,6 +22,11 @@ import type { VersionView } from "../../../../packages/contracts/src/VersionView
 
 import type { ConversationPage } from "../../../../packages/contracts/src/ConversationPage";
 export interface Operations {
+  "proposals.create": {
+    params: { domain: string };
+    body: ProposalInput;
+    response: ProposalView;
+  };
   "issues.decide": {
     params: { domain: string; ident: string };
     body: IssueDecisionInput;
@@ -104,6 +110,10 @@ export interface Operations {
   };
 }
 export const operations = {
+  "proposals.create": {
+    method: "POST",
+    path: "/v1/domains/{domain}/proposals",
+  },
   "issues.decide": {
     method: "POST",
     path: "/v1/domains/{domain}/issues/{ident}/decisions",

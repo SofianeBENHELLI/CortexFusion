@@ -1,3 +1,4 @@
+import { EvidenceProposal } from "./EvidenceProposal";
 import { IssueActions } from "./IssueActions";
 import { useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
@@ -180,6 +181,13 @@ export function IssueWorkspace({
                           <p style={{ whiteSpace: "pre-wrap" }}>
                             {episode.data.answer}
                           </p>
+                          <EvidenceProposal
+                            key={selected}
+                            api={api}
+                            domain={domain}
+                            issueId={selected}
+                            citations={episode.data.citations}
+                          />
                           {episode.data.citations.map((c, i) => (
                             <details key={i}>
                               <summary>
