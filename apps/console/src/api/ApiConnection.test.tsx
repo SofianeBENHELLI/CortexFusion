@@ -80,6 +80,11 @@ it("displays authentication failure without mock fallback", async () => {
     "Session absente ou expirée",
   );
   expect(screen.queryByText("SIMULIA")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Se reconnecter" }));
+  await screen.findByRole("button", { name: "Se connecter" });
+  expect(
+    (screen.getByLabelText("Jeton d’accès Cortex") as HTMLInputElement).value,
+  ).toBe("");
 });
 it("rejects malformed successful identity payloads", async () => {
   vi.stubGlobal(

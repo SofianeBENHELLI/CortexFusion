@@ -123,7 +123,16 @@ export function ApiConnection() {
           {identity.error && (
             <div role="alert">
               <p>{identity.error.message}</p>
-              <button onClick={() => void identity.refetch()}>Réessayer</button>
+              {identity.error instanceof ApiError &&
+              identity.error.status === 401 ? (
+                <button onClick={() => void disconnect()}>
+                  Se reconnecter
+                </button>
+              ) : (
+                <button onClick={() => void identity.refetch()}>
+                  Réessayer
+                </button>
+              )}
             </div>
           )}
           {identity.data && !identity.error && (
