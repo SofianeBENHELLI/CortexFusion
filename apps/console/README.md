@@ -76,3 +76,7 @@ Sur mobile, le bouton « Historique des conversations » ouvre un panneau dédi�
 ## Préparation du mode API
 
 Le [guide de branchement API](API-INTEGRATION.md) décrit le mode `api`, la session en mémoire, les huit opérations typées et les erreurs. Identité, domaines, versions, conversations, citations et feedback sont branchés dans ce mode ; la gouvernance reste disponible dans le mock.
+
+## Recette connectée
+
+Pour distinguer les parcours API effectivement raccordés des démonstrations mock, suivre le [guide d’essai du frontend connecté](../../docs/frontend-real-acceptance.fr.md). Il décrit l’authentification locale, les conversations, tickets, propositions et confirmations, ainsi que les limites actuelles.
