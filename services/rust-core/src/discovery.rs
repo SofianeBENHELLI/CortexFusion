@@ -66,7 +66,7 @@ fn schema() -> Result<Value, CoreError> {
         }
     });
     v["info"]["description"] = json!(
-        "CortexFusion native Rust migration candidate. All 79 reference operations and 8 native graph and governance operations are implemented. Historical schemas are preserved; some detailed validation error shapes differ. Optional configured model calls require signed decisions. No frontend or production deployment is included."
+        "Open BrAIn native HTTP/MCP contract inventory. This schema includes only implemented native routes. Current role, object authorization and configured capabilities remain required. Expert opinions and task completion do not approve or publish knowledge."
     );
     Ok(v)
 }
@@ -130,7 +130,7 @@ impl PublicResource {
         ))
         .map_err(|_| "Invalid challenge")?;
         Ok(Self {
-            metadata: json!({"resource":resource,"authorization_servers":[issuer],"bearer_methods_supported":["header"],"resource_name":"Cortex Fusion"}),
+            metadata: json!({"resource":resource,"authorization_servers":[issuer],"bearer_methods_supported":["header"],"resource_name":"Open BrAIn"}),
             authority,
             origin,
             challenge,

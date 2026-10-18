@@ -9,7 +9,7 @@ from .auth import CoreError
 from .openrouter_model import OpenRouterPassageModel
 
 SYNTHETIC_SOURCE = (
-    "Procédure fictive Cortex Fusion. En cas d'incident, consigner l'heure et prévenir "
+    "Procédure fictive Open BrAIn. En cas d'incident, consigner l'heure et prévenir "
     "le responsable de permanence. Aucune donnée d'entreprise réelle dans cet exemple."
 )
 

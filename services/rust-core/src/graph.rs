@@ -16,6 +16,7 @@ use uuid::Uuid;
 pub struct GraphService {
     pub db: Database,
     pub engine: Terminus,
+    pub(crate) spatial: std::sync::Arc<tokio::sync::Mutex<crate::graph_scene::SceneCache>>,
 }
 async fn version(
     tx: &mut Transaction<'_, Postgres>,
@@ -48,6 +49,14 @@ async fn allowed(
         .collect()
 }
 impl GraphService {
+    pub fn new(db: Database, engine: Terminus) -> Self {
+        Self {
+            db,
+            engine,
+            spatial: Default::default(),
+        }
+    }
+
     pub async fn concepts(&self, p: &Principal, domain: &str) -> Result<Vec<Concept>, CoreError> {
         Ok(self.published_concepts(p, domain).await?.1)
     }

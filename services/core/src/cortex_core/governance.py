@@ -14,7 +14,7 @@ class GovernanceService:
             rows = (
                 run(
                     conn,
-                    """SELECT subject,role,revision FROM cf_memberships
+                    """SELECT subject,role,roles,revision FROM cf_memberships
                 WHERE tenant_id=:tenant AND domain_id=:domain AND subject>:after ORDER BY subject LIMIT :limit""",
                     **self.k.keys(p, domain),
                     after=after or "",
@@ -38,6 +38,8 @@ class GovernanceService:
                 "subject",
                 "previous_role",
                 "new_role",
+                "previous_roles",
+                "new_roles",
                 "resulting_revision",
                 "reason",
                 "created_at",
@@ -47,7 +49,11 @@ class GovernanceService:
     def membership(self, p, domain, data):
         with self.db.transaction(p, domain, owner=True) as conn:
             self.k._domain(conn, p, domain, lock=True)
-            h = digest(data.model_dump(mode="json"))
+            payload = data.model_dump(mode="json")
+            if data.roles is None:
+                payload.pop("roles")  # Preserve historical idempotency hashes.
+            h = digest(payload)
+            roles = data.roles if data.roles is not None else ([data.role] if data.role else None)
             existing = one(
                 conn,
                 """SELECT * FROM cf_membership_events WHERE tenant_id=:tenant
@@ -62,7 +68,7 @@ class GovernanceService:
                 return self._receipt(existing)
             old = one(
                 conn,
-                "SELECT role,revision FROM cf_memberships WHERE tenant_id=:tenant AND domain_id=:domain AND subject=:subject",
+                "SELECT role,roles,revision FROM cf_memberships WHERE tenant_id=:tenant AND domain_id=:domain AND subject=:subject",
                 **self.k.keys(p, domain),
                 subject=data.subject,
             )
@@ -99,19 +105,21 @@ class GovernanceService:
             elif old:
                 run(
                     conn,
-                    "UPDATE cf_memberships SET role=:role,revision=:revision WHERE tenant_id=:tenant AND domain_id=:domain AND subject=:subject",
+                    "UPDATE cf_memberships SET role=:role,roles=:roles,revision=:revision WHERE tenant_id=:tenant AND domain_id=:domain AND subject=:subject",
                     **self.k.keys(p, domain),
                     subject=data.subject,
                     role=data.role,
+                    roles=roles,
                     revision=revision,
                 )
             else:
                 run(
                     conn,
-                    "INSERT INTO cf_memberships(tenant_id,domain_id,subject,role,revision) VALUES(:tenant,:domain,:subject,:role,:revision)",
+                    "INSERT INTO cf_memberships(tenant_id,domain_id,subject,role,roles,revision) VALUES(:tenant,:domain,:subject,:role,:roles,:revision)",
                     **self.k.keys(p, domain),
                     subject=data.subject,
                     role=data.role,
+                    roles=roles,
                     revision=revision,
                 )
             run(
@@ -122,8 +130,8 @@ class GovernanceService:
             ident = str(uuid4())
             run(
                 conn,
-                """INSERT INTO cf_membership_events(tenant_id,domain_id,id,author,subject,previous_role,new_role,resulting_revision,reason,idempotency_key,request_hash)
-                VALUES(:tenant,:domain,:id,:author,:subject,:old,:new,:revision,:reason,:key,:hash)""",
+                """INSERT INTO cf_membership_events(tenant_id,domain_id,id,author,subject,previous_role,new_role,resulting_revision,reason,idempotency_key,request_hash,previous_roles,new_roles)
+                VALUES(:tenant,:domain,:id,:author,:subject,:old,:new,:revision,:reason,:key,:hash,:old_roles,:new_roles)""",
                 **self.k.keys(p, domain),
                 id=ident,
                 author=p.subject,
@@ -134,6 +142,12 @@ class GovernanceService:
                 reason=data.reason,
                 key=data.idempotency_key,
                 hash=h,
+                old_roles=old["roles"] if old else None,
+                new_roles=sorted(
+                    roles, key=["owner", "corpus_manager", "contributor", "viewer", "agent"].index
+                )
+                if roles
+                else None,
             )
             return self._receipt(
                 one(

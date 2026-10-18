@@ -5,9 +5,10 @@ from sqlalchemy.pool import NullPool
 
 from .auth import CoreError
 
-SCHEMA_REVISION = "0025"
+SCHEMA_REVISION = "0043"
 REQUIRED_TABLES = frozenset(
     """
+cf_work_activity_reads cf_agent_mission_preparations cf_agent_missions cf_agent_mission_commands cf_reference_review_preparations cf_reference_reviews cf_reference_review_commands cf_reference_drafts cf_reference_draft_receipts cf_import_commands cf_task_proposals cf_expert_reviews cf_case_preparations cf_shared_cases cf_case_events cf_case_commands cf_workspace_cursors cf_task_notification_reads cf_work_tasks cf_task_events cf_task_commands cf_task_outbox cf_workspace_drafts cf_workspace_draft_receipts cf_graph_read_versions cf_graph_read_nodes cf_graph_read_sources cf_graph_read_edges
 cf_collection_sources cf_collections cf_commits cf_companion_responses cf_concepts
 cf_conversation_episodes cf_conversations cf_domains cf_episodes cf_extractions
 cf_feedback cf_feedback_preferences cf_feedback_signals cf_files cf_import_items

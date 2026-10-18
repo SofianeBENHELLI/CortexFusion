@@ -46,7 +46,7 @@ def test_live_diagnostic_calls_actual_adapter_once(monkeypatch):
                 {
                     "finish_reason": "stop",
                     "message": {
-                        "content": json.dumps({"quote": "Procédure fictive Cortex Fusion."})
+                        "content": json.dumps({"quote": "Procédure fictive Open BrAIn."})
                     },
                 }
             ],

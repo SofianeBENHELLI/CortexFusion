@@ -1,4 +1,4 @@
-"""Isolated, synthetic TerminusDB spike. Never connects to CortexFusion storage."""
+"""Isolated, synthetic TerminusDB spike. Never connects to Open BrAIn storage."""
 
 import argparse
 import json
@@ -136,7 +136,7 @@ class TerminusProbe:
             "POST",
             "db/" + self.root,
             json={
-                "label": "Synthetic CortexFusion spike",
+                "label": "Synthetic Open BrAIn spike",
                 "comment": "Disposable engine evaluation",
                 "schema": True,
                 "public": False,

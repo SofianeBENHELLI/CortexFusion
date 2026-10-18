@@ -65,3 +65,7 @@ def test_generated_reference_has_resolvable_anchors_and_preserves_wire_constrain
                 assert item["responses"][code] == response
     compensation = next(i for i in document["items"] if i["action_id"] == "commits.compensate")
     assert compensation["mcp_confirmation_required"] is True
+
+
+def test_nullable_json_schema_type_array_is_rendered():
+    assert reference.schema_type({"type": ["string", "null"]}) == "texte / null"

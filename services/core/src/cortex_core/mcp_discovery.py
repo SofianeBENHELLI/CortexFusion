@@ -56,7 +56,7 @@ def discovery_router(settings):
             "resource": settings.mcp_public_url,
             "authorization_servers": [settings.jwt_issuer],
             "bearer_methods_supported": ["header"],
-            "resource_name": "Cortex Fusion",
+            "resource_name": "Open BrAIn",
         }
 
     return router

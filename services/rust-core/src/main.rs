@@ -50,15 +50,15 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         Err(_) => None,
     };
     let graph = match env::var("CORTEX_TERMINUS_URL") {
-        Ok(base) => Some(cortex_rust_core::graph::GraphService {
-            db: db.clone(),
-            engine: cortex_rust_core::terminus::Terminus::new(
+        Ok(base) => Some(cortex_rust_core::graph::GraphService::new(
+            db.clone(),
+            cortex_rust_core::terminus::Terminus::new(
                 &base,
                 env::var("CORTEX_TERMINUS_USER")?,
                 env::var("CORTEX_TERMINUS_PASSWORD")?,
             )
             .map_err(|_| "Invalid graph configuration")?,
-        }),
+        )),
         Err(_) => None,
     };
     let args: Vec<String> = env::args().skip(1).collect();
@@ -176,7 +176,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut signals = cortex_rust_core::shutdown::Signals::install()?;
     let listener = tokio::net::TcpListener::bind(address).await?;
     println!(
-        "CortexFusion Rust migration candidate listening on {}",
+        "Open BrAIn Rust migration candidate listening on {}",
         listener.local_addr()?
     );
     let app = cortex_rust_core::mcp::mount(
@@ -211,7 +211,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         result = signals.receive() => { result?; },
     }
     let _ = stop.send(());
-    eprintln!("CortexFusion shutdown: draining accepted requests");
+    eprintln!("Open BrAIn shutdown: draining accepted requests");
     tokio::select! {
         result = tokio::time::timeout(grace, &mut server) => {
             result.map_err(|_| "Shutdown grace period expired; inspect durable receipts before retry")??;
@@ -221,6 +221,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             return Err("Shutdown interrupted again; inspect durable receipts before retry".into());
         },
     }
-    eprintln!("CortexFusion shutdown: accepted requests drained");
+    eprintln!("Open BrAIn shutdown: accepted requests drained");
     Ok(())
 }

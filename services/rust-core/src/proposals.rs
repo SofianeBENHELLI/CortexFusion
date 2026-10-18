@@ -2,7 +2,7 @@
 use crate::{
     auth::Principal,
     canonical,
-    changes::{Change, apply_checked},
+    changes::Change,
     error::CoreError,
     server::StateData,
     snapshot::{Concept, Snapshot},
@@ -15,6 +15,7 @@ use axum::{
 use http::{HeaderMap, StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use sqlx::{Postgres, Row, Transaction, postgres::PgRow};
 use std::collections::{BTreeMap, BTreeSet};
 use uuid::Uuid;
@@ -140,6 +141,63 @@ pub(crate) async fn check_access(
     }
     Ok(())
 }
+// Read-only authorization needs identities, never every source's content. The
+// caller holds the domain lock, as do membership, source ACL and publication writers.
+pub(crate) async fn check_access_targeted(
+    tx: &mut Transaction<'_, Postgres>,
+    p: &Principal,
+    domain: &str,
+    r: &PgRow,
+) -> Result<(), CoreError> {
+    let mut required = BTreeSet::new();
+    let validation: Value = r.get("validation");
+    if let Some(ids) = validation["source_ids"].as_array() {
+        for id in ids {
+            required.insert(
+                id.as_str()
+                    .and_then(|v| Uuid::parse_str(v).ok())
+                    .ok_or_else(CoreError::database)?,
+            );
+        }
+    }
+    let changes: Vec<Change> =
+        serde_json::from_value(r.get("payload")).map_err(|_| CoreError::database())?;
+    for change in changes {
+        match change {
+            Change::PutConcept { concept } => {
+                required.extend(concept.sources.iter().map(|r| r.source_id))
+            }
+            Change::RetireConcept { concept_id } => {
+                // Match check_access: an accepted retirement checks the current
+                // accepted row when present, not an invented historical object.
+                let refs: Option<Value> = sqlx::query_scalar("SELECT payload->'sources' FROM cf_concepts WHERE tenant_id=$1 AND domain_id=$2 AND id=$3")
+                    .bind(&p.tenant).bind(domain).bind(concept_id.to_string()).fetch_optional(&mut **tx).await.map_err(CoreError::sql)?;
+                if let Some(refs) = refs {
+                    let refs: Vec<crate::knowledge::SourceRef> =
+                        serde_json::from_value(refs).map_err(|_| CoreError::database())?;
+                    required.extend(refs.iter().map(|r| r.source_id));
+                }
+            }
+        }
+    }
+    require_sources(tx, p, domain, &required).await
+}
+
+async fn require_sources(
+    tx: &mut Transaction<'_, Postgres>,
+    p: &Principal,
+    domain: &str,
+    required: &BTreeSet<Uuid>,
+) -> Result<(), CoreError> {
+    let ids: Vec<String> = required.iter().map(Uuid::to_string).collect();
+    let found: Vec<String> = sqlx::query_scalar("SELECT id FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND id=ANY($3::text[]) AND allowed_subjects ? $4 ORDER BY id FOR SHARE")
+        .bind(&p.tenant).bind(domain).bind(&ids).bind(&p.subject).fetch_all(&mut **tx).await.map_err(CoreError::sql)?;
+    if found.len() != required.len() {
+        return Err(missing());
+    }
+    Ok(())
+}
+
 pub(crate) async fn row(
     tx: &mut Transaction<'_, Postgres>,
     p: &Principal,
@@ -224,8 +282,7 @@ async fn existing(
                 "Idempotency key reused for different proposal",
             ));
         }
-        let accessible = sources(tx, p, domain).await?;
-        check_access(tx, p, domain, &r, &accessible).await?;
+        check_access_targeted(tx, p, domain, &r).await?;
         p.check_fresh()?;
         return Ok(Some(view(&r)));
     }
@@ -246,6 +303,10 @@ pub fn routes() -> Router<StateData> {
         .route(
             "/v1/domains/{domain}/proposals/{proposal_id}/diff",
             get(diff),
+        )
+        .route(
+            "/v1/domains/{domain}/proposals/{proposal_id}/diff/summary",
+            get(diff_summary),
         )
         .route(
             "/v1/domains/{domain}/proposals/{proposal_id}/approve",
@@ -334,8 +395,10 @@ async fn propose_service(
             "Refresh the published knowledge version",
         ));
     }
-    let accessible = sources(&mut tx, p, domain).await?;
-    let validated = apply_checked(&state, &input.changes, &accessible)?;
+    let accessible =
+        crate::proposal_evidence::load(&mut tx, p, domain, &state, &input.changes).await?;
+    let validated =
+        crate::changes::apply_checked_with_evidence(&state, &input.changes, &accessible)?;
     let mut evidence = BTreeSet::new();
     for change in &input.changes {
         let c = match change {
@@ -407,8 +470,7 @@ async fn read(
     let id = uuid(&id)?;
     let mut tx = transaction(&s, &p, &domain).await?;
     let r = row(&mut tx, &p, &domain, &id).await?;
-    let accessible = sources(&mut tx, &p, &domain).await?;
-    check_access(&mut tx, &p, &domain, &r, &accessible).await?;
+    check_access_targeted(&mut tx, &p, &domain, &r).await?;
     let v = view(&r);
     p.check_fresh()?;
     tx.commit().await.map_err(CoreError::sql)?;
@@ -451,12 +513,8 @@ async fn list(
         return Err(invalid());
     }
     let mut tx = transaction(&s, &p, &domain).await?;
-    let accessible = sources(&mut tx, &p, &domain).await?;
-    if input
-        .source_id
-        .is_some_and(|v| !accessible.contains_key(&v))
-    {
-        return Err(missing());
+    if let Some(id) = input.source_id {
+        require_sources(&mut tx, &p, &domain, &BTreeSet::from([id])).await?;
     }
     let mut cursor = input.after.map(|v| v.to_string()).unwrap_or_default();
     let mut visible = Vec::new();
@@ -469,7 +527,7 @@ async fn list(
         }
         for r in rows {
             cursor = r.get("id");
-            match check_access(&mut tx, &p, &domain, &r, &accessible).await {
+            match check_access_targeted(&mut tx, &p, &domain, &r).await {
                 Ok(()) => visible.push(view(&r)),
                 Err(e) if e.status == StatusCode::NOT_FOUND => continue,
                 Err(e) => return Err(e),
@@ -546,8 +604,7 @@ async fn approval_existing(
         }
         // Replays must not reveal a decision after its evidence access has been withdrawn.
         let proposal = row(tx, p, domain, id).await?;
-        let accessible = sources(tx, p, domain).await?;
-        check_access(tx, p, domain, &proposal, &accessible).await?;
+        check_access_targeted(tx, p, domain, &proposal).await?;
         p.check_fresh()?;
         return Ok(Some(
             json!({"sequence":r.get::<i64,_>("sequence"),"proposal_id":id,"accepted":true}),
@@ -576,8 +633,7 @@ async fn approve_service(
         return Ok(v);
     }
     let proposal = row(&mut tx, p, domain, id).await?;
-    let accessible = sources(&mut tx, p, domain).await?;
-    check_access(&mut tx, p, domain, &proposal, &accessible).await?;
+    check_access_targeted(&mut tx, p, domain, &proposal).await?;
     if proposal.get::<&str, _>("digest") != input.digest
         || proposal.get::<&str, _>("status") != "ready"
         || i64::from(proposal.get::<i32, _>("review_revision")) != input.expected_review_revision
@@ -611,7 +667,8 @@ async fn approve_service(
     let payload: Value = proposal.get("payload");
     let changes: Vec<Change> =
         serde_json::from_value(payload.clone()).map_err(|_| CoreError::database())?;
-    apply_checked(&state, &changes, &accessible)?;
+    let evidence = crate::proposal_evidence::load(&mut tx, p, domain, &state, &changes).await?;
+    crate::changes::apply_checked_with_evidence(&state, &changes, &evidence)?;
     let mut before = serde_json::Map::new();
     for change in &changes {
         let id = match change {
@@ -661,8 +718,7 @@ async fn review_service(
 ) -> Result<Value, CoreError> {
     let mut tx = s.db.locked_owner_transaction(p, domain).await?;
     let proposal = row(&mut tx, p, domain, id).await?;
-    let accessible = sources(&mut tx, p, domain).await?;
-    check_access(&mut tx, p, domain, &proposal, &accessible).await?;
+    check_access_targeted(&mut tx, p, domain, &proposal).await?;
     let mut value = serde_json::to_value(&input).map_err(|_| invalid())?;
     value["proposal"] = json!(id);
     let fingerprint = hash(&value)?;
@@ -835,8 +891,7 @@ async fn reviews(
     }
     let mut tx = transaction(&s, &p, &domain).await?;
     let proposal = row(&mut tx, &p, &domain, &id).await?;
-    let accessible = sources(&mut tx, &p, &domain).await?;
-    check_access(&mut tx, &p, &domain, &proposal, &accessible).await?;
+    check_access_targeted(&mut tx, &p, &domain, &proposal).await?;
     let mut items:Vec<Value>=sqlx::query_scalar("SELECT to_jsonb(r)-'tenant_id'-'domain_id'-'idempotency_key'-'request_hash' FROM cf_reviews r WHERE tenant_id=$1 AND domain_id=$2 AND proposal_id=$3 AND id>$4 ORDER BY id LIMIT $5").bind(&p.tenant).bind(&domain).bind(id).bind(input.after.map(|v|v.to_string()).unwrap_or_default()).bind((input.limit+1)as i64).fetch_all(&mut *tx).await.map_err(CoreError::sql)?;
     let next = if items.len() > input.limit {
         items[input.limit - 1]["id"].clone()
@@ -859,11 +914,18 @@ async fn diff(
     let id = uuid(&id)?;
     let mut tx = transaction(&s, &p, &domain).await?;
     let proposal = row(&mut tx, &p, &domain, &id).await?;
-    let accessible = sources(&mut tx, &p, &domain).await?;
-    check_access(&mut tx, &p, &domain, &proposal, &accessible).await?;
+    check_access_targeted(&mut tx, &p, &domain, &proposal).await?;
     let served = published(&mut tx, &p, &domain).await?;
     tx.commit().await.map_err(CoreError::sql)?;
-    let state = base(&s, &p, &domain, served).await?;
+    if served != 0 {
+        let graph = s.graph.as_ref().ok_or_else(CoreError::database)?;
+        if graph.ensure_read_projection(&p, &domain).await? != served {
+            return Err(conflict(
+                "STALE_BASE",
+                "Refresh the published knowledge version",
+            ));
+        }
+    }
     let mut tx = transaction(&s, &p, &domain).await?;
     if published(&mut tx, &p, &domain).await? != served {
         return Err(conflict(
@@ -872,36 +934,61 @@ async fn diff(
         ));
     }
     let proposal = row(&mut tx, &p, &domain, &id).await?;
-    let accessible = sources(&mut tx, &p, &domain).await?;
-    check_access(&mut tx, &p, &domain, &proposal, &accessible).await?;
+    check_access_targeted(&mut tx, &p, &domain, &proposal).await?;
     let committed:Option<Value>=sqlx::query_scalar("SELECT before_state FROM cf_commits WHERE tenant_id=$1 AND domain_id=$2 AND proposal_id=$3").bind(&p.tenant).bind(&domain).bind(&id).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?;
-    let before: BTreeMap<Uuid, Option<Concept>> = match &committed {
-        Some(v) => serde_json::from_value(v.clone()).map_err(|_| CoreError::database())?,
-        None => state.iter().map(|(id, c)| (*id, Some(c.clone()))).collect(),
-    };
     let changes: Vec<Change> =
         serde_json::from_value(proposal.get("payload")).map_err(|_| CoreError::database())?;
-    let visible = |c: &Concept| {
-        c.sources
-            .iter()
-            .all(|r| accessible.contains_key(&r.source_id))
+    let ids: Vec<Uuid> = changes
+        .iter()
+        .map(|c| match c {
+            Change::PutConcept { concept } => concept.concept_id,
+            Change::RetireConcept { concept_id } => *concept_id,
+        })
+        .collect();
+    let before: BTreeMap<Uuid, Option<Concept>> = match &committed {
+        Some(v) => serde_json::from_value(v.clone()).map_err(|_| CoreError::database())?,
+        None => {
+            let values: Vec<Value> = sqlx::query_scalar("SELECT concept FROM cf_graph_read_nodes WHERE tenant_id=$1 AND domain_id=$2 AND version=$3 AND concept_id=ANY($4::uuid[])")
+                .bind(&p.tenant).bind(&domain).bind(served).bind(&ids).fetch_all(&mut *tx).await.map_err(CoreError::sql)?;
+            values
+                .into_iter()
+                .map(|v| {
+                    let c: Concept =
+                        serde_json::from_value(v).map_err(|_| CoreError::database())?;
+                    Ok((c.concept_id, Some(c)))
+                })
+                .collect::<Result<_, CoreError>>()?
+        }
     };
+    // Only changed concepts and their historical link endpoints participate. A
+    // retired endpoint remains representable; a currently hidden endpoint does not.
+    let old: Vec<&Concept> = ids
+        .iter()
+        .filter_map(|id| before.get(id).and_then(Option::as_ref))
+        .collect();
+    let required = old
+        .iter()
+        .flat_map(|c| c.sources.iter().map(|r| r.source_id))
+        .collect();
+    require_sources(&mut tx, &p, &domain, &required).await?;
+    let targets: Vec<Uuid> = old
+        .iter()
+        .flat_map(|c| c.links.iter().map(|l| l.target_id))
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    let hidden: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM cf_graph_read_sources r LEFT JOIN cf_sources s ON s.tenant_id=r.tenant_id AND s.domain_id=r.domain_id AND s.id=r.source_id WHERE r.tenant_id=$1 AND r.domain_id=$2 AND r.version=$3 AND r.concept_id=ANY($4::uuid[]) AND (s.id IS NULL OR NOT(s.allowed_subjects ? $5)))")
+        .bind(&p.tenant).bind(&domain).bind(served).bind(&targets).bind(&p.subject).fetch_one(&mut *tx).await.map_err(CoreError::sql)?;
+    if hidden {
+        return Err(missing());
+    }
     let mut items = Vec::new();
     for change in changes {
         let (id, after) = match change {
             Change::PutConcept { concept } => (concept.concept_id, Some(concept)),
             Change::RetireConcept { concept_id } => (concept_id, None),
         };
-        let old = before.get(&id).and_then(Option::as_ref);
-        if let Some(c) = old
-            && (!visible(c)
-                || c.links
-                    .iter()
-                    .any(|l| state.get(&l.target_id).is_some_and(|c| !visible(c))))
-        {
-            return Err(missing());
-        }
-        items.push(json!({"concept_id":id,"before":old,"after":after}));
+        items.push(json!({"concept_id":id,"before":before.get(&id).and_then(Option::as_ref),"after":after}));
     }
     let base: i64 = proposal.get("base_version");
     p.check_fresh()?;
@@ -909,6 +996,43 @@ async fn diff(
     Ok(Json(
         json!({"proposal_id":id,"base_version":base,"published_version":served,"comparison":if committed.is_some(){"accepted_before_state"}else{"current_published_state"},"stale_base":committed.is_none() && base!=served,"items":items}),
     ))
+}
+
+// Full and compact differences share targeted authorization and version checks.
+// Only compact responses remove bodies; cold projection preparation remains explicit.
+async fn diff_summary(
+    state: State<StateData>,
+    path: Path<(String, String)>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, CoreError> {
+    let Json(value) = diff(state, path, headers).await?;
+    Ok(Json(compact_difference(value)?))
+}
+
+fn compact_difference(mut value: Value) -> Result<Value, CoreError> {
+    let items = value["items"]
+        .as_array_mut()
+        .ok_or_else(CoreError::database)?;
+    if items.len() > 50 {
+        return Err(CoreError::database());
+    }
+    for item in items {
+        for field in ["before", "after"] {
+            if item[field].is_null() {
+                continue;
+            }
+            let concept = item[field]
+                .as_object_mut()
+                .ok_or_else(CoreError::database)?;
+            let body = concept.remove("body").ok_or_else(CoreError::database)?;
+            let body = body.as_str().ok_or_else(CoreError::database)?;
+            concept.insert(
+                "body_sha256".into(),
+                json!(format!("{:x}", Sha256::digest(body.as_bytes()))),
+            );
+        }
+    }
+    Ok(value)
 }
 
 async fn replacement_access(
@@ -919,8 +1043,7 @@ async fn replacement_access(
 ) -> Result<Option<PgRow>, CoreError> {
     let Some(id) = id else { return Ok(None) };
     let old = row(tx, p, d, id).await?;
-    let accessible = sources(tx, p, d).await?;
-    check_access(tx, p, d, &old, &accessible).await?;
+    check_access_targeted(tx, p, d, &old).await?;
     let role: String = sqlx::query_scalar(
         "SELECT role FROM cf_memberships WHERE tenant_id=$1 AND domain_id=$2 AND subject=$3",
     )
@@ -991,7 +1114,7 @@ async fn ingest(
     let mut tx = transaction(&s, &p, &d).await?;
     let source=sqlx::query("SELECT title,content FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND id=$3 AND allowed_subjects ? $4").bind(&p.tenant).bind(&d).bind(&id).bind(&p.subject).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?.ok_or_else(CoreError::not_found)?;
     let content: String = source.get("content");
-    if content.chars().count() > 30000 {
+    if content.chars().count() > crate::snapshot::MAX_CONCEPT_BODY_CHARS {
         return Err(invalid());
     }
     let previous:Option<i64>=sqlx::query_scalar("SELECT base_version FROM cf_proposals WHERE tenant_id=$1 AND domain_id=$2 AND author=$3 AND idempotency_key=$4").bind(&p.tenant).bind(&d).bind(&p.subject).bind(key).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?;
@@ -1157,6 +1280,38 @@ pub(crate) async fn extracted(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn summary_difference_preserves_evidence_and_changes_without_transmitting_bodies() {
+        let old = json!({"concept_id":"a","title":"A","body":"abc","sources":[{"source_id":"proof","start":0,"end":3}],"links":[{"target_id":"b","kind":"associative","weight":0.4}],"maturity":"observed"});
+        let mut new = old.clone();
+        new["body"] = json!("🧠".repeat(30_000));
+        let value = json!({"proposal_id":"p","items":[{"concept_id":"a","before":old,"after":new},{"concept_id":"b","before":{"body":"retired"},"after":null}]});
+        let result = compact_difference(value.clone()).unwrap();
+        assert_eq!(
+            result["items"][0]["before"]["body_sha256"],
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+        assert_eq!(
+            result["items"][0]["after"]["sources"],
+            value["items"][0]["after"]["sources"]
+        );
+        assert_eq!(
+            result["items"][0]["after"]["links"],
+            value["items"][0]["after"]["links"]
+        );
+        assert_ne!(
+            result["items"][0]["before"]["body_sha256"],
+            result["items"][0]["after"]["body_sha256"]
+        );
+        assert!(result["items"][0]["before"].get("body").is_none());
+        assert!(result["items"][0]["after"].get("body").is_none());
+        assert!(result["items"][1]["after"].is_null());
+        assert!(serde_json::to_vec(&result).unwrap().len() < 1200);
+        assert!(
+            compact_difference(json!({"items":vec![json!({"before":null,"after":null});51]}))
+                .is_err()
+        );
+    }
     #[test]
     fn explicit_relation_float_matches_normalized_contract() {
         let raw = r#"{"base_version":0,"changes":[{"kind":"put_concept","concept":{"concept_id":"00000000-0000-0000-0000-000000000001","title":"a","body":"b","sources":[{"source_id":"00000000-0000-0000-0000-000000000002","start":0,"end":1}],"links":[{"target_id":"00000000-0000-0000-0000-000000000003","kind":"associative","primary":false,"weight":1.0}]}}],"reason":"x","idempotency_key":"12345678"}"#;

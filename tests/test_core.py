@@ -406,7 +406,7 @@ def test_query_budget_and_missing_knowledge(world):
     result = world.service.query(
         world.owner, world.domain, QueryInput(question="incident", max_chars=100)
     )
-    assert result["status"] == "knowledge_gap" and not result["concepts"]
+    assert result["status"] == "context_limited" and not result["concepts"]
     assert query(world, question="interplanetary procurement")["status"] == "knowledge_gap"
 
 

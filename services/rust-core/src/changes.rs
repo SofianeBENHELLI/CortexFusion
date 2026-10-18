@@ -21,13 +21,45 @@ fn invalid(message: &'static str) -> CoreError {
         status: StatusCode::UNPROCESSABLE_ENTITY,
     }
 }
-fn visible(c: &Concept, sources: &BTreeMap<Uuid, String>) -> bool {
-    c.sources.iter().all(|s| sources.contains_key(&s.source_id))
+pub(crate) trait SourceEvidence {
+    fn readable(&self, id: &Uuid) -> bool;
+    fn validate_body(&self, concept: &Concept) -> Result<(), CoreError>;
+}
+impl SourceEvidence for BTreeMap<Uuid, String> {
+    fn readable(&self, id: &Uuid) -> bool {
+        self.contains_key(id)
+    }
+    fn validate_body(&self, concept: &Concept) -> Result<(), CoreError> {
+        let mut spans = Vec::new();
+        for span in &concept.sources {
+            let content = self.get(&span.source_id).ok_or_else(CoreError::not_found)?;
+            spans.push(
+                span.excerpt(content)
+                    .map_err(|_| invalid("Invalid source span"))?,
+            );
+        }
+        if concept.body != spans.join("\n\n") {
+            return Err(invalid(
+                "This release accepts verbatim source excerpts only",
+            ));
+        }
+        Ok(())
+    }
+}
+fn visible(c: &Concept, sources: &impl SourceEvidence) -> bool {
+    c.sources.iter().all(|s| sources.readable(&s.source_id))
 }
 pub fn apply_checked(
     state: &BTreeMap<Uuid, Concept>,
     changes: &[Change],
     sources: &BTreeMap<Uuid, String>,
+) -> Result<BTreeMap<Uuid, Concept>, CoreError> {
+    apply_checked_with_evidence(state, changes, sources)
+}
+pub(crate) fn apply_checked_with_evidence(
+    state: &BTreeMap<Uuid, Concept>,
+    changes: &[Change],
+    sources: &impl SourceEvidence,
 ) -> Result<BTreeMap<Uuid, Concept>, CoreError> {
     if !(1..=50).contains(&changes.len()) {
         return Err(invalid("Expected between one and fifty changes"));
@@ -53,21 +85,7 @@ pub fn apply_checked(
             }
             Change::PutConcept { concept } => {
                 concept.validate().map_err(|_| invalid("Invalid concept"))?;
-                let mut spans = Vec::new();
-                for span in &concept.sources {
-                    let content = sources
-                        .get(&span.source_id)
-                        .ok_or_else(CoreError::not_found)?;
-                    spans.push(
-                        span.excerpt(content)
-                            .map_err(|_| invalid("Invalid source span"))?,
-                    );
-                }
-                if concept.body != spans.join("\n\n") {
-                    return Err(invalid(
-                        "This release accepts verbatim source excerpts only",
-                    ));
-                }
+                sources.validate_body(concept)?;
                 if concept.maturity == "reference" {
                     return Err(CoreError {
                         code: "REVIEW_POLICY_UNSUPPORTED",
@@ -134,6 +152,34 @@ mod tests {
     use serde_json::json;
     fn concept(id: Uuid, source: Uuid) -> Concept {
         serde_json::from_value(json!({"concept_id":id,"title":"C","body":"é🧠","sources":[{"source_id":source,"start":0,"end":2}]})).unwrap()
+    }
+    #[test]
+    fn long_verbatim_concept_preserves_unicode_and_rejects_overflow() {
+        let source = Uuid::from_u128(3);
+        let body = "🧠".repeat(crate::snapshot::MAX_CONCEPT_BODY_CHARS);
+        let mut c = concept(Uuid::from_u128(1), source);
+        c.body = body.clone();
+        c.sources[0].end = body.chars().count();
+        let state = apply_checked(
+            &BTreeMap::new(),
+            &[Change::PutConcept { concept: c.clone() }],
+            &BTreeMap::from([(source, body.clone())]),
+        )
+        .unwrap();
+        assert_eq!(state.len(), 1);
+        assert_eq!(state[&c.concept_id].body, body);
+        c.body.push('x');
+        assert!(c.validate().is_err());
+        c.body.pop();
+        c.body.replace_range(0..4, "x");
+        assert!(
+            apply_checked(
+                &BTreeMap::new(),
+                &[Change::PutConcept { concept: c }],
+                &BTreeMap::from([(source, body)])
+            )
+            .is_err()
+        );
     }
     #[test]
     fn changes_require_verbatim_access_and_preserve_graph_invariants() {

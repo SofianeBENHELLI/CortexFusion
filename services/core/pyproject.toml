@@ -1,7 +1,7 @@
 [project]
 name = "cortex-core"
 version = "0.1.0"
-description = "Independent governed knowledge service for Cortex Fusion"
+description = "Independent governed knowledge service for Open BrAIn"
 requires-python = ">=3.12,<3.14"
 dependencies = [
   "fastapi>=0.115,<1",

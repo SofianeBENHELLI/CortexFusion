@@ -32,6 +32,10 @@ coverage/
 
 # Local tooling, credentials, and test outputs
 /work/
+.pnpm-store/
+.claude/launch.json
+# Private corpora (including OKF), ingestion manifests, receipts and credentials.
+# Never force-add these runtime artifacts or copy their content into fixtures/assets.
 .runtime/
 .coverage
 htmlcov/
@@ -45,3 +49,7 @@ htmlcov/
 # Frontend browser tests
 apps/console/test-results/
 apps/console/playwright-report/
+# Local build variants used by frontend qualification.
+apps/console/dist-api/
+apps/console/dist-mock/
+apps/console/dist-measure/

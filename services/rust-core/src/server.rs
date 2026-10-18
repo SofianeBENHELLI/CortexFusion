@@ -26,6 +26,7 @@ pub fn router(state: StateData) -> Router {
     Router::new().route("/health",get(||async{Json(json!({"status":"ok","version":"0.1.0","mode":"extractive"}))}))
         .route("/ready",get(crate::readiness::ready))
         .route("/v1/me",get(identity))
+        .route("/v1/companion-guides",get(crate::onboarding::http_guides))
         .route("/v1/domains/{domain}/version",get(version))
         .route("/v1/domains/{domain}/concepts",get(concepts))
         .route("/v1/domains/{domain}/concepts/{concept_id}",get(concept))
@@ -36,12 +37,25 @@ pub fn router(state: StateData) -> Router {
         .merge(crate::proposals::routes())
         .merge(crate::retrieval::routes())
         .merge(crate::signals::routes())
+        .merge(crate::cases::routes())
         .merge(crate::companions::routes())
         .merge(crate::conversations::routes())
+        .merge(crate::drafts::routes())
+        .merge(crate::contribution_drafts::routes())
+        .merge(crate::reference_drafts::routes())
+        .merge(crate::reference_reviews::routes())
+        .merge(crate::agent_missions::routes())
+        .merge(crate::tasks::routes())
+        .merge(crate::work_overview::routes())
+        .merge(crate::work_activity::routes())
         .merge(crate::issues::routes())
         .merge(crate::collections::routes())
         .merge(crate::imports::routes())
         .merge(crate::governance::routes())
+        .merge(crate::publication_journal::routes())
+        .merge(crate::graph_window::routes())
+        .merge(crate::graph_map::routes())
+        .merge(crate::graph_scene::routes())
         .merge(crate::source_access::routes())
         .merge(crate::discovery::routes())
         .merge(crate::model_receipts::routes())
@@ -92,15 +106,17 @@ async fn identity(
         .execute(&mut *tx)
         .await
         .map_err(CoreError::sql)?;
-    let rows=sqlx::query("SELECT d.id,d.name,m.role FROM cf_domains d JOIN cf_memberships m ON m.tenant_id=d.tenant_id AND m.domain_id=d.id WHERE d.tenant_id=$1 AND m.subject=$2 ORDER BY d.id").bind(&p.tenant).bind(&p.subject).fetch_all(&mut *tx).await.map_err(CoreError::sql)?;
+    let rows=sqlx::query("SELECT d.id,d.name,m.role,m.roles,m.revision FROM cf_domains d JOIN cf_memberships m ON m.tenant_id=d.tenant_id AND m.domain_id=d.id WHERE d.tenant_id=$1 AND m.subject=$2 ORDER BY d.id").bind(&p.tenant).bind(&p.subject).fetch_all(&mut *tx).await.map_err(CoreError::sql)?;
     let mut domains = Vec::new();
     for row in rows {
         let role: String = row.get("role");
         // Advertise only capabilities available in this configured runtime.
         let mut capabilities = vec![
+            "companion_guides",
             "query",
             "inspect",
             "personal_history",
+            "personal_drafts",
             "feedback",
             "personal_issues",
         ];
@@ -111,10 +127,41 @@ async fn identity(
             role.as_str(),
             "owner" | "agent" | "contributor" | "corpus_manager"
         ) {
-            capabilities.extend(["propose", "read_proposals"]);
+            capabilities.extend([
+                "propose",
+                "read_proposals",
+                "contribution_drafts",
+                "reference_drafts",
+            ]);
+        }
+        if matches!(
+            role.as_str(),
+            "owner" | "corpus_manager" | "contributor" | "viewer"
+        ) {
+            capabilities.extend([
+                "shared_cases",
+                "case_tasks",
+                "work_overview",
+                "work_activity",
+            ]);
+        }
+        if matches!(role.as_str(), "owner" | "corpus_manager" | "contributor") {
+            capabilities.extend([
+                "reference_reviews",
+                "work_tasks",
+                "expert_reviews",
+                "work_brief",
+                "task_receipts",
+            ]);
+        }
+        if matches!(role.as_str(), "owner" | "corpus_manager" | "agent") {
+            capabilities.push("agent_missions");
         }
         if matches!(role.as_str(), "owner" | "corpus_manager") {
+            capabilities.push("coordinate_tasks");
+            capabilities.push("coordinate_missions");
             capabilities.push("manage_corpus");
+            capabilities.push("import_commands");
         }
         if role == "owner" && s.confirmation.is_some() {
             capabilities.extend(["review", "approve", "manage_members", "source_acl"]);
@@ -125,7 +172,7 @@ async fn identity(
                 capabilities.extend(["publish", "compensate"]);
             }
         }
-        domains.push(json!({"id":row.get::<String,_>("id"),"name":row.get::<String,_>("name"),"role":role,"capabilities":capabilities}));
+        domains.push(json!({"id":row.get::<String,_>("id"),"name":row.get::<String,_>("name"),"role":role,"roles":row.get::<Vec<String>,_>("roles"),"membership_revision":row.get::<i32,_>("revision"),"capabilities":capabilities}));
     }
     p.check_fresh()?;
     tx.commit().await.map_err(CoreError::sql)?;
@@ -160,15 +207,7 @@ async fn concept(
         .to_string();
     let id = Uuid::parse_str(&id).map_err(|_| CoreError::invalid_uuid())?;
     let graph = s.graph.as_ref().ok_or_else(CoreError::database)?;
-    let c = graph
-        .concepts(&p, &domain)
-        .await?
-        .into_iter()
-        .find(|c| c.concept_id == id)
-        .ok_or_else(CoreError::concept_not_found)?;
-    Ok(Json(
-        serde_json::to_value(c).map_err(|_| CoreError::database())?,
-    ))
+    Ok(Json(graph.read_concept(&p, &domain, id).await?))
 }
 
 async fn publish_target(

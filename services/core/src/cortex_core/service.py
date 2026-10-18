@@ -17,6 +17,7 @@ from .contracts import (
     SourceInput,
 )
 from .db import Database
+from .retrieval_passages import select_context
 
 
 def encoded(value):
@@ -711,10 +712,10 @@ class KnowledgeService:
             source = self._source(conn, p, domain, source_id)
             d = self._domain(conn, p, domain)
             content = source["content"]
-            if len(content) > 30000:
+            if len(content) > 200000:
                 raise CoreError(
                     "VALIDATION_FAILED",
-                    "Split text into sources smaller than 30,000 characters",
+                    "Source exceeds the 200,000-character concept contract",
                     422,
                 )
             from uuid import NAMESPACE_URL, uuid5
@@ -786,20 +787,26 @@ class KnowledgeService:
                 if score:
                     ranked.append((score, concept))
             ranked.sort(key=lambda pair: (-pair[0], pair[1]["concept_id"]))
-            selected, citations, snippets, used = [], [], [], 0
+            selected, citations, snippets, passages, used = [], [], [], [], 0
+            source_ids = set()
             for _, concept in ranked:
-                if len(selected) >= data.limit:
+                if len(passages) >= data.limit:
                     break
-                if used + len(concept["body"]) > data.max_chars:
+                separator = 2 if snippets else 0
+                passage = select_context(concept, terms, max(0, data.max_chars - used - separator))
+                if not passage:
                     continue
                 safe = {
                     **concept,
                     "links": [link for link in concept["links"] if link["target_id"] in visible],
                 }
-                selected.append(safe)
-                used += len(concept["body"])
-                snippets.append(concept["body"])
-                for ref in concept["sources"]:
+                if passage["body_start"] == 0 and passage["body_end"] == len(concept["body"]):
+                    selected.append(safe)
+                passages.append(passage)
+                used += len(passage["text"]) + separator
+                snippets.append(passage["text"])
+                source_ids.update(str(ref["source_id"]) for ref in concept["sources"])
+                for ref in passage["sources"]:
                     source = self._source(conn, p, domain, ref["source_id"])
                     citations.append(
                         {
@@ -813,17 +820,30 @@ class KnowledgeService:
                         }
                     )
             episode = str(uuid4())
+            limited = bool(ranked) and not snippets
+            if limited:
+                # The existence of matching evidence is itself source-derived.
+                source_ids.update(
+                    str(ref["source_id"]) for _, concept in ranked for ref in concept["sources"]
+                )
             result = QueryResult(
                 episode_id=episode,
                 answer="\n\n".join(snippets)
                 if snippets
-                else "No matching approved evidence was found within the requested context budget.",
-                status="evidence_found" if snippets else "knowledge_gap",
+                else "Matching approved knowledge exists, but no complete passage covering the query fits the requested context budget."
+                if limited
+                else "No matching approved evidence was found.",
+                status="evidence_found"
+                if snippets
+                else "context_limited"
+                if limited
+                else "knowledge_gap",
                 served_version=d["published_version"],
                 concepts=selected,
+                context_passages=passages,
                 citations=citations,
             ).model_dump(mode="json")
-            source_ids = sorted({c["source_id"] for c in citations})
+            source_ids = sorted(source_ids)
         # Context snapshot is closed before writing the episode. A publication can update
         # the domain while retrieval runs; its FK must be checked against current state.
         with self.db.transaction(p, domain, isolation="READ COMMITTED") as conn:
@@ -873,7 +893,7 @@ class KnowledgeService:
                     key=data.idempotency_key,
                     hash=digest(data.model_dump(mode="json")),
                 )
-            if not snippets:
+            if not snippets and not limited:
                 self._issue(conn, p, domain, episode, "knowledge_gap", data.question)
         return result
 

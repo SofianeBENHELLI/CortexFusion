@@ -199,32 +199,57 @@ pub(crate) async fn query_service(
             .then_with(|| a.1.concept_id.cmp(&b.1.concept_id))
     });
     let mut selected = Vec::new();
+    let mut passages = Vec::new();
     let mut citations = Vec::new();
     let mut snippets = Vec::new();
     let mut used = 0;
     let mut source_ids = BTreeSet::new();
+    let had_matches = !ranked.is_empty();
+    let matching_source_ids: BTreeSet<_> = ranked
+        .iter()
+        .flat_map(|(_, c)| c.sources.iter().map(|s| s.source_id))
+        .collect();
     for (_, mut c) in ranked {
-        if selected.len() >= input.limit {
+        if passages.len() >= input.limit {
             break;
         }
-        let length = c.body.chars().count();
-        if used + length > input.max_chars {
+        let separator = if snippets.is_empty() { 0 } else { 2 };
+        let budget = input.max_chars.saturating_sub(used + separator);
+        let Some(passage) = crate::retrieval_passages::select(&c, &terms, budget) else {
             continue;
-        }
+        };
         c.links.retain(|l| ids.contains(&l.target_id));
-        used += length;
-        snippets.push(c.body.clone());
-        for span in &c.sources {
+        used += passage.text.chars().count() + separator;
+        snippets.push(passage.text);
+        // The title/context derives from this concept: preserve its complete
+        // authorization dependency, even when only one source span is quoted.
+        source_ids.extend(c.sources.iter().map(|s| s.source_id));
+        for span in &passage.refs {
             let source = sources.get(&span.source_id).ok_or_else(missing)?;
             let content: &str = source.get("content");
             citations.push(json!({"source_id":span.source_id,"title":source.get::<String,_>("title"),"location":source.get::<String,_>("location"),"content_hash":source.get::<String,_>("content_hash"),"start":span.start,"end":span.end,"excerpt":span.excerpt(content).map_err(|_|CoreError::database())?}));
-            source_ids.insert(span.source_id);
         }
-        selected.push(c);
+        passages.push(passage.value);
+        if passage.complete {
+            selected.push(c);
+        }
     }
     let episode = Uuid::new_v4().to_string();
     let gap = snippets.is_empty();
-    let result = json!({"episode_id":episode,"answer":if gap{"No matching approved evidence was found within the requested context budget.".to_owned()}else{snippets.join("\n\n")},"status":if gap{"knowledge_gap"}else{"evidence_found"},"mode":"extractive","served_version":served,"concepts":selected,"citations":citations,"processing":"local_no_model"});
+    let limited = gap && had_matches;
+    if limited {
+        // Even an abstention discloses that matching evidence exists. Its
+        // persisted episode must retain those authorization dependencies.
+        source_ids = matching_source_ids;
+    }
+    let answer = if limited {
+        "Matching approved knowledge exists, but no complete passage covering the query fits the requested context budget.".to_owned()
+    } else if gap {
+        "No matching approved evidence was found.".to_owned()
+    } else {
+        snippets.join("\n\n")
+    };
+    let result = json!({"episode_id":episode,"answer":answer,"status":if limited{"context_limited"}else if gap{"knowledge_gap"}else{"evidence_found"},"mode":"extractive","served_version":served,"concepts":selected,"context_passages":passages,"citations":citations,"processing":"local_no_model"});
     sqlx::query("INSERT INTO cf_episodes(tenant_id,domain_id,id,subject,question,result,source_ids,served_version) VALUES($1,$2,$3,$4,$5,$6,$7,$8)").bind(&p.tenant).bind(domain).bind(&episode).bind(&p.subject).bind(&input.question).bind(&result).bind(json!(source_ids)).bind(served).execute(&mut *tx).await.map_err(CoreError::sql)?;
     if let Some((id, key)) = conversation {
         crate::conversations::associate(
@@ -238,7 +263,7 @@ pub(crate) async fn query_service(
         )
         .await?;
     }
-    if gap {
+    if gap && !limited {
         issue(
             &mut tx,
             p,

@@ -103,7 +103,7 @@ def run(binary, rust_url, admin_url):
                 if not selector.select(10):
                     raise RuntimeError("Rust server did not start")
                 line = process.stdout.readline().strip()
-            prefix = "CortexFusion Rust migration candidate listening on "
+            prefix = "Open BrAIn Rust migration candidate listening on "
             if not line.startswith(prefix):
                 raise RuntimeError("Rust candidate failed initialization")
             base = "http://" + line.removeprefix(prefix)
@@ -398,13 +398,16 @@ def run(binary, rust_url, admin_url):
                     checks.extend(
                         verify_graph(binary, env, client, headers, token, admin, tenant, domain)
                     )
+                from verify_publication_journal import verify_publication_journal
+
+                checks.extend(verify_publication_journal(client, headers, admin, tenant))
             return {
                 "status": "passed",
                 "checks": checks,
-                "native_http_operations": 87 if os.environ.get("CORTEX_TERMINUS_URL") else 83,
-                "http_inventory_operations": 87,
+                "native_http_operations": 90 if os.environ.get("CORTEX_TERMINUS_URL") else 85,
+                "http_inventory_operations": 90,
                 "native_http_count_scope": "Scenario surface: four engine-dependent operations require the real TerminusDB integration; not exhaustive branch coverage",
-                "native_mcp_operations": 103,
+                "native_mcp_operations": 106,
                 "native_mcp_count_scope": "Advertised native tools; not exhaustive branch coverage",
                 "publication_recovery_engine": "real TerminusDB with ACK-loss gateway"
                 if os.environ.get("CORTEX_TERMINUS_URL")

@@ -186,7 +186,7 @@ def native(binary, env):
             selector.register(process.stdout, selectors.EVENT_READ)
             assert selector.select(20), "Native benchmark server did not start"
             line = process.stdout.readline().strip()
-        prefix = "CortexFusion Rust migration candidate listening on "
+        prefix = "Open BrAIn Rust migration candidate listening on "
         assert line.startswith(prefix), "Unexpected native startup response"
         with httpx.Client(
             base_url="http://" + line.removeprefix(prefix),

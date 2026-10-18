@@ -20,7 +20,7 @@ class WorkspaceService:
             domains = (
                 run(
                     conn,
-                    """SELECT d.id,d.name,m.role FROM cf_domains d JOIN cf_memberships m
+                    """SELECT d.id,d.name,m.role,m.roles,m.revision AS membership_revision FROM cf_domains d JOIN cf_memberships m
                 ON m.tenant_id=d.tenant_id AND m.domain_id=d.id
                 WHERE d.tenant_id=:tenant AND m.subject=:subject ORDER BY d.id""",
                     tenant=p.tenant_id,

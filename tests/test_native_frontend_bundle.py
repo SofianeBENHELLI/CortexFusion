@@ -34,7 +34,7 @@ def test_native_bundle_preserves_complete_functional_and_mcp_contracts_without_m
     assert bundle["items"] == baseline["items"] + extension["functional"]["items"]
     assert bundle["components"]["schemas"] == {**baseline["schemas"], **extension["schemas"]}
     assert bundle["mcp_tools"] == tools["tools"] + extension["tools"]
-    assert bundle["http_operations_count"] == 87 and bundle["mcp_tools_count"] == 103
+    assert bundle["http_operations_count"] == 93 and bundle["mcp_tools_count"] == 109
     assert bundle["http_confirmation_mode"] == "required" and bundle["runtime"] == "rust"
 
 
@@ -81,3 +81,13 @@ def test_native_bundle_refuses_collisions_and_missing_mcp_mapping(fault):
         tools["tools"] = [tool for tool in tools["tools"] if tool["name"] != name]
     with pytest.raises(ValueError):
         combine_functional(baseline, extension, tools)
+
+
+def test_graph_window_contract_preserves_member_read_access():
+    _, extension, _ = inputs()
+    operation = next(
+        i for i in extension["functional"]["items"] if i["action_id"] == "graph.window"
+    )
+    assert set(operation["roles"]) == {"owner", "contributor", "corpus_manager", "viewer", "agent"}
+    assert operation["effect"] == "none"
+    assert extension["schemas"]["GraphWindow"]["properties"]["nodes"]["maxItems"] == 50

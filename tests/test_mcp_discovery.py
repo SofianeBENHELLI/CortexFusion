@@ -43,7 +43,7 @@ def test_challenge_metadata_and_audience_binding(world, identity_keys):
             "resource": RESOURCE,
             "authorization_servers": ["https://identity.test"],
             "bearer_methods_supported": ["header"],
-            "resource_name": "Cortex Fusion",
+            "resource_name": "Open BrAIn",
         }
         rpc = {"jsonrpc": "2.0", "id": 1, "method": "resources/list", "params": {}}
         accept = {"Accept": "application/json, text/event-stream"}

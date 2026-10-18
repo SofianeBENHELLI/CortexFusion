@@ -33,7 +33,7 @@ def create_mcp(
     synthesis_enabled=False,
 ):
     server = FastMCP(
-        "Cortex Fusion",
+        "Open BrAIn",
         instructions=GUIDE,
         stateless_http=True,
         json_response=True,

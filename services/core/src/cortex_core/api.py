@@ -161,7 +161,7 @@ def create_app(settings: Settings | None = None):
         db.dispose()
 
     app = FastAPI(
-        title="Cortex Fusion Knowledge Core",
+        title="Open BrAIn Knowledge Core",
         version="0.1.0",
         lifespan=lifespan,
         dependencies=[Depends(confirmation_guard)],
