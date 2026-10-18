@@ -1,0 +1,15 @@
+# ADR 0022 — Brouillon privé de contribution sourcée
+
+16 octobre2026 · Décision locale, première tranche B04 ; ne clôture pas le contrat global de contribution.
+
+Une préparation de proposition n’est pas une sauvegarde. Le projet d’onglet du lot12 disparaît au rechargement et lors d’un changement de session. Le brouillon de conversation limité à2000 caractères ne doit pas devenir un conteneur implicite de documents ou de propositions.
+
+Créer un objet distinct : un brouillon courant par tenant/domaine/auteur, comprenant source/empreinte, titre, passage, motif et sélection Unicode optionnelle. Les champs incomplets sont admis ; le brouillon ne valide pas une connaissance et ne crée aucune proposition. Les plafonds métier existants restent200/200000/2000 caractères, requête et réponse2Mo. Aucune troncature.
+
+Lecture et nouvelle sauvegarde vérifient le rôle contributeur/agent/corpus manager/owner et l’accès actuel à la source sous le verrou de domaine. Le contenu est privé à son auteur, même face à l’owner. Si la source devient inaccessible ou si son empreinte diffère, la lecture retourne seulement état masqué, révision et date personnels. Les sources sont immuables ; le contrôle d’empreinte couvre aussi une incohérence de brouillon/restauration. La relecture ordinaire ne charge pas le corps source. Une nouvelle sauvegarde avec sélection vérifie le passage exact ; sans sélection, une rédaction incomplète peut être sauvegardée puis doit satisfaire la politique de proposition à la soumission.
+
+Sauvegarde explicite avec révision attendue et clé idempotente, transaction unique avec reçu immuable sans texte. Un ancien reçu ne réécrit jamais un brouillon plus récent. Le client relit l’état courant après tout reçu ; une relecture échouée n’annule pas une sauvegarde confirmée. L’entrée `content` est obligatoire et nullable : `null` efface explicitement le contenu courant. Elle ne supprime ni sources, ni propositions, ni reçus. La restitution du texte dans le formulaire exige inspection puis action explicite et source relue ; elle ne prépare ni ne confirme une proposition.
+
+Conservation retenue pour cette tranche : jusqu’à remplacement/effacement volontaire, sans purge automatique. Cette décision réversible évite une suppression silencieuse en l’absence de politique de rétention validée ; une politique globale et ses mécanismes restent ouverts. Aucun contenu en localStorage. Les révisions ne conservent pas les anciens textes ; les reçus conservent l’empreinte de requête et la révision, pas le document. Les confirmations de proposition restent volatiles et expirent après cinq minutes ; restaurer un brouillon demande une nouvelle préparation.
+
+Migration0034 additive qualifiée sur la base synthétique uniquement. Deux routes dédiées HTTP/MCP, façade explicitement bornée, capacité `contribution_drafts`. Le rôle de la console et les ACL ne sont jamais accordés par le brouillon. Pas de formulaire de brouillon universel, de nouveau rôle, d’agent sémantique ou de validation owner implicite.

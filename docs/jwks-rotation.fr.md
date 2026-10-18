@@ -40,4 +40,4 @@ Aucun nouvel endpoint n’est nécessaire. Le client obtient son jeton auprès d
 
 `/health` et `/ready` restent des sondes de processus et de SQL. Elles ne prouvent pas qu’un cache JWKS est valide ou que l’IdP est disponible. Cette tranche ne livre ni connexion utilisateur, ni serveur OAuth, ni auto-découverte d’URL JWKS, ni rotation des clés de confirmation. Les tests utilisent exclusivement un fournisseur HTTP synthétique sur loopback ; l’intégration avec un IdP réel et le déploiement TLS restent à qualifier.
 
-La politique s’appuie sur la [sélection explicite des algorithmes et les limites de confiance JWT](https://www.rfc-editor.org/rfc/rfc8725.html) et le [format des jeux de clés JWK](https://www.rfc-editor.org/rfc/rfc7517.html). CortexFusion applique les restrictions locales supplémentaires décrites ici.
+La politique s’appuie sur la [sélection explicite des algorithmes et les limites de confiance JWT](https://www.rfc-editor.org/rfc/rfc8725.html) et le [format des jeux de clés JWK](https://www.rfc-editor.org/rfc/rfc7517.html). Open Br**AI**n applique les restrictions locales supplémentaires décrites ici.

@@ -4,7 +4,7 @@ Générée par `scripts/export_frontend_reference.py` depuis OpenAPI, le catalog
 
 Lire d'abord le [guide des parcours frontend](frontend-guide.fr.md). Cette référence décrit les opérations de référence communes, pas des fonctions futures. Les huit extensions natives Rust sont décrites dans [leur référence](rust-extensions.fr.md). Le catalogue machine français est `packages/contracts/functional-interactions.fr.json`.
 
-Couverture : **79 opérations HTTP de référence communes**, chacune liée à son outil MCP généré. Les huit extensions portent le runtime Rust à **87 opérations HTTP et 103 outils MCP**. Les outils de compatibilité et les ressources/prompts sont décrits dans le guide MCP.
+Couverture : **79 opérations HTTP de référence communes**, chacune liée à son outil MCP généré. Les extensions natives complètent cet inventaire HTTP et MCP pour le runtime Rust. Les outils de compatibilité et les ressources/prompts sont décrits dans le guide MCP.
 
 ## Règles communes
 
@@ -2460,7 +2460,7 @@ Champs non déclarés interdits.
 |---|---|---|---|
 | `concept_id` | oui | texte | format : `"uuid"` |
 | `title` | oui | texte | longueur min. : `1`; longueur max. : `200` |
-| `body` | oui | texte | longueur min. : `1`; longueur max. : `30000` |
+| `body` | oui | texte | longueur min. : `1`; longueur max. : `200000` |
 | `maturity` | non | [Maturity](#schema-maturity) | défaut : `"emerging"` |
 | `sources` | oui | liste de [SourceRef](#schema-sourceref) | éléments min. : `1`; éléments max. : `30` |
 | `links` | non | liste de [Link](#schema-link) | éléments max. : `100` |
@@ -2475,6 +2475,22 @@ Champs non déclarés interdits.
 | `concept_id` | oui | texte | format : `"uuid"` |
 | `before` | oui | [Concept](#schema-concept) / null | — |
 | `after` | oui | [Concept](#schema-concept) / null | — |
+
+<a id="schema-contextpassage"></a>
+### ContextPassage
+
+Champs non déclarés interdits.
+
+| Champ | Requis | Type / valeurs | Contraintes |
+|---|---|---|---|
+| `concept_id` | oui | texte | format : `"uuid"` |
+| `title` | oui | texte | — |
+| `maturity` | oui | [Maturity](#schema-maturity) | — |
+| `body_start` | oui | entier | minimum : `0.0` |
+| `body_end` | oui | entier | strictement supérieur à : `0.0` |
+| `body_total_chars` | oui | entier | strictement supérieur à : `0.0` |
+| `text` | oui | texte | — |
+| `sources` | oui | liste de [SourceRef](#schema-sourceref) | — |
 
 <a id="schema-conversationinput"></a>
 ### ConversationInput
@@ -3241,10 +3257,11 @@ Champs non déclarés interdits.
 |---|---|---|---|
 | `episode_id` | oui | texte | format : `"uuid"` |
 | `answer` | oui | texte | — |
-| `status` | oui | `"evidence_found"`, `"knowledge_gap"` | — |
+| `status` | oui | `"evidence_found"`, `"knowledge_gap"`, `"context_limited"` | — |
 | `mode` | non | `"extractive"` | défaut : `"extractive"` |
 | `served_version` | oui | entier | — |
 | `concepts` | oui | liste de [Concept](#schema-concept) | — |
+| `context_passages` | non | liste de [ContextPassage](#schema-contextpassage) | — |
 | `citations` | oui | liste de [Citation](#schema-citation) | — |
 | `processing` | non | `"local_no_model"` | défaut : `"local_no_model"` |
 

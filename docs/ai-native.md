@@ -1,6 +1,6 @@
 # Contrat d'interaction indépendant du frontend
 
-Cortex Fusion expose ses fonctions métier par contrats HTTP et outils MCP. Une interface web, une application mobile, une CLI ou un assistant en langage naturel peut utiliser ces frontières. L'interface ne porte ni les règles de publication, ni les droits, ni la connaissance canonique. Ces règles restent dans les services backend, communs aux routes HTTP et aux outils.
+Open Br**AI**n expose ses fonctions métier par contrats HTTP et outils MCP. Une interface web, une application mobile, une CLI ou un assistant en langage naturel peut utiliser ces frontières. L'interface ne porte ni les règles de publication, ni les droits, ni la connaissance canonique. Ces règles restent dans les services backend, communs aux routes HTTP et aux outils.
 
 Cette architecture prépare une utilisation AI native. Elle ne signifie pas que le backend interprète déjà librement toute phrase : le raisonnement et la traduction d'intention en appels typés sont actuellement la responsabilité de l'hôte agent. La recherche reste lexicale et les réponses restent des extraits cités. L'adaptateur OpenRouter sélectionne des passages ; il ne constitue pas encore une boucle complète de dialogue ou de planification.
 

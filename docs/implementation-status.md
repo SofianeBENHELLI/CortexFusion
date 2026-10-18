@@ -1,6 +1,10 @@
 # Implementation status
 
-Updated: 2026-09-08
+Current assessment: [code/specification audit, 5 October 2026](product/code-audit-2026-10-05.fr.md), with the [updated priority plan](product/roadmap.md). A real console exists in `apps/console`; access, owner workflows, semantic retrieval and biomimetic mechanisms remain incomplete. The audit reran 307 console, 67 Rust library, 163 targeted Python and 11 Node contract/harness tests; this is not end-to-end product qualification.
+
+Historical backend inventory below: 2026-09-08.
+
+For the later Rust/console BrainMap work of 2–5 October 2026, see the [pilot-readiness assessment](product/brain-pilot-readiness.fr.md), [frontend acceptance matrix](product/frontend-acceptance-matrix.fr.md) and [delivery log](product/brain-delivery-status.fr.md). The backend inventory and Python-specific implementation history below retain their original date and do not describe the newer Rust/TerminusDB observation slice.
 
 ## Delivered backend
 

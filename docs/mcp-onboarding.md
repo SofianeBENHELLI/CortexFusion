@@ -1,4 +1,82 @@
-# Connect a companion to Cortex Fusion
+# Connect a companion to Open Br**AI**n
+
+## Extensions de travail en qualification — 16 octobre, fenêtre autonome
+
+Le code natif ajoute `api_cases_*` : annuaire des coordinateurs, préparation/consentement d’un extrait minimal, suivi déclarant/équipe distinct, qualification, clôture sans changement et retrait. Le guide `cortex://guide` précise la séquence : aucun feedback négatif ni conversation n’est partagé automatiquement. Afficher le texte exact et les destinataires, obtenir l’accord, puis partager la charge préparée inchangée. Agent technique exclu ; viewer humain peut suivre ce parcours via MCP. Le retrait masque le contenu aux destinataires courants sans annoncer une purge physique.
+
+Les tâches `api_tasks_*` et les lectures personnelles `api_task_notifications_*` restent séparées de la publication du savoir. Droits actuels, pagination opaque et réessais idempotents sont communs HTTP/MCP. Qualification native du lot partage :14 scénarios groupés, dont préparation/partage viewer MCP et récupération HTTP du même reçu. Cela ne qualifie pas tous les chatbots ni un fournisseur externe. **Ces extensions et migrations0027–0031 sont qualifiées sur la base synthétique ; le service privé8013 ci-dessous n’a pas été remplacé.**
+
+Le lot avis expert ajoute `api_task_proposals_list/link` et `api_expert_reviews_list/submit` : référence explicite sans transfert de droits, avis de l’affectataire accepté sur empreinte/révision précises, refus d’auto-revue, historique marqué périmé après changement. Aucun avis n’approuve ni ne publie. **9/9 scénarios natifs groupés**, dont révocation de source et reçu identique MCP/HTTP. Les clients doivent faire confirmer le texte exact et réessayer la même charge en cas de résultat inconnu.
+
+## État local vérifié — 16 octobre 2026
+
+La base est déjà exposée par le backend Rust en **MCP Streamable HTTP** à
+`http://127.0.0.1:8013/mcp/` lorsque le serveur privé tourne. Vérification fraîche,
+sans appel modèle : `initialize`, `tools/list`, `resources/list`, `prompts/list`
+réussis ; **109 outils,3 ressources statiques,3 prompts**, version de protocole
+négociée `2025-03-26`. `api_domain_version` relit les versions acceptée/publiée33
+du domaine privé. Un appel MCP sans identité reçoit401. Aucun appel de requête
+métier, aucune publication et aucun corpus transmis à un fournisseur externe
+pendant cette vérification. Ces compteurs remplacent les anciens totaux pour ce
+binaire uniquement ; ce n’est pas une validation de109 outils ni de tous les clients.
+
+| Paramètre du client | Valeur |
+|---|---|
+| Nom libre | Open Br**AI**n |
+| Transport | Streamable HTTP |
+| URL sur ce Mac | `http://127.0.0.1:8013/mcp/` |
+| Header `Authorization` | `Bearer <jeton utilisateur Cortex>` fourni par l’hôte, jamais dans le prompt |
+| Header `X-Tenant-ID` | UUID du tenant privé existant |
+| Domaine des appels | UUID du domaine, distinct du tenant |
+
+Les valeurs privées sont conservées dans `.runtime/brain/okf-workspace/` ; ne pas
+les copier dans une configuration versionnée. Le mode frontend sans saisie
+([guide](../apps/console/API-INTEGRATION.md#accès-local-direct-temporaire--16-octobre-2026))
+ne désactive pas l’identité du serveur MCP. Un client local doit obtenir/renouveler
+son jeton par son hôte ; le serveur ne distribue pas de jeton anonyme. Le helper
+`scripts.okf_workspace session` émet une session locale de30 minutes dans un
+fichier privé, sans afficher le jeton, pour une intégration de développement.
+
+Exemple d’arguments MCP pour interroger un domaine :
+
+```json
+{
+  "name": "api_knowledge_query",
+  "arguments": {
+    "path": { "domain": "<UUID du domaine>" },
+    "body": { "question": "<question utilisateur>", "limit": 5, "max_chars": 8000 }
+  }
+}
+```
+
+`api_concepts_read`, `api_sources_read` et `api_graph_window` permettent de lire
+les concepts, leurs preuves et le graphe ; découvrir leurs schémas via
+`tools/list` avant de construire les arguments. `ask_cortex` est un prompt de
+préparation, pas une exécution de recherche. Une interrogation métier peut créer
+son épisode de traçabilité ; ne pas confondre absence de modification du savoir
+avec absence d’écriture technique. Les validations/publications sensibles restent
+soumises aux droits et à la confirmation signée de l’hôte.
+
+### Ce que signifie « n’importe quel chatbot »
+
+- **Client MCP exécuté sur ce Mac**, compatible Streamable HTTP et en-têtes
+  personnalisés : endpoint local disponible ; intégration et renouvellement à
+  valider dans le client choisi. Aucun chatbot externe n’a été connecté ici.
+- **Client acceptant uniquement stdio** : un adaptateur local stdio↔HTTP est
+  nécessaire ; ce point n’est pas livré par le lanceur de console.
+- **Chatbot qui appelle les outils depuis son cloud** : il ne peut pas atteindre
+  le loopback du Mac. Il faut un endpoint HTTPS accessible, un fournisseur OAuth,
+  et une résolution du tenant compatible avec le client. Aucun tunnel ni service
+  public n’a été créé. Les en-têtes personnalisés ne sont pas supportés par tous
+  les hôtes ; l’interopérabilité universelle n’est donc pas acquise.
+
+MCP est le protocole d’accès aux outils ; il ne rend pas automatiquement un
+chatbot compatible. Voir les transports [stdio et Streamable HTTP](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
+et la [spécification d’autorisation](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization).
+Connecter un modèle hébergé lui transmettrait les extraits retournés par ses
+appels : la consigne actuelle de conserver OKF privé, sans fournisseur modèle,
+reste appliquée. Le choix d’un tel destinataire et du périmètre partagé reste à
+arrêter avant toute connexion distante.
 
 The server exposes Streamable HTTP at `/mcp/`, exhaustive application tools, read-only resources and user-selected prompts. It does not include a companion UI or an authorization server. Transport tests include the installed MCP Python SDK over in-process HTTP with synthetic signed identities. The SDK completes discovery, cited query, companion response receipt, targeted feedback and revoked-access rejection. No external companion product or live enterprise identity provider has been validated yet.
 

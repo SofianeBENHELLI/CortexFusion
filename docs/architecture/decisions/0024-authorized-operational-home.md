@@ -1,0 +1,15 @@
+# Accueil opérationnel : actions et suivi, avec périmètres distincts
+
+16 octobre 2026 — B02/E02, lecture additive sans migration.
+
+`work_overview.read` réunit quatre catégories dans une transaction PostgreSQL repeatable-read : tâches actives, dossiers ouverts reçus nominativement, propres dossiers partagés ouverts et propres imports à reprendre. Chaque catégorie retourne un compte complet et cinq lignes au maximum ; aucun extrait, texte source, nom de fichier ou signal personnel d’origine n’est ajouté au résumé. Le viewer dispose du suivi de ses partages ; contributeur des tâches affectées et du suivi ; owner/corpus manager des quatre catégories. `null` exprime une capacité indisponible, jamais un compteur nul.
+
+Le périmètre personnel est le défaut. Le choix domaine élargit **seulement les tâches**, selon le contrat existant. Il ne donne pas au responsable accès aux dossiers adressés à un autre coordinateur, ni à ses imports. Les dossiers reçus exigent le rôle actuel de coordinateur, une désignation nominative et un auteur distinct. Le retrait du consentement et la clôture retirent le dossier du travail ouvert ; son historique conserve son contrat séparé. Le suivi de ses propres partages n’est pas une tâche affectée.
+
+Les imports exigent auteur courant, rôle de coordination, ACL de collection et de chaque élément/source. Le prédicat est réutilisé depuis le mécanisme d’import, sans duplication divergente. Seuls les imports non arrêtés contenant au moins un élément pending/failed sont comptés. Un import mixte peut figurer dans les deux compteurs : le total est le nombre distinct de jobs, pas leur somme. Échecs d’abord puis ancienneté/id ; dossiers par création/id. Aucun SLA, urgence apprise, qualité ou couverture n’est déduit. Les tâches réutilisent exactement le calcul du brief existant et son ordre.
+
+La console présente des catégories sélectionnables dans la conversation centrale, avec ouverture vers le dossier latéral existant. Les phrases guidées passent par la même lecture HTTP/MCP. Les anciens serveurs gardent le brief de tâches si seule cette capacité existe. Le changement de périmètre, la relecture en cours et l’erreur masquent les données antérieures ; rafraîchissement manuel et à la minute. Ce n’est pas une révocation poussée en temps réel. Les versions travail/droits décrivent le snapshot existant ; elles ne sont pas un curseur d’invalidation universel pour tous les changements d’import. Aucune mutation n’utilise le résumé comme autorisation ou révision attendue : le détail courant est relu.
+
+Les signalements privés, décisions de publication, missions autonomes et métriques de qualité restent hors de ce compteur. Leur absence ne signifie pas que le travail du corpus est terminé. L’agrégat parcourt les métadonnées autorisées côté serveur ; le transport est borné, mais aucune capacité10 000 ni budget de latence n’est établi par ce lot.
+
+Recettes et limites : lot15 du journal autonome. Pas de migration ni redémarrage du corpus privé, aucune clôture UI/UX.

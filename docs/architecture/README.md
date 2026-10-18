@@ -1,6 +1,34 @@
 # Architecture
 
-Status: target component boundaries derived from v0.5. The first executable core and Cordis service adapter are implemented; see the [accepted slice decision](decisions/0001-executable-core.md) and [implementation status](../implementation-status.md) for the precise subset.
+- [Accueil opérationnel autorisé](decisions/0024-authorized-operational-home.md) — catégories, dénominateurs et droits distincts.
+
+Implémentation UX du16 octobre : [brief factuel](decisions/0021-factual-work-brief.md), [brouillon privé de contribution](decisions/0022-private-contribution-drafts.md), [références dossier/tâche sans transfert d’accès](decisions/0023-case-task-references.md). Les migrations et recettes de cette fenêtre sont synthétiques ; voir le [journal](../product/openbrain-autonomous-2026-10-16.fr.md).
+
+Status, 5 October 2026: distinguish the implemented candidate below from the original target boundaries. The [audit](../product/code-audit-2026-10-05.fr.md) and [open decisions](open-decisions.md) identify runtime, persistence, workflow and frontend convergence choices. No production replacement is implied.
+
+## Implemented working-tree architecture
+
+Latest local correction: [ADR 0015 — bounded literal context passages](decisions/0015-bounded-literal-context-passages.md) fixes whole-body budget exclusion without changing published concepts. Semantic retrieval and the remaining audit decisions stay open.
+
+Next access boundary selected: [ADR 0016 — browser sessions and independent human confirmation](decisions/0016-browser-session-and-human-confirmation.md). This is an implementation plan for AUD-01/05, not a delivered login or owner publication flow.
+
+Its implementation in `services/browser-gateway` now includes OIDC code/PKCE, bounded one-use attempts, an ASGI session boundary, a reviewed console API proxy and a local launcher, tested against synthetic issuers/core responses. The console now has an opt-in cookie/CSRF adapter and a local dev/preview relay with component and HTTP tests. Full authenticated integration, Chrome, renewal, real provider and production topology are still pending; manual login remains the default.
+
+| Component | Current role | Limit |
+|---|---|---|
+| `apps/console` | Actual React mock/API console; conversations, governance reads, BrainMap and sources | Manual browser identity; two spatial readers; incomplete import/review/publication journeys |
+| `services/core` | Python compatibility reference and PostgreSQL core | Lexical/extractive subset, not the full semantic/biomimetic model |
+| `services/rust-core` | Native API/MCP candidate used by new BrainMap recipes | Runtime choice not finalized; semantic runtime and consolidation incomplete |
+| PostgreSQL | Journal, approvals, publication manifests, permissions and derived graph read tables | Full-version materialization and global rights checks affect cold cost |
+| TerminusDB | Private immutable snapshots activated through the SQL publication manifest | Cold/memory and multi-version operating costs require qualification |
+| `apps/harness` / companion | Client adapters and feedback/synthesis integration | External identity and autonomous harness loop not fully qualified |
+| `services/workflows`, `packages/agents`, `apps/web` | Original planned boundaries | These directories are not evidence of completed workers/agents/product UI; existing file workers live elsewhere |
+
+Contracts, authorization, provenance and human decisions remain core responsibilities. Read models and caches must not become independent authorities. Existing ADRs describe publication safeguards; the October audit recommends incremental projections and one navigation contract without discarding those safeguards.
+
+## Original v0.5 target boundaries
+
+The following diagram/table preserve the original decomposition. They do not state that every component is implemented or that Python is the only executable candidate. See the [accepted first slice](decisions/0001-executable-core.md) for its historical scope.
 
 ```mermaid
 flowchart TD

@@ -12,7 +12,7 @@ Les fichiers accessibles peuvent être partagés avec le sujet du worker, confor
 
 ## Configuration
 
-Compiler avec `cargo build --workspace --locked`. Lancer ensuite `./target/debug/cortex-corpus-worker`, ou la version `target/release/cortex-corpus-worker` après une construction release. Le serveur CortexFusion doit déjà être lancé ; les URL SQL et paramètres de clés du serveur ne sont pas requis par ce client.
+Compiler avec `cargo build --workspace --locked`. Lancer ensuite `./target/debug/cortex-corpus-worker`, ou la version `target/release/cortex-corpus-worker` après une construction release. Le serveur Open Br**AI**n doit déjà être lancé ; les URL SQL et paramètres de clés du serveur ne sont pas requis par ce client.
 
 | Variable | Fonction |
 |---|---|
