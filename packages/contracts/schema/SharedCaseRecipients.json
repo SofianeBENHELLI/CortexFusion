@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SharedCaseRecipients",
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "corpus_manager"
+            ]
+          }
+        },
+        "required": [
+          "subject",
+          "role"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "next_after": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "permissions_version": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "items",
+    "next_after",
+    "total",
+    "as_of",
+    "permissions_version"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorkActivityRead",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": [
+        "task",
+        "reference_review",
+        "mission",
+        "shared_case"
+      ]
+    },
+    "idempotency_key": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "kind",
+    "idempotency_key"
+  ]
+}

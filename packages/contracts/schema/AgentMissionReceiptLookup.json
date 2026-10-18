@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AgentMissionReceiptLookup",
+  "type": "object",
+  "properties": {
+    "command_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "receipt": {
+      "$ref": "#/$defs/AgentMissionReceipt"
+    }
+  },
+  "required": [
+    "command_id",
+    "receipt"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "AgentMissionReceipt": {
+      "type": "object",
+      "properties": {
+        "mission_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "event_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "stopped",
+            "completed"
+          ]
+        },
+        "reads_used": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "chars_used": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "lease_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid"
+        },
+        "lease_expires_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "mission_id",
+        "event_id",
+        "revision",
+        "status",
+        "reads_used",
+        "chars_used",
+        "lease_id",
+        "lease_expires_at"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

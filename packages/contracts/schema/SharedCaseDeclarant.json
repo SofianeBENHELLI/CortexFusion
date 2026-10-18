@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SharedCaseDeclarant",
+  "type": "object",
+  "properties": {
+    "audience": {
+      "type": "string",
+      "enum": [
+        "declarant"
+      ]
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "qualified",
+        "closed_without_change",
+        "withdrawn"
+      ]
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "allowed_actions": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "string",
+        "enum": [
+          "withdraw",
+          "qualify",
+          "close_without_change",
+          "reopen"
+        ]
+      }
+    },
+    "title": {
+      "type": "string"
+    },
+    "excerpt": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string",
+      "enum": [
+        "retrieved_evidence",
+        "delivered_answer",
+        "client_behavior"
+      ]
+    },
+    "origin": {
+      "type": "string",
+      "enum": [
+        "explicit",
+        "observed",
+        "inferred"
+      ]
+    },
+    "qualification": {
+      "type": "string"
+    },
+    "public_conclusion": {
+      "type": "string"
+    },
+    "policy_version": {
+      "type": "string",
+      "enum": [
+        "named-excerpt-v1"
+      ]
+    },
+    "recipients": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "string"
+      }
+    },
+    "personal_signal_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "audience",
+    "id",
+    "status",
+    "revision",
+    "created_at",
+    "updated_at",
+    "allowed_actions",
+    "title",
+    "excerpt",
+    "target",
+    "origin",
+    "qualification",
+    "public_conclusion",
+    "policy_version",
+    "recipients",
+    "personal_signal_id"
+  ],
+  "additionalProperties": false
+}

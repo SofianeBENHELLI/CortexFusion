@@ -8390,7 +8390,7 @@
         },
         "body": {
           "type": "string",
-          "maxLength": 30000,
+          "maxLength": 200000,
           "minLength": 1,
           "title": "Body"
         },
@@ -8462,6 +8462,64 @@
         "after"
       ],
       "title": "ConceptDifference"
+    },
+    "ContextPassage": {
+      "properties": {
+        "concept_id": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Concept Id"
+        },
+        "title": {
+          "type": "string",
+          "title": "Title"
+        },
+        "maturity": {
+          "$ref": "#/components/schemas/Maturity"
+        },
+        "body_start": {
+          "type": "integer",
+          "minimum": 0.0,
+          "title": "Body Start",
+          "description": "Inclusive Unicode offset in the published body"
+        },
+        "body_end": {
+          "type": "integer",
+          "exclusiveMinimum": 0.0,
+          "title": "Body End",
+          "description": "Exclusive Unicode offset in the published body"
+        },
+        "body_total_chars": {
+          "type": "integer",
+          "exclusiveMinimum": 0.0,
+          "title": "Body Total Chars"
+        },
+        "text": {
+          "type": "string",
+          "title": "Text"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/components/schemas/SourceRef"
+          },
+          "type": "array",
+          "title": "Sources"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "concept_id",
+        "title",
+        "maturity",
+        "body_start",
+        "body_end",
+        "body_total_chars",
+        "text",
+        "sources"
+      ],
+      "title": "ContextPassage",
+      "description": "Read-only excerpt of a published concept, never a replacement Concept."
     },
     "ConversationInput": {
       "properties": {
@@ -11074,7 +11132,8 @@
           "type": "string",
           "enum": [
             "evidence_found",
-            "knowledge_gap"
+            "knowledge_gap",
+            "context_limited"
           ],
           "title": "Status"
         },
@@ -11093,7 +11152,16 @@
             "$ref": "#/components/schemas/Concept"
           },
           "type": "array",
-          "title": "Concepts"
+          "title": "Concepts",
+          "description": "Complete selected concepts only; long selections are in context_passages. Read the concept endpoint for the full published body."
+        },
+        "context_passages": {
+          "items": {
+            "$ref": "#/components/schemas/ContextPassage"
+          },
+          "type": "array",
+          "title": "Context Passages",
+          "description": "Bounded, source-backed context selections; empty for legacy episodes. Unicode text lengths plus answer separators fit max_chars."
         },
         "citations": {
           "items": {

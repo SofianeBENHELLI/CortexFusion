@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskCandidate",
+  "type": "object",
+  "properties": {
+    "subject": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "owner",
+        "corpus_manager",
+        "contributor"
+      ]
+    }
+  },
+  "required": [
+    "subject",
+    "role"
+  ],
+  "additionalProperties": false
+}

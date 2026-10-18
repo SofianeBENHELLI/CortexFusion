@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GraphNodeSummary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "concept_id",
+    "title",
+    "maturity",
+    "source_count",
+    "outgoing_relations",
+    "incoming_relations"
+  ],
+  "properties": {
+    "concept_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "maturity": {
+      "type": "string",
+      "enum": [
+        "emerging",
+        "observed",
+        "established",
+        "reference"
+      ]
+    },
+    "source_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "outgoing_relations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "incoming_relations": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

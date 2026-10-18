@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CompanionWorkflowCatalog",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40
+    },
+    "documentation_only": {
+      "type": "boolean",
+      "const": true
+    },
+    "client_compatibility": {
+      "type": "string",
+      "const": "not_qualified"
+    },
+    "client_requirements": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1500
+      }
+    },
+    "guides": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/CompanionWorkflowGuide"
+      }
+    }
+  },
+  "required": [
+    "version",
+    "documentation_only",
+    "client_compatibility",
+    "client_requirements",
+    "guides"
+  ],
+  "$defs": {
+    "CompanionWorkflowGuide": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "consult",
+            "feedback",
+            "follow-up",
+            "task",
+            "correction",
+            "domain"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "intent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "required_capability": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          }
+        },
+        "tools": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "decision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "effect": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "recovery": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1500
+        },
+        "limits": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1500
+        },
+        "example": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1500
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "intent",
+        "required_capability",
+        "steps",
+        "tools",
+        "decision",
+        "effect",
+        "recovery",
+        "limits",
+        "example"
+      ]
+    }
+  }
+}

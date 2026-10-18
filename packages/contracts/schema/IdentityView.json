@@ -24,6 +24,40 @@
           "title": "Role",
           "type": "string"
         },
+        "roles": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "owner",
+                  "corpus_manager",
+                  "contributor",
+                  "agent",
+                  "viewer"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Roles"
+        },
+        "membership_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Membership Revision"
+        },
         "capabilities": {
           "items": {
             "type": "string"

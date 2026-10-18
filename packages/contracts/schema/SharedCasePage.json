@@ -1,0 +1,375 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SharedCasePage",
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "$ref": "#/$defs/SharedCase"
+      }
+    },
+    "next_after": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "has_more": {
+      "type": "boolean"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "mine",
+        "team"
+      ]
+    },
+    "permissions_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "work_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "completeness": {
+      "type": "string",
+      "enum": [
+        "partial",
+        "complete"
+      ]
+    },
+    "sort": {
+      "type": "string",
+      "enum": [
+        "created_at_asc_id_asc"
+      ]
+    }
+  },
+  "required": [
+    "items",
+    "next_after",
+    "total",
+    "has_more",
+    "as_of",
+    "scope",
+    "permissions_version",
+    "work_version",
+    "completeness",
+    "sort"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "SharedCase": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SharedCaseDeclarant"
+        },
+        {
+          "$ref": "#/$defs/SharedCaseTeam"
+        },
+        {
+          "$ref": "#/$defs/SharedCaseWithdrawn"
+        }
+      ]
+    },
+    "SharedCaseDeclarant": {
+      "type": "object",
+      "properties": {
+        "audience": {
+          "type": "string",
+          "enum": [
+            "declarant"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "new",
+            "qualified",
+            "closed_without_change",
+            "withdrawn"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "allowed_actions": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "string",
+            "enum": [
+              "withdraw",
+              "qualify",
+              "close_without_change",
+              "reopen"
+            ]
+          }
+        },
+        "title": {
+          "type": "string"
+        },
+        "excerpt": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string",
+          "enum": [
+            "retrieved_evidence",
+            "delivered_answer",
+            "client_behavior"
+          ]
+        },
+        "origin": {
+          "type": "string",
+          "enum": [
+            "explicit",
+            "observed",
+            "inferred"
+          ]
+        },
+        "qualification": {
+          "type": "string"
+        },
+        "public_conclusion": {
+          "type": "string"
+        },
+        "policy_version": {
+          "type": "string",
+          "enum": [
+            "named-excerpt-v1"
+          ]
+        },
+        "recipients": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "string"
+          }
+        },
+        "personal_signal_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "audience",
+        "id",
+        "status",
+        "revision",
+        "created_at",
+        "updated_at",
+        "allowed_actions",
+        "title",
+        "excerpt",
+        "target",
+        "origin",
+        "qualification",
+        "public_conclusion",
+        "policy_version",
+        "recipients",
+        "personal_signal_id"
+      ],
+      "additionalProperties": false
+    },
+    "SharedCaseTeam": {
+      "type": "object",
+      "properties": {
+        "audience": {
+          "type": "string",
+          "enum": [
+            "team"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "new",
+            "qualified",
+            "closed_without_change",
+            "withdrawn"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "allowed_actions": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "string",
+            "enum": [
+              "withdraw",
+              "qualify",
+              "close_without_change",
+              "reopen"
+            ]
+          }
+        },
+        "title": {
+          "type": "string"
+        },
+        "excerpt": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string",
+          "enum": [
+            "retrieved_evidence",
+            "delivered_answer",
+            "client_behavior"
+          ]
+        },
+        "origin": {
+          "type": "string",
+          "enum": [
+            "explicit",
+            "observed",
+            "inferred"
+          ]
+        },
+        "qualification": {
+          "type": "string"
+        },
+        "public_conclusion": {
+          "type": "string"
+        },
+        "policy_version": {
+          "type": "string",
+          "enum": [
+            "named-excerpt-v1"
+          ]
+        },
+        "declarant": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "audience",
+        "id",
+        "status",
+        "revision",
+        "created_at",
+        "updated_at",
+        "allowed_actions",
+        "title",
+        "excerpt",
+        "target",
+        "origin",
+        "qualification",
+        "public_conclusion",
+        "policy_version",
+        "declarant"
+      ],
+      "additionalProperties": false
+    },
+    "SharedCaseWithdrawn": {
+      "type": "object",
+      "properties": {
+        "audience": {
+          "type": "string",
+          "enum": [
+            "withdrawn"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "new",
+            "qualified",
+            "closed_without_change",
+            "withdrawn"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "allowed_actions": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "string",
+            "enum": [
+              "withdraw",
+              "qualify",
+              "close_without_change",
+              "reopen"
+            ]
+          }
+        }
+      },
+      "required": [
+        "audience",
+        "id",
+        "status",
+        "revision",
+        "created_at",
+        "updated_at",
+        "allowed_actions"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

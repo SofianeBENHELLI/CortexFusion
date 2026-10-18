@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorkCaseOverview",
+  "type": "object",
+  "properties": {
+    "total": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "items": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "$ref": "#/$defs/WorkCaseSummary"
+      }
+    },
+    "has_more": {
+      "type": "boolean"
+    },
+    "sort": {
+      "type": "string",
+      "const": "created_at_asc_id_asc"
+    }
+  },
+  "required": [
+    "total",
+    "items",
+    "has_more",
+    "sort"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "WorkCaseSummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "new",
+            "qualified"
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "status",
+        "created_at"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

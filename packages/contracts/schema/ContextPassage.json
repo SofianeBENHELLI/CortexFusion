@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Maturity": {
+      "enum": [
+        "emerging",
+        "observed",
+        "established",
+        "reference"
+      ],
+      "title": "Maturity",
+      "type": "string"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "start": {
+          "description": "Zero-based Unicode code point offset, inclusive",
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "description": "Unicode code point offset, exclusive; not UTF-16 units",
+          "exclusiveMinimum": 0,
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source_id",
+        "start",
+        "end"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Read-only excerpt of a published concept, never a replacement Concept.",
+  "properties": {
+    "concept_id": {
+      "format": "uuid",
+      "title": "Concept Id",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "maturity": {
+      "$ref": "#/$defs/Maturity"
+    },
+    "body_start": {
+      "description": "Inclusive Unicode offset in the published body",
+      "minimum": 0,
+      "title": "Body Start",
+      "type": "integer"
+    },
+    "body_end": {
+      "description": "Exclusive Unicode offset in the published body",
+      "exclusiveMinimum": 0,
+      "title": "Body End",
+      "type": "integer"
+    },
+    "body_total_chars": {
+      "exclusiveMinimum": 0,
+      "title": "Body Total Chars",
+      "type": "integer"
+    },
+    "text": {
+      "title": "Text",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/SourceRef"
+      },
+      "title": "Sources",
+      "type": "array"
+    }
+  },
+  "required": [
+    "concept_id",
+    "title",
+    "maturity",
+    "body_start",
+    "body_end",
+    "body_total_chars",
+    "text",
+    "sources"
+  ],
+  "title": "ContextPassage",
+  "type": "object"
+}

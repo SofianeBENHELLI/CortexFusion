@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SharedCaseCommand",
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "withdraw",
+        "qualify",
+        "close_without_change",
+        "reopen"
+      ]
+    },
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "qualification": {
+      "type": "string",
+      "enum": [
+        "incorrect",
+        "missing",
+        "outdated",
+        "unclear",
+        "behavior",
+        "other"
+      ]
+    },
+    "public_conclusion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "idempotency_key": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "action",
+    "expected_revision",
+    "idempotency_key"
+  ],
+  "additionalProperties": false
+}

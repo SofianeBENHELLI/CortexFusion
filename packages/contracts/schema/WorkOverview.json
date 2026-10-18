@@ -1,0 +1,771 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorkOverview",
+  "type": "object",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "enum": [
+        "assigned",
+        "domain"
+      ]
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "owner",
+        "corpus_manager",
+        "contributor",
+        "viewer"
+      ]
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "permissions_version": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "work_version": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "tasks": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WorkBrief"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "received_cases": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WorkCaseOverview"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "my_cases": {
+      "$ref": "#/$defs/WorkCaseOverview"
+    },
+    "imports": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WorkImportOverview"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "coverage": {
+      "type": "string",
+      "const": "authorized_active_work_only"
+    },
+    "received_reference_reviews": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WorkReferenceReviewOverview"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "my_reference_reviews": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WorkReferenceReviewOverview"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "my_missions": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WorkMissionOverview"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "scope",
+    "role",
+    "as_of",
+    "permissions_version",
+    "work_version",
+    "tasks",
+    "received_cases",
+    "my_cases",
+    "imports",
+    "coverage",
+    "received_reference_reviews",
+    "my_reference_reviews",
+    "my_missions"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "WorkBrief": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": [
+            "assigned",
+            "domain"
+          ]
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "owner",
+            "corpus_manager",
+            "contributor"
+          ]
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "permissions_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "work_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "counts": {
+          "type": "object",
+          "properties": {
+            "active": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "overdue": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "offered": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "review": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "blocked": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unassigned": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "in_progress": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "active",
+            "overdue",
+            "offered",
+            "review",
+            "blocked",
+            "unassigned",
+            "in_progress"
+          ],
+          "additionalProperties": false
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "properties": {
+              "task": {
+                "$ref": "#/$defs/WorkTask"
+              },
+              "overdue": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "task",
+              "overdue"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "sort": {
+          "type": "string",
+          "enum": [
+            "overdue_review_offer_blocked_unassigned_progress_due_created_id",
+            "overdue_priority_review_offer_blocked_unassigned_progress_due_created_id"
+          ]
+        },
+        "coverage": {
+          "type": "string",
+          "enum": [
+            "active_tasks_only"
+          ]
+        }
+      },
+      "required": [
+        "scope",
+        "role",
+        "as_of",
+        "permissions_version",
+        "work_version",
+        "counts",
+        "items",
+        "has_more",
+        "sort",
+        "coverage"
+      ],
+      "additionalProperties": false
+    },
+    "WorkCaseOverview": {
+      "type": "object",
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/WorkCaseSummary"
+          }
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "sort": {
+          "type": "string",
+          "const": "created_at_asc_id_asc"
+        }
+      },
+      "required": [
+        "total",
+        "items",
+        "has_more",
+        "sort"
+      ],
+      "additionalProperties": false
+    },
+    "WorkCaseSummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "new",
+            "qualified"
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "status",
+        "created_at"
+      ],
+      "additionalProperties": false
+    },
+    "WorkImportOverview": {
+      "type": "object",
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/WorkImportSummary"
+          }
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "sort": {
+          "type": "string",
+          "const": "failed_first_created_at_asc_id_asc"
+        },
+        "pending_jobs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "failed_jobs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "total",
+        "items",
+        "has_more",
+        "sort",
+        "pending_jobs",
+        "failed_jobs"
+      ],
+      "additionalProperties": false
+    },
+    "WorkImportSummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "collection_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "collection_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "pending": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "collection_id",
+        "collection_name",
+        "pending",
+        "failed",
+        "created_at"
+      ],
+      "additionalProperties": false
+    },
+    "WorkMissionOverview": {
+      "type": "object",
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "waiting": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "claimed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "expired": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "reports": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "withheld": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/WorkMissionSummary"
+          }
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "sort": {
+          "type": "string",
+          "const": "expired_report_created_id"
+        }
+      },
+      "required": [
+        "total",
+        "waiting",
+        "claimed",
+        "expired",
+        "reports",
+        "withheld",
+        "items",
+        "has_more",
+        "sort"
+      ],
+      "additionalProperties": false
+    },
+    "WorkMissionSummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "completed"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "content_available": {
+          "type": "boolean"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reads_used": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "chars_used": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "max_reads": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "max_chars": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "revision",
+        "created_at",
+        "expires_at",
+        "expired",
+        "content_available",
+        "title",
+        "reads_used",
+        "chars_used",
+        "max_reads",
+        "max_chars"
+      ],
+      "additionalProperties": false
+    },
+    "WorkReferenceReviewOverview": {
+      "type": "object",
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/WorkReferenceReviewSummary"
+          }
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "sort": {
+          "type": "string",
+          "const": "created_at_asc_id_asc"
+        }
+      },
+      "required": [
+        "total",
+        "items",
+        "has_more",
+        "sort"
+      ],
+      "additionalProperties": false
+    },
+    "WorkReferenceReviewSummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "awaiting_review",
+            "changes_requested",
+            "ready_for_owner"
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "author": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "reviewer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "created_at",
+        "question",
+        "author",
+        "reviewer",
+        "updated_at",
+        "revision"
+      ],
+      "additionalProperties": false
+    },
+    "WorkTask": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "instructions": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "criteria": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "creator": {
+          "type": "string"
+        },
+        "assignee": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "unassigned",
+            "offered",
+            "in_progress",
+            "blocked",
+            "review",
+            "completed",
+            "cancelled"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "due_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "offered_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "accepted_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "result_summary": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "allowed_actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "offer",
+              "accept",
+              "decline",
+              "block",
+              "resume",
+              "submit",
+              "request_changes",
+              "complete",
+              "cancel",
+              "reopen"
+            ]
+          }
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "low",
+            "normal",
+            "high"
+          ]
+        },
+        "priority_reason": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "planning_allowed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "instructions",
+        "criteria",
+        "creator",
+        "assignee",
+        "status",
+        "revision",
+        "created_at",
+        "updated_at",
+        "due_at",
+        "offered_at",
+        "accepted_at",
+        "result_summary",
+        "allowed_actions"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

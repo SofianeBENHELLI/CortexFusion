@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ConversationDraft",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "draft_key": {
+      "type": "string"
+    },
+    "text": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "updated_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "draft_key",
+    "text",
+    "revision",
+    "updated_at"
+  ]
+}

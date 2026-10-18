@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskNotificationReceipt",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "read_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "event_id",
+    "read_at"
+  ],
+  "additionalProperties": false
+}

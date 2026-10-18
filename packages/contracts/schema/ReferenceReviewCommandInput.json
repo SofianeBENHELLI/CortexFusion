@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReferenceReviewCommandInput",
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "withdraw",
+        "request_changes",
+        "ready_for_owner"
+      ]
+    },
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "idempotency_key": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "action",
+    "expected_revision",
+    "note",
+    "idempotency_key"
+  ],
+  "additionalProperties": false
+}

@@ -26,6 +26,8 @@ def cell(value):
 
 
 def schema_type(schema):
+    if isinstance(schema.get("type"), list):
+        return " / ".join(schema_type({**schema, "type": kind}) for kind in schema["type"])
     if "$ref" in schema:
         name = schema["$ref"].rsplit("/", 1)[-1]
         return f"[{name}](#schema-{name.lower()})"
@@ -148,7 +150,7 @@ def render(document):
         "est `packages/contracts/functional-interactions.fr.json`.",
         "",
         f"Couverture : **{len(items)} opérations HTTP de référence communes**, chacune liée à son outil MCP généré. "
-        "Les huit extensions portent le runtime Rust à **87 opérations HTTP et 103 outils MCP**. "
+        "Les extensions natives complètent cet inventaire HTTP et MCP pour le runtime Rust. "
         "Les outils de compatibilité et les ressources/prompts sont décrits dans le guide MCP.",
         "",
         "## Règles communes",

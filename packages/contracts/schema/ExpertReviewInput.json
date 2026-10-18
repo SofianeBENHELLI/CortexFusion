@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ExpertReviewInput",
+  "type": "object",
+  "properties": {
+    "proposal_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "digest": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "expected_review_revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "expected_task_revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "opinion": {
+      "type": "string",
+      "enum": [
+        "supports",
+        "changes_requested",
+        "insufficient_evidence"
+      ]
+    },
+    "justification": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "evidence_source_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "maxItems": 20,
+      "uniqueItems": true
+    },
+    "idempotency_key": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "proposal_id",
+    "digest",
+    "expected_review_revision",
+    "expected_task_revision",
+    "opinion",
+    "justification",
+    "evidence_source_ids",
+    "idempotency_key"
+  ],
+  "additionalProperties": false
+}

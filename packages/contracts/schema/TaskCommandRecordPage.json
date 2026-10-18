@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskCommandRecordPage",
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "$ref": "#/$defs/TaskCommandRecord"
+      }
+    },
+    "next_after": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "has_more": {
+      "type": "boolean"
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "personal"
+      ]
+    },
+    "permissions_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "work_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "completeness": {
+      "type": "string",
+      "enum": [
+        "partial",
+        "complete"
+      ]
+    },
+    "sort": {
+      "type": "string",
+      "enum": [
+        "created_at_desc_id_desc"
+      ]
+    }
+  },
+  "required": [
+    "items",
+    "next_after",
+    "has_more",
+    "total",
+    "as_of",
+    "scope",
+    "permissions_version",
+    "work_version",
+    "completeness",
+    "sort"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "TaskCommandRecord": {
+      "type": "object",
+      "properties": {
+        "command_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "receipt": {
+          "$ref": "#/$defs/WorkTaskReceipt"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "create",
+            "offer",
+            "accept",
+            "decline",
+            "block",
+            "resume",
+            "submit",
+            "request_changes",
+            "complete",
+            "cancel",
+            "reopen",
+            "link_proposal",
+            "expert_review",
+            "plan"
+          ]
+        },
+        "recorded_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "task_title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 200
+        },
+        "current_revision": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "current_status": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "unassigned",
+                "offered",
+                "in_progress",
+                "blocked",
+                "review",
+                "completed",
+                "cancelled"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "recorded"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "command_id",
+        "receipt",
+        "action",
+        "recorded_at",
+        "task_title",
+        "current_revision",
+        "current_status",
+        "outcome"
+      ]
+    },
+    "WorkTaskReceipt": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "event_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "unassigned",
+            "offered",
+            "in_progress",
+            "blocked",
+            "review",
+            "completed",
+            "cancelled"
+          ]
+        }
+      },
+      "required": [
+        "task_id",
+        "event_id",
+        "revision",
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

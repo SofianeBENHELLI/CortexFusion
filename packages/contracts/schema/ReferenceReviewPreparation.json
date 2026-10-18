@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReferenceReviewPreparation",
+  "type": "object",
+  "properties": {
+    "question_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "draft_revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "reviewer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "preparation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "content": {
+      "$ref": "#/$defs/ReferenceDraftContent"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "question_id",
+    "draft_revision",
+    "reviewer",
+    "preparation_id",
+    "content",
+    "expires_at"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "ReferenceDraftContent": {
+      "type": "object",
+      "properties": {
+        "theme": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "criteria": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "source_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "source_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "excerpt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000
+        },
+        "selection": {
+          "type": "object",
+          "properties": {
+            "start": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740990
+            },
+            "end": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "start",
+            "end"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "theme",
+        "question",
+        "criteria",
+        "source_id",
+        "source_hash",
+        "excerpt",
+        "selection"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

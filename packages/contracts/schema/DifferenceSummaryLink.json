@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DifferenceSummaryLink",
+  "additionalProperties": false,
+  "properties": {
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "structural",
+        "associative"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "primary": {
+      "default": false,
+      "title": "Primary",
+      "type": "boolean"
+    },
+    "weight": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Weight",
+      "type": "number"
+    }
+  },
+  "required": [
+    "target_id",
+    "kind"
+  ],
+  "type": "object"
+}

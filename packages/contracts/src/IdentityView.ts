@@ -6,6 +6,8 @@ export type TenantId = string;
 export type Id = string;
 export type Name = string;
 export type Role = "owner" | "corpus_manager" | "contributor" | "agent" | "viewer";
+export type Roles = ("owner" | "corpus_manager" | "contributor" | "agent" | "viewer")[] | null;
+export type MembershipRevision = number | null;
 export type Capabilities = string[];
 export type Domains = AccessibleDomain[];
 
@@ -19,5 +21,7 @@ export interface AccessibleDomain {
   id: Id;
   name: Name;
   role: Role;
+  roles?: Roles;
+  membership_revision?: MembershipRevision;
   capabilities: Capabilities;
 }

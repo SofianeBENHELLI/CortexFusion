@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskPlanChange",
+  "type": "object",
+  "properties": {
+    "before": {
+      "$ref": "#/$defs/TaskPlanState"
+    },
+    "after": {
+      "$ref": "#/$defs/TaskPlanState"
+    }
+  },
+  "required": [
+    "before",
+    "after"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "TaskPlanState": {
+      "type": "object",
+      "properties": {
+        "priority": {
+          "type": "string",
+          "enum": [
+            "low",
+            "normal",
+            "high"
+          ]
+        },
+        "due_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "priority",
+        "due_at"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

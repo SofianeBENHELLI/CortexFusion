@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PublicationAudit",
+  "properties": {
+    "publisher": {
+      "type": "string",
+      "title": "Publisher"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Recorded At"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "publisher",
+    "recorded_at"
+  ]
+}

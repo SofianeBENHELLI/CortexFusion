@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MapBounds",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "x",
+    "y",
+    "w",
+    "h"
+  ],
+  "properties": {
+    "x": {
+      "type": "number"
+    },
+    "y": {
+      "type": "number"
+    },
+    "w": {
+      "type": "number"
+    },
+    "h": {
+      "type": "number"
+    }
+  }
+}

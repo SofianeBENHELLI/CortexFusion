@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskNotification",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "current_status": {
+      "type": "string",
+      "enum": [
+        "unassigned",
+        "offered",
+        "in_progress",
+        "blocked",
+        "review",
+        "completed",
+        "cancelled"
+      ]
+    },
+    "action": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "read_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "event_id",
+    "task_id",
+    "title",
+    "current_status",
+    "action",
+    "actor",
+    "revision",
+    "created_at",
+    "read_at"
+  ],
+  "additionalProperties": false
+}

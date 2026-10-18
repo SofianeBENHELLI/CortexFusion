@@ -2,6 +2,7 @@
 
 export type Subject = string;
 export type Role = string;
+export type Roles = string[] | null;
 export type Revision = number;
 export type Items = MemberView[];
 export type NextAfter = string | null;
@@ -13,5 +14,6 @@ export interface MemberPage {
 export interface MemberView {
   subject: Subject;
   role: Role;
+  roles?: Roles;
   revision: Revision;
 }

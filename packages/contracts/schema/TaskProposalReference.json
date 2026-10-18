@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskProposalReference",
+  "type": "object",
+  "properties": {
+    "proposal_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "digest": {
+      "type": "string"
+    },
+    "review_revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "status": {
+      "type": "string"
+    },
+    "linked_by": {
+      "type": "string"
+    },
+    "linked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "can_review": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "proposal_id",
+    "digest",
+    "review_revision",
+    "status",
+    "linked_by",
+    "linked_at",
+    "can_review"
+  ],
+  "additionalProperties": false
+}

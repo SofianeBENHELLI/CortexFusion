@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorkTaskPage",
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "$ref": "#/$defs/WorkTask"
+      }
+    },
+    "next_after": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "has_more": {
+      "type": "boolean"
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "domain",
+        "assigned"
+      ]
+    },
+    "permissions_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "work_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "completeness": {
+      "type": "string",
+      "enum": [
+        "partial",
+        "complete"
+      ]
+    },
+    "sort": {
+      "type": "string",
+      "enum": [
+        "created_at_asc_id_asc"
+      ]
+    }
+  },
+  "required": [
+    "items",
+    "next_after",
+    "has_more",
+    "total",
+    "as_of",
+    "scope",
+    "permissions_version",
+    "work_version",
+    "completeness",
+    "sort"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "WorkTask": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "instructions": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "criteria": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "creator": {
+          "type": "string"
+        },
+        "assignee": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "unassigned",
+            "offered",
+            "in_progress",
+            "blocked",
+            "review",
+            "completed",
+            "cancelled"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "due_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "offered_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "accepted_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "result_summary": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "allowed_actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "offer",
+              "accept",
+              "decline",
+              "block",
+              "resume",
+              "submit",
+              "request_changes",
+              "complete",
+              "cancel",
+              "reopen"
+            ]
+          }
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "low",
+            "normal",
+            "high"
+          ]
+        },
+        "priority_reason": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "planning_allowed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "instructions",
+        "criteria",
+        "creator",
+        "assignee",
+        "status",
+        "revision",
+        "created_at",
+        "updated_at",
+        "due_at",
+        "offered_at",
+        "accepted_at",
+        "result_summary",
+        "allowed_actions"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

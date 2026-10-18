@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskNotificationRead",
+  "type": "object",
+  "properties": {
+    "idempotency_key": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "idempotency_key"
+  ],
+  "additionalProperties": false
+}

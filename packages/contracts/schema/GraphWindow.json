@@ -1,0 +1,285 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GraphWindow",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "domain_id",
+    "at_version",
+    "visibility",
+    "focus",
+    "after",
+    "limit",
+    "domain_totals",
+    "scope_totals",
+    "nodes",
+    "edges",
+    "next_after",
+    "internal_relations",
+    "boundary_outgoing_relations",
+    "edges_truncated",
+    "before",
+    "locate",
+    "previous_before",
+    "direction",
+    "search",
+    "scope_ids"
+  ],
+  "properties": {
+    "domain_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "at_version": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740990
+    },
+    "visibility": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Identity-bound coherence digest of currently visible concept IDs at this version; never grants access."
+    },
+    "focus": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GraphNodeSummary"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "after": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50
+    },
+    "domain_totals": {
+      "$ref": "#/$defs/GraphTotals"
+    },
+    "scope_totals": {
+      "$ref": "#/$defs/GraphTotals"
+    },
+    "nodes": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "$ref": "#/$defs/GraphNodeSummary"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "maxItems": 120,
+      "items": {
+        "$ref": "#/$defs/GraphRelationSummary"
+      }
+    },
+    "next_after": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "internal_relations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "boundary_outgoing_relations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "edges_truncated": {
+      "type": "boolean"
+    },
+    "before": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "locate": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "previous_before": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "both",
+        "outgoing"
+      ]
+    },
+    "search": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "scope_ids": {
+      "anyOf": [
+        {
+          "type": "array",
+          "maxItems": 101,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "description": "Complete authorized membership only for an outgoing focused neighborhood; null for whole-domain and unbounded incoming scopes."
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "GraphNodeSummary": {
+      "title": "GraphNodeSummary",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "concept_id",
+        "title",
+        "maturity",
+        "source_count",
+        "outgoing_relations",
+        "incoming_relations"
+      ],
+      "properties": {
+        "concept_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "maturity": {
+          "type": "string",
+          "enum": [
+            "emerging",
+            "observed",
+            "established",
+            "reference"
+          ]
+        },
+        "source_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outgoing_relations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "incoming_relations": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "GraphRelationSummary": {
+      "title": "GraphRelationSummary",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "kind",
+        "weight",
+        "primary"
+      ],
+      "properties": {
+        "from": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "to": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "structural",
+            "associative"
+          ]
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "primary": {
+          "type": "boolean"
+        }
+      }
+    },
+    "GraphTotals": {
+      "title": "GraphTotals",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "concepts",
+        "relations"
+      ],
+      "properties": {
+        "concepts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "relations": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Directed outgoing relations from concepts in this scope, to any currently authorized concept in the domain. Each (from,to,kind) counts once."
+        }
+      }
+    }
+  }
+}

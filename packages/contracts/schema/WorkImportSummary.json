@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorkImportSummary",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "collection_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "collection_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "pending": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "failed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "id",
+    "collection_id",
+    "collection_name",
+    "pending",
+    "failed",
+    "created_at"
+  ],
+  "additionalProperties": false
+}

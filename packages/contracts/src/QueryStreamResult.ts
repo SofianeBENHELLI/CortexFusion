@@ -4,7 +4,7 @@ export type Event = "result";
 export type ProtocolVersion = "1";
 export type EpisodeId = string;
 export type Answer = string;
-export type Status = "evidence_found" | "knowledge_gap";
+export type Status = "evidence_found" | "knowledge_gap" | "context_limited";
 export type Mode = "extractive";
 export type ServedVersion = number;
 export type ConceptId = string;
@@ -33,9 +33,30 @@ export type Weight = number;
  * @maxItems 100
  */
 export type Links = Link[];
+/**
+ * Complete selected concepts only; long selections are in context_passages. Read the concept endpoint for the full published body.
+ */
 export type Concepts = Concept[];
-export type SourceId1 = string;
+export type ConceptId1 = string;
 export type Title1 = string;
+export type Maturity1 = "emerging" | "observed" | "established" | "reference";
+/**
+ * Inclusive Unicode offset in the published body
+ */
+export type BodyStart = number;
+/**
+ * Exclusive Unicode offset in the published body
+ */
+export type BodyEnd = number;
+export type BodyTotalChars = number;
+export type Text = string;
+export type Sources1 = SourceRef[];
+/**
+ * Bounded, source-backed context selections; empty for legacy episodes. Unicode text lengths plus answer separators fit max_chars.
+ */
+export type ContextPassages = ContextPassage[];
+export type SourceId1 = string;
+export type Title2 = string;
 export type Location = string;
 export type ContentHash = string;
 export type Start1 = number;
@@ -56,6 +77,7 @@ export interface QueryResult {
   mode?: Mode;
   served_version: ServedVersion;
   concepts: Concepts;
+  context_passages?: ContextPassages;
   citations: Citations;
   processing?: Processing;
 }
@@ -78,9 +100,22 @@ export interface Link {
   primary?: Primary;
   weight?: Weight;
 }
+/**
+ * Read-only excerpt of a published concept, never a replacement Concept.
+ */
+export interface ContextPassage {
+  concept_id: ConceptId1;
+  title: Title1;
+  maturity: Maturity1;
+  body_start: BodyStart;
+  body_end: BodyEnd;
+  body_total_chars: BodyTotalChars;
+  text: Text;
+  sources: Sources1;
+}
 export interface Citation {
   source_id: SourceId1;
-  title: Title1;
+  title: Title2;
   location: Location;
   content_hash: ContentHash;
   start: Start1;

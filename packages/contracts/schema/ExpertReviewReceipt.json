@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ExpertReviewReceipt",
+  "type": "object",
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "unassigned",
+        "offered",
+        "in_progress",
+        "blocked",
+        "review",
+        "completed",
+        "cancelled"
+      ]
+    },
+    "expert_review_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "task_id",
+    "event_id",
+    "revision",
+    "status",
+    "expert_review_id"
+  ],
+  "additionalProperties": false
+}

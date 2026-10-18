@@ -26,6 +26,30 @@
       ],
       "title": "Role"
     },
+    "roles": {
+      "anyOf": [
+        {
+          "items": {
+            "enum": [
+              "owner",
+              "corpus_manager",
+              "contributor",
+              "agent",
+              "viewer"
+            ],
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Roles"
+    },
     "expected_revision": {
       "anyOf": [
         {

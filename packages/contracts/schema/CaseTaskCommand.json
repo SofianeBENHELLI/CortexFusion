@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CaseTaskCommand",
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "link",
+        "unlink"
+      ]
+    },
+    "task_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "expected_case_revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740990
+    },
+    "expected_task_revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740990
+    },
+    "idempotency_key": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "action",
+    "task_id",
+    "expected_case_revision",
+    "expected_task_revision",
+    "idempotency_key"
+  ],
+  "additionalProperties": false
+}
