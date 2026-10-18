@@ -1,3 +1,5 @@
+import threading
+import time
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -18,13 +20,43 @@ class Principal:
     tenant_id: str
 
 
+class ThrottledJWKClient(jwt.PyJWKClient):
+    """JWKS client whose unknown-kid refetches are rate limited and time bounded.
+
+    PyJWKClient refetches the key set for every token carrying an unknown kid, so any
+    caller could otherwise force one blocking fetch per request. As in the browser
+    gateway, at most one such refresh starts per interval; other misses fail at once.
+    """
+
+    def __init__(self, uri: str, refresh_interval: float = 5, timeout: float = 5):
+        super().__init__(uri, timeout=timeout)
+        self.refresh_interval = refresh_interval
+        self._refresh_lock = threading.Lock()
+        self._next_refresh = 0.0
+
+    def get_signing_key(self, kid: str) -> jwt.PyJWK:
+        signing_key = self.match_kid(self.get_signing_keys(), kid)
+        if signing_key:
+            return signing_key
+        with self._refresh_lock:
+            now = time.monotonic()
+            refresh = now >= self._next_refresh
+            if refresh:
+                self._next_refresh = now + self.refresh_interval
+        if refresh:
+            signing_key = self.match_kid(self.get_signing_keys(refresh=True), kid)
+        if not signing_key:
+            raise jwt.PyJWKClientError("No signing key matches the token")
+        return signing_key
+
+
 class Authenticator:
     def __init__(self, settings: Settings):
         self.settings = settings
         self.public_key = (
             settings.jwt_public_key_file.read_text() if settings.jwt_public_key_file else None
         )
-        self.jwks = jwt.PyJWKClient(settings.jwks_url) if settings.jwks_url else None
+        self.jwks = ThrottledJWKClient(settings.jwks_url) if settings.jwks_url else None
 
     def authenticate(self, authorization: str | None, tenant: str | None) -> Principal:
         try:

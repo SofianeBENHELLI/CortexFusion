@@ -5,6 +5,7 @@ from fastapi import Depends, FastAPI, Header
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import DBAPIError
+from starlette.concurrency import run_in_threadpool
 
 from .auth import Authenticator, CoreError
 from .browser_transport import install_browser_transport
@@ -82,7 +83,10 @@ class BoundaryMiddleware:
         headers = {k.decode().lower(): v.decode() for k, v in scope.get("headers", [])}
         if scope["path"].startswith("/mcp"):
             try:
-                self.auth.authenticate(headers.get("authorization"), headers.get("x-tenant-id"))
+                # Token verification may fetch JWKS; keep it off the event loop.
+                await run_in_threadpool(
+                    self.auth.authenticate, headers.get("authorization"), headers.get("x-tenant-id")
+                )
             except CoreError as exc:
                 return await JSONResponse(
                     {"error": exc.code, "message": exc.message},
