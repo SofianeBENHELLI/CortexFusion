@@ -3,6 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { Concept } from "../../../../packages/contracts/src/QueryResult";
 import type { ProposalInput } from "../../../../packages/contracts/src/ProposalInput";
 import { CortexApi, ApiError } from "./client";
+import { ProposalReceiptLink } from "./ProposalReceiptLink";
+import { readProposalReceipt, type ProposalReceipt } from "./proposal-receipt";
 export function ConceptCorrection({
   api,
   domain,
@@ -19,7 +21,7 @@ export function ConceptCorrection({
     [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [receipt, setReceipt] = useState("");
+    [receipt, setReceipt] = useState<ProposalReceipt>();
   const pending = useRef<ProposalInput>();
   const controller = useRef<AbortController>();
   const cache = useQueryClient();
@@ -103,10 +105,12 @@ export function ConceptCorrection({
         pending.current,
         { signal },
       );
-      if (!result || typeof result.id !== "string" || result.status !== "ready")
-        throw new ApiError(200, "invalid_response");
+      const confirmed = readProposalReceipt(
+        result,
+        pending.current.base_version,
+      );
       pending.current = undefined;
-      setReceipt(result.id);
+      setReceipt(confirmed);
       await cache.invalidateQueries({ queryKey: ["api", "proposals", domain] });
     } catch (e) {
       if (!signal.aborted) {
@@ -132,9 +136,7 @@ export function ConceptCorrection({
         rester fidèle aux preuves.
       </p>
       {receipt ? (
-        <p role="status">
-          Correction prête à examiner : {receipt}. Aucun changement publié.
-        </p>
+        <ProposalReceiptLink domain={domain} receipt={receipt} />
       ) : (
         <>
           <button

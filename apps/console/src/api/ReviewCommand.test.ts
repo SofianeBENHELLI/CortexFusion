@@ -50,3 +50,14 @@ it("refuses transitions unavailable for the displayed state", () => {
     ),
   ).toThrow();
 });
+
+it("counts the review reason in Unicode characters as the server does", () => {
+  const reason = "🧠".repeat(2000);
+  expect(
+    reviewCommand("domain", proposal, "reopen", reason, "key").arguments.body
+      .reason,
+  ).toBe(reason);
+  expect(() =>
+    reviewCommand("domain", proposal, "reopen", reason + "x", "key"),
+  ).toThrow();
+});

@@ -1,6 +1,11 @@
-import { ReviewCommand } from "./ReviewCommand";
+import { ProposalExpertReviews } from "./ProposalExpertReviews";
+import { SourceEvidence } from "./SourceEvidence";
+export { SourceEvidence } from "./SourceEvidence";
+import { ReviewCommand, type ReviewCommandHandle } from "./ReviewCommand";
 import { ReviewHistory } from "./ReviewHistory";
-import { useState } from "react";
+import { useEffect, useRef, useState, type Ref } from "react";
+import { useSearchParams } from "react-router-dom";
+import { proposalSelection } from "./navigation";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { ProposalView } from "../../../../packages/contracts/src/ProposalView";
 import type {
@@ -8,24 +13,19 @@ import type {
   ProposalDifference,
 } from "../../../../packages/contracts/src/ProposalDifference";
 import { ApiError, CortexApi } from "./client";
-
-const labels: Record<ProposalView["status"], string> = {
-  ready: "À examiner",
-  approved: "Approuvée",
-  published: "Publiée",
-  rejected: "Rejetée",
-  deferred: "Différée",
-  changes_requested: "Correction demandée",
-  superseded: "Remplacée",
-};
+import { proposalLabels as labels } from "./proposal-receipt";
 function validProposal(p: ProposalView): ProposalView {
   if (
     !p ||
     typeof p.id !== "string" ||
     !Object.hasOwn(labels, p.status) ||
     typeof p.reason !== "string" ||
-    !Number.isInteger(p.base_version) ||
-    !Number.isInteger(p.review_revision) ||
+    typeof p.digest !== "string" ||
+    !p.digest ||
+    !Number.isSafeInteger(p.base_version) ||
+    p.base_version < 0 ||
+    !Number.isSafeInteger(p.review_revision) ||
+    p.review_revision < 0 ||
     !Array.isArray(p.payload)
   )
     throw new ApiError(200, "invalid_response");
@@ -35,10 +35,12 @@ function ConceptState({
   value,
   api,
   domain,
+  onReadError,
 }: {
   value: Concept | null;
   api: CortexApi;
   domain: string;
+  onReadError: (error: Error) => void;
 }) {
   if (!value) return <p>Concept absent de cet état.</p>;
   return (
@@ -53,7 +55,12 @@ function ConceptState({
           {value.sources.map((s, i) => (
             <li key={i}>
               Source {s.source_id} · {s.start}–{s.end}
-              <SourceEvidence api={api} domain={domain} source={s} />
+              <SourceEvidence
+                api={api}
+                domain={domain}
+                source={s}
+                onReadError={onReadError}
+              />
             </li>
           ))}
         </ul>
@@ -118,104 +125,51 @@ function validateDifference(
     throw new ApiError(200, "invalid_response");
   return d;
 }
-export function SourceEvidence({
-  api,
-  domain,
-  source,
-}: {
-  api: CortexApi;
-  domain: string;
-  source: { source_id: string; start: number; end: number };
-}) {
-  const [open, setOpen] = useState(false);
-  const query = useQuery({
-    queryKey: [
-      "api",
-      "source-evidence",
-      domain,
-      source.source_id,
-      source.start,
-      source.end,
-    ],
-    enabled: open,
-    retry: false,
-    queryFn: async ({ signal }) => {
-      const value = await api.call(
-        "sources.read",
-        { domain, source_id: source.source_id },
-        undefined,
-        { signal },
-      );
-      if (
-        !value ||
-        value.id !== source.source_id ||
-        typeof value.content !== "string" ||
-        typeof value.title !== "string" ||
-        typeof value.location !== "string" ||
-        typeof value.content_hash !== "string"
-      )
-        throw new ApiError(200, "invalid_response");
-      const points = Array.from(value.content);
-      if (
-        !Number.isInteger(source.start) ||
-        !Number.isInteger(source.end) ||
-        source.start < 0 ||
-        source.end <= source.start ||
-        source.end > points.length
-      )
-        throw new ApiError(200, "invalid_response");
-      return {
-        title: value.title,
-        location: value.location,
-        hash: value.content_hash,
-        excerpt: points.slice(source.start, source.end).join(""),
-      };
-    },
-  });
-  return (
-    <div>
-      <button onClick={() => setOpen(!open)}>
-        {open ? "Fermer la preuve" : "Lire la preuve"}
-      </button>
-      {open &&
-        (query.error ? (
-          <div role="alert">
-            {query.error.message}
-            <button onClick={() => void query.refetch()}>
-              Réessayer la preuve
-            </button>
-          </div>
-        ) : query.isPending ? (
-          <p role="status">Chargement de la preuve…</p>
-        ) : (
-          query.data && (
-            <>
-              <p>
-                {query.data.title} · {query.data.location}
-              </p>
-              <blockquote style={{ whiteSpace: "pre-wrap" }}>
-                {query.data.excerpt}
-              </blockquote>
-              <p>Empreinte : {query.data.hash}</p>
-            </>
-          )
-        ))}
-    </div>
-  );
-}
 /** Read-only review. Approvals and publication stay behind the backend confirmation flow. */
-export function ProposalWorkspace({
+export function ProposalWorkspace(props: {
+  api: CortexApi;
+  domain: string;
+  onReconnect?: () => void;
+  canExpert?: boolean;
+  capabilities?: readonly string[];
+  decisionRef?: Ref<ReviewCommandHandle>;
+  onDecisionNotice?: (message: string) => void;
+  onOpenTask?: (id: string) => void;
+}) {
+  return <ProposalScope key={props.domain} {...props} />;
+}
+function ProposalScope({
   api,
   domain,
+  onReconnect,
+  canExpert = false,
+  capabilities = [],
+  decisionRef,
+  onDecisionNotice,
+  onOpenTask,
 }: {
   api: CortexApi;
   domain: string;
+  onReconnect?: () => void;
+  canExpert?: boolean;
+  capabilities?: readonly string[];
+  decisionRef?: Ref<ReviewCommandHandle>;
+  onDecisionNotice?: (message: string) => void;
+  onOpenTask?: (id: string) => void;
 }) {
-  const [selected, setSelected] = useState("");
+  const [params, setParams] = useSearchParams();
+  const { id: selected, invalid } = proposalSelection(params);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const listHeading = useRef<HTMLHeadingElement>(null);
+  const opener = useRef<HTMLButtonElement | null>(null);
+  const focused = useRef("");
+  const [readError, setReadError] = useState<Error | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const list = useInfiniteQuery({
     queryKey: ["api", "proposals", domain],
     initialPageParam: undefined as string | undefined,
     retry: false,
+    gcTime: 0,
     queryFn: async ({ signal, pageParam }) => {
       const page = await api.call("proposals.list", { domain }, undefined, {
         signal,
@@ -232,29 +186,26 @@ export function ProposalWorkspace({
     },
     getNextPageParam: (page) => page.next_after ?? undefined,
   });
-  const detail = useQuery({
-    queryKey: ["api", "proposal", domain, selected],
-    enabled: !!selected && !list.error,
+  const review = useQuery({
+    queryKey: ["api", "proposal-review", domain, selected],
+    enabled: !!selected && !invalid && !list.error && !!list.data,
     retry: false,
+    gcTime: 0,
     queryFn: async ({ signal }) => {
-      const p = validProposal(
-        await api.call(
-          "proposals.read",
-          { domain, proposal_id: selected },
-          undefined,
-          { signal },
-        ),
-      );
-      if (p.id !== selected) throw new ApiError(200, "invalid_response");
-      return p;
-    },
-  });
-  const diff = useQuery({
-    queryKey: ["api", "proposal-diff", domain, selected],
-    enabled: !!detail.data && !detail.error && !list.error,
-    retry: false,
-    queryFn: async ({ signal }) =>
-      validateDifference(
+      const read = async () => {
+        const p = validProposal(
+          await api.call(
+            "proposals.read",
+            { domain, proposal_id: selected },
+            undefined,
+            { signal },
+          ),
+        );
+        if (p.id !== selected) throw new ApiError(200, "invalid_response");
+        return p;
+      };
+      const before = await read();
+      const difference = validateDifference(
         await api.call(
           "proposals.diff",
           { domain, ident: selected },
@@ -262,29 +213,85 @@ export function ProposalWorkspace({
           { signal },
         ),
         selected,
-      ),
+      );
+      // No snapshot fence is exposed by this contract. Bracket the comparison
+      // with fresh revision reads; the trusted command still rechecks on execute.
+      const after = await read();
+      if (
+        before.digest !== after.digest ||
+        before.review_revision !== after.review_revision ||
+        before.status !== after.status ||
+        before.base_version !== after.base_version ||
+        difference.base_version !== after.base_version
+      )
+        throw new ApiError(409, "review_changed");
+      return { proposal: after, difference };
+    },
   });
+  const error = list.error || review.error || readError;
+  const busy =
+    refreshing ||
+    list.isFetching ||
+    (!!selected && !invalid && review.isFetching);
+  const packet = !error && !busy && !invalid ? review.data : undefined;
+  useEffect(() => {
+    if (packet && heading.current && focused.current !== selected) {
+      focused.current = selected;
+      heading.current.focus();
+    }
+  }, [packet, selected]);
+  function select(id: string) {
+    const next = new URLSearchParams(params);
+    if (id) next.set("api_proposal", id);
+    else next.delete("api_proposal");
+    setParams(next);
+    focused.current = "";
+    if (!id)
+      (opener.current?.isConnected
+        ? opener.current
+        : listHeading.current
+      )?.focus();
+  }
+  async function refresh() {
+    setRefreshing(true);
+    try {
+      const reads: Array<Promise<{ error: Error | null }>> = [list.refetch()];
+      if (selected && !invalid) reads.push(review.refetch());
+      if ((await Promise.all(reads)).every((r) => !r.error)) setReadError(null);
+    } finally {
+      setRefreshing(false);
+    }
+  }
   return (
     <section aria-label="Revue des propositions">
-      <h2>Propositions de connaissance</h2>
+      <h2 ref={listHeading} tabIndex={-1}>
+        Propositions de connaissance
+      </h2>
       <p>
         Consultez les changements et leurs preuves. Une proposition approuvée
         doit encore être publiée pour alimenter les réponses.
       </p>
-      <button
-        onClick={() => {
-          void list.refetch();
-          if (selected) {
-            void detail.refetch();
-            void diff.refetch();
-          }
-        }}
-      >
+      <button disabled={busy} onClick={() => void refresh()}>
         Actualiser les propositions
       </button>
-      {list.isPending && <p role="status">Chargement des propositions…</p>}
-      {list.error ? (
-        <p role="alert">{list.error.message}</p>
+      {(selected || invalid) && (
+        <button onClick={() => select("")}>Fermer la proposition</button>
+      )}
+      {invalid && (
+        <p role="alert">
+          Ce lien de proposition est invalide. Fermez la sélection pour
+          continuer.
+        </p>
+      )}
+      {busy || list.isPending ? (
+        <p role="status">Vérification des propositions…</p>
+      ) : error ? (
+        <div role="alert">
+          <p>{error.message}</p>
+          {error instanceof ApiError && error.status === 401 && onReconnect && (
+            <button onClick={onReconnect}>Se reconnecter à la revue</button>
+          )}
+        </div>
       ) : (
         <>
           {list.data && !list.data.pages.some((p) => p.items.length) && (
@@ -297,7 +304,10 @@ export function ProposalWorkspace({
                 <li key={p.id}>
                   <button
                     aria-pressed={selected === p.id}
-                    onClick={() => setSelected(p.id)}
+                    onClick={(event) => {
+                      opener.current = event.currentTarget;
+                      select(p.id);
+                    }}
                   >
                     {labels[p.status]} · {p.reason}
                   </button>
@@ -312,93 +322,101 @@ export function ProposalWorkspace({
               Charger d’autres propositions
             </button>
           )}
-          {selected && (
-            <article aria-label="Détail de la proposition">
-              {detail.isPending && (
-                <p role="status">Chargement de la proposition…</p>
-              )}
-              {detail.error ? (
-                <p role="alert">{detail.error.message}</p>
-              ) : (
-                detail.data && (
-                  <>
-                    <h3>{detail.data.reason}</h3>
-                    <ReviewCommand
-                      key={`${selected}-${detail.data.review_revision}`}
-                      domain={domain}
-                      proposal={detail.data}
-                    />
-                    <ReviewHistory
-                      key={`${selected}-${detail.data.review_revision}`}
-                      api={api}
-                      domain={domain}
-                      proposal={selected}
-                    />
-                    <p>
-                      {labels[detail.data.status]} · base v
-                      {detail.data.base_version} · révision de revue{" "}
-                      {detail.data.review_revision}
-                    </p>
-                    <p>Identifiant : {detail.data.id}</p>
-                    {detail.data.replaces_id && (
-                      <p>Remplace la proposition {detail.data.replaces_id}.</p>
-                    )}
-                    {diff.isPending && (
-                      <p role="status">Chargement de la comparaison…</p>
-                    )}
-                    {diff.error ? (
-                      <p role="alert">{diff.error.message}</p>
-                    ) : (
-                      diff.data && (
-                        <>
-                          <p>
-                            {diff.data.comparison === "accepted_before_state"
-                              ? "Comparaison avec l’état précédant l’approbation."
-                              : "Comparaison avec le savoir actuellement publié."}{" "}
-                            Version publiée : {diff.data.published_version}.
-                          </p>
-                          {diff.data.stale_base && (
-                            <p role="alert">
-                              La base a évolué. Cette proposition nécessite une
-                              nouvelle vérification avant décision.
-                            </p>
-                          )}
-                          {diff.data.items.map((i) => (
-                            <section key={i.concept_id}>
-                              <h4>
-                                {i.before === null
-                                  ? "Ajout"
-                                  : i.after === null
-                                    ? "Retrait"
-                                    : "Modification"}{" "}
-                                · {i.concept_id}
-                              </h4>
-                              <details>
-                                <summary>Avant</summary>
-                                <ConceptState
-                                  value={i.before}
-                                  api={api}
-                                  domain={domain}
-                                />
-                              </details>
-                              <details open>
-                                <summary>Après</summary>
-                                <ConceptState
-                                  value={i.after}
-                                  api={api}
-                                  domain={domain}
-                                />
-                              </details>
-                            </section>
-                          ))}
-                        </>
-                      )
-                    )}
-                  </>
-                )
-              )}
-            </article>
-          )}
+          {selected &&
+            !invalid &&
+            (packet ? (
+              <article aria-label="Détail de la proposition">
+                <h3 ref={heading} tabIndex={-1}>
+                  {packet.proposal.reason}
+                </h3>
+                <p>
+                  {labels[packet.proposal.status]} · base v
+                  {packet.proposal.base_version} · révision de revue{" "}
+                  {packet.proposal.review_revision}
+                </p>
+                <p>Identifiant : {packet.proposal.id}</p>
+                {packet.proposal.replaces_id && (
+                  <p>Remplace la proposition {packet.proposal.replaces_id}.</p>
+                )}
+                <p>
+                  {packet.difference.comparison === "accepted_before_state"
+                    ? "Comparaison avec l’état précédant l’approbation."
+                    : "Comparaison avec le savoir actuellement publié."}{" "}
+                  Version publiée : {packet.difference.published_version}.
+                </p>
+                {packet.difference.stale_base && (
+                  <p role="alert">
+                    La base a évolué. Cette proposition nécessite une nouvelle
+                    vérification avant décision.
+                  </p>
+                )}
+                <p>
+                  La validation contrôle la fidélité littérale des preuves et
+                  l’absence de cycle. Elle ne remplace pas une revue de
+                  pertinence ou de risque métier.
+                </p>
+                {packet.difference.items.map((i) => (
+                  <section key={i.concept_id}>
+                    <h4>
+                      {i.before === null
+                        ? "Ajout"
+                        : i.after === null
+                          ? "Retrait"
+                          : "Modification"}{" "}
+                      · {i.concept_id}
+                    </h4>
+                    <details>
+                      <summary>Avant</summary>
+                      <ConceptState
+                        value={i.before}
+                        api={api}
+                        domain={domain}
+                        onReadError={setReadError}
+                      />
+                    </details>
+                    <details open>
+                      <summary>Après</summary>
+                      <ConceptState
+                        value={i.after}
+                        api={api}
+                        domain={domain}
+                        onReadError={setReadError}
+                      />
+                    </details>
+                  </section>
+                ))}
+                {canExpert && (
+                  <ProposalExpertReviews
+                    key={`experts-${selected}-${packet.proposal.digest}-${packet.proposal.review_revision}`}
+                    api={api}
+                    domain={domain}
+                    proposal={packet.proposal}
+                    onReadError={setReadError}
+                    onOpenTask={onOpenTask}
+                  />
+                )}
+                <ReviewCommand
+                  key={`command-${selected}-${packet.proposal.status}-${packet.proposal.digest}-${packet.proposal.review_revision}`}
+                  ref={decisionRef}
+                  api={api}
+                  capabilities={capabilities}
+                  onReadError={setReadError}
+                  onNotice={onDecisionNotice}
+                  domain={domain}
+                  proposal={packet.proposal}
+                />
+                <ReviewHistory
+                  key={`history-${selected}-${packet.proposal.review_revision}`}
+                  api={api}
+                  domain={domain}
+                  proposal={selected}
+                  expectedRevision={packet.proposal.review_revision}
+                  onReadError={setReadError}
+                />
+              </article>
+            ) : (
+              <p role="status">Chargement de la comparaison…</p>
+            ))}
         </>
       )}
     </section>

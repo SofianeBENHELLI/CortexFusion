@@ -12,6 +12,7 @@ describe("governance mock", () => {
     await g.decide("PR-3082", "approve", "Preuve vérifiée", 41);
     expect((await g.get()).concepts[0].relations).not.toContain("wave6");
     expect((await g.get()).version).toBe(41);
+    expect((await g.get()).brainObservations).toEqual([]);
     await expect(
       g.decide("PR-3082", "approve", "Encore", 41),
     ).rejects.toMatchObject({ status: 409 });
@@ -21,6 +22,15 @@ describe("governance mock", () => {
     expect(s.version).toBe(42);
     expect(s.concepts[0].relations).toContain("wave6");
     expect(s.concepts[0].source).toBe("SRC-002");
+    expect(s.brainObservations).toHaveLength(1);
+    expect(s.brainObservations![0].changes).toEqual([
+      expect.objectContaining({
+        kind: "relation_created",
+        title: "SIMULIA → wave6",
+        version: 42,
+      }),
+    ]);
+    expect((await g.get()).brainObservations).toHaveLength(1);
   });
   it("failure preserves v41 and allows an explicit retry", async () => {
     const g = gateway();
@@ -32,10 +42,12 @@ describe("governance mock", () => {
     let s = await g.get();
     expect(s.version).toBe(41);
     expect(s.proposals[1].error).toContain("DG-7f3a");
+    expect(s.brainObservations).toEqual([]);
     await g.publish("PR-3082", 41);
     vi.spyOn(Date, "now").mockReturnValue(now + 6000);
     s = await g.get();
     expect(s.version).toBe(42);
+    expect(s.brainObservations).toHaveLength(1);
   });
   it("rejects stale decisions and empty reasons", async () => {
     const g = gateway();
@@ -80,6 +92,29 @@ describe("governance mock", () => {
     s = await g.get();
     expect(s.concepts[0].relations).not.toContain("Abaqus");
     expect(s.concepts[0].relations).toContain("Abaqus 2026");
+  });
+  it("rejects corrections without a change and leaves their signal open", async () => {
+    const g = gateway();
+    await expect(
+      g.correction("simulia", "Abaqus", "Identique", "SRC-001", "Abaqus"),
+    ).rejects.toMatchObject({ status: 422 });
+    await expect(
+      g.handleSignal("SIG-02", "corrected", "Identique", {
+        concept: "simulia",
+        target: "Abaqus",
+        source: "SRC-001",
+      }),
+    ).rejects.toMatchObject({ status: 422 });
+    const s = await g.get();
+    expect(s.proposals).toHaveLength(5);
+    expect(s.signals.find((signal) => signal.id === "SIG-02")?.status).toBe(
+      "open",
+    );
+    expect(s.version).toBe(41);
+    // A newly supplied proof can still be reviewed, even for an existing link.
+    await expect(
+      g.correction("simulia", "Abaqus", "Nouvelle preuve", "SRC-002"),
+    ).resolves.toMatch(/^PR-/);
   });
   it("negative feedback becomes a traceable signal and correction without mutating published facts", async () => {
     const g = gateway();

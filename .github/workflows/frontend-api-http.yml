@@ -1,0 +1,134 @@
+name: Frontend API transport acceptance
+on:
+  pull_request:
+    paths:
+      - 'apps/console/**'
+      - 'services/browser-gateway/**'
+      - 'services/rust-core/**'
+      - 'services/core/**'
+      - 'packages/contracts/**'
+      - 'scripts/**'
+      - 'tests/test_browser_gateway_*.py'
+      - 'Cargo.*'
+      - 'rust-toolchain.toml'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/frontend-api-http.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-http:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # This job never launches a browser. Keep its result distinct from AUD-03's
+    # pending connected Chrome journeys and from the existing mock e2e job.
+    services:
+      terminus:
+        image: terminusdb/terminusdb-server@sha256:385faf298ad77aaf2d4d6df5e84a4cbe3596d01dab2e3b991af905639ae56388
+        ports: ['6363:6363']
+        env:
+          TERMINUSDB_ADMIN_PASS: synthetic-spike-password
+          TERMINUSDB_SERVER_PORT: '6363'
+      postgres:
+        image: postgres:17.11-bookworm
+        ports: ['5432:5432']
+        env:
+          POSTGRES_PASSWORD: synthetic-ci-password
+          POSTGRES_DB: cortex_test
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cortex_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      CORTEX_MIGRATION_DATABASE_URL: postgresql+pg8000://postgres:synthetic-ci-password@127.0.0.1:5432/cortex_test
+      CORTEX_TEST_ADMIN_URL: postgresql+pg8000://postgres:synthetic-ci-password@127.0.0.1:5432/cortex_test
+      CORTEX_RUST_DATABASE_URL: postgresql://cortex_app:synthetic-app-password@127.0.0.1:5432/cortex_test
+      CORTEX_TERMINUS_URL: http://127.0.0.1:6363
+      CORTEX_TERMINUS_USER: admin
+      CORTEX_TERMINUS_PASSWORD: synthetic-spike-password
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Install locked dependencies and native toolchain
+        run: |
+          python -m pip install uv==0.12.10
+          uv sync --locked
+          npm install --global pnpm@10.15.1
+          pnpm install --frozen-lockfile
+          rustup toolchain install 1.98.1 --profile minimal
+      - name: Build native and both explicit API console modes
+        run: |
+          cargo build -p cortex-rust-core --locked
+          VITE_DATA_MODE=api VITE_AUTH_MODE=manual pnpm --filter @cortexfusion/console build --outDir ../../.runtime/brain/ci-api-manual
+          VITE_DATA_MODE=api VITE_AUTH_MODE=session CORTEX_BROWSER_GATEWAY_TARGET=http://127.0.0.1:8015 pnpm --filter @cortexfusion/console build --outDir ../../.runtime/brain/ci-api-session
+      - name: Verify console and gateway contracts without a browser
+        run: |
+          pnpm console:test
+          uv run python -m pytest -q tests/test_browser_gateway_oidc.py tests/test_browser_gateway_session.py tests/test_browser_gateway_proxy.py tests/test_browser_gateway_cli.py
+      - name: Initialize isolated synthetic stores
+        run: |
+          uv run python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          with create_engine(os.environ['CORTEX_MIGRATION_DATABASE_URL']).begin() as conn:
+              conn.execute(text("CREATE ROLE cortex_app LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD 'synthetic-app-password'"))
+          PY
+          uv run alembic upgrade head
+          uv run python - <<'PY'
+          import os, time
+          import httpx
+          with httpx.Client(timeout=2, trust_env=False, auth=('admin', os.environ['CORTEX_TERMINUS_PASSWORD'])) as client:
+              for attempt in range(30):
+                  try:
+                      if client.get('http://127.0.0.1:6363/api/info').status_code == 200:
+                          break
+                  except httpx.TransportError:
+                      pass
+                  time.sleep(2)
+              else:
+                  raise SystemExit('Synthetic graph service readiness failed')
+          PY
+          mkdir -p .runtime/brain
+      - name: Publish a fresh synthetic long-source fixture through governance
+        run: uv run python scripts/verify_bounded_retrieval.py --directory .runtime/brain/ci-aud02 --duration 0
+      - name: Verify session to Vite to native HTTP on the same corpus
+        run: uv run python scripts/verify_browser_session.py --fixture .runtime/brain/ci-aud02 --output .runtime/brain/ci-session
+      - name: Verify native personal import reads on the same corpus
+        run: uv run python scripts/verify_browser_imports.py --fixture .runtime/brain/ci-aud02 --output .runtime/brain/ci-imports
+      - name: Verify proposal review and idempotent existing receipt on the same corpus
+        run: uv run python scripts/verify_browser_reviews.py --fixture .runtime/brain/ci-aud02 --output .runtime/brain/ci-reviews --retry-existing
+      - name: Report only stage status and explicit non-browser scope
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          stages = [('long-source native', 'ci-aud02', 10), ('session HTTP', 'ci-session', 8), ('imports HTTP', 'ci-imports', 5), ('reviews HTTP', 'ci-reviews', 5)]
+          lines = ['## API transport acceptance', '', 'Browser scenarios executed: **0**. Chrome acceptance remains separate.', '', '| Stage | Result | Checks |', '|---|---|---|']
+          complete = True
+          for name, directory, expected in stages:
+              path = Path('.runtime/brain') / directory / 'report.json'
+              try:
+                  report = json.loads(path.read_text())
+                  count = len(report['checks'])
+                  valid = report.get('status') == 'passed' and count == expected
+                  if directory != 'ci-aud02':
+                      valid = valid and report.get('browser_scenarios_validated') == 0 and report.get('processes_stopped') is True
+                  complete = complete and valid
+                  lines.append(f'| {name} | {"passed" if valid else "failed/incomplete"} | {count}/{expected} |')
+              except (OSError, ValueError, KeyError, TypeError):
+                  complete = False
+                  lines.append(f'| {name} | missing/invalid report | not verified/{expected} |')
+          Path(os.environ['GITHUB_STEP_SUMMARY']).write_text('\n'.join(lines) + '\n')
+          if not complete:
+              raise SystemExit('API transport acceptance incomplete; inspect failed stage')
+          PY
+    # Do not upload runtime directories: they contain synthetic private keys,
+    # session material and source/state files even though no OKF is ever used.

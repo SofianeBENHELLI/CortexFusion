@@ -19,6 +19,7 @@
     "react-intl": "7.1.14",
     "react-markdown": "10.1.0",
     "react-router-dom": "6.30.1",
+    "thinking-orbs": "0.3.2",
     "zustand": "5.0.8"
   },
   "devDependencies": {

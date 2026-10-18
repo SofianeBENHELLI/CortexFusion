@@ -1,8 +1,11 @@
+import { usePendingWork } from "./PendingWorkBoundary";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { QueryResult } from "../../../../packages/contracts/src/QueryResult";
 import type { ProposalInput } from "../../../../packages/contracts/src/ProposalInput";
 import { CortexApi, ApiError } from "./client";
+import { ProposalReceiptLink } from "./ProposalReceiptLink";
+import { readProposalReceipt, type ProposalReceipt } from "./proposal-receipt";
 /** An evidence-backed addition, never an implicit replacement of a published concept. */
 export function EvidenceProposal({
   api,
@@ -20,9 +23,13 @@ export function EvidenceProposal({
   const [index, setIndex] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [receipt, setReceipt] = useState("");
+  const [receipt, setReceipt] = useState<ProposalReceipt>();
   const [definite, setDefinite] = useState(false);
   const pending = useRef<ProposalInput>();
+  usePendingWork(
+    "Proposition issue de la réponse",
+    busy ? "sending" : pending.current && !definite ? "uncertain" : undefined,
+  );
   const abort = useRef<AbortController>();
   const cache = useQueryClient();
   useEffect(() => () => abort.current?.abort(), []);
@@ -71,9 +78,7 @@ export function EvidenceProposal({
         pending.current,
         { signal },
       );
-      if (!p || typeof p.id !== "string" || p.status !== "ready")
-        throw new ApiError(200, "invalid_response");
-      setReceipt(p.id);
+      setReceipt(readProposalReceipt(p, pending.current.base_version));
       pending.current = undefined;
       await cache.invalidateQueries({ queryKey: ["api", "proposals", domain] });
     } catch (e) {
@@ -94,14 +99,7 @@ export function EvidenceProposal({
         retrouvez une source avant de préparer une proposition.
       </p>
     );
-  if (receipt)
-    return (
-      <p role="status">
-        Proposition prête à examiner : {receipt}. Le savoir publié reste
-        inchangé. Le motif conserve la référence au ticket ; le ticket n’est pas
-        automatiquement résolu.
-      </p>
-    );
+  if (receipt) return <ProposalReceiptLink domain={domain} receipt={receipt} />;
   return (
     <details>
       <summary>Préparer un ajout sourcé depuis ce ticket</summary>

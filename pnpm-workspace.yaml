@@ -2,3 +2,5 @@ packages:
   - 'packages/contracts'
   - 'apps/harness'
   - 'apps/console'
+allowBuilds:
+  esbuild: set this to true or false

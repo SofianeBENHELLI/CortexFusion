@@ -1,6 +1,6 @@
-# Console Cortex Fusion — démonstration locale
+# Console Open Br**AI**n — démonstration locale
 
-Première implémentation React 18 / TypeScript de la référence **Cortex Fusion v3** fournie dans l’archive du 9 septembre. La v3 est la référence visuelle, la v2 et la v1 restent des variantes de conception. Aucun `support.js`, runtime du prototype ou document confidentiel n’est embarqué.
+Première implémentation React 18 / TypeScript de la référence **Open Br**AI**n v3** fournie dans l’archive du 9 septembre. La v3 est la référence visuelle, la v2 et la v1 restent des variantes de conception. Aucun `support.js`, runtime du prototype ou document confidentiel n’est embarqué.
 
 ## Démarrer
 
@@ -33,6 +33,8 @@ pnpm --filter @cortexfusion/console test:e2e
 Démo locale permet aussi de simuler une indisponibilité et de réinitialiser les données avec confirmation. Le contenu importé et les conversations restent dans le stockage de ce navigateur. Utiliser des fichiers de démonstration. La dictée utilise la capacité du navigateur si disponible, après activation explicite ; ce navigateur peut recourir à son propre service de reconnaissance. Aucune fausse transcription n’est générée en cas d’indisponibilité.
 
 ## Architecture
+
+L’accès API dispose désormais d’un adaptateur optionnel de session serveur (`VITE_AUTH_MODE=session`), avec restauration au chargement, connexion au fournisseur configuré, CSRF et purge du cache à expiration/logout. Le [guide de raccordement](API-INTEGRATION.md#session-serveur-optionnelle--développement-local) précise le gateway à lancer, les variables et les limites. Le mode manuel reste inchangé par défaut ; le nouveau mode a des tests de composants/transport/HTTP, et la chaîne HTTP complète vers le natif a été éprouvée sur fixture synthétique ; sa recette Chrome et un fournisseur réel restent ouverts.
 
 - `src/main.tsx` : vues, conversations, formulaires et navigation React Router.
 - `src/styles.css` : tokens Industry, panneaux, états et adaptations mobile.
@@ -75,8 +77,54 @@ Sur mobile, le bouton « Historique des conversations » ouvre un panneau dédi�
 
 ## Préparation du mode API
 
-Le [guide de branchement API](API-INTEGRATION.md) décrit le mode `api`, la session en mémoire, les huit opérations typées et les erreurs. Identité, domaines, versions, conversations, citations et feedback sont branchés dans ce mode ; la gouvernance reste disponible dans le mock.
+Le [guide de branchement API](API-INTEGRATION.md) décrit le mode `api`, la session en mémoire et les erreurs. Identité, domaines, versions, conversations, citations, feedback, tickets et revue des propositions sont branchés dans ce mode, ainsi que la tranche BrainMap documentée ci-dessous. Les opérations typées sont maintenues dans `src/api/operations.ts`.
+
+Le point d’entrée charge exclusivement l’application du mode configuré. Le build API exclut le mock, son stockage et le catalogue OKF. Vue d’ensemble, BrainMap et conversations/gouvernance sont chargés à leur ouverture ; une erreur d’ouverture affiche une récupération explicite tout en conservant la navigation de l’espace connecté. « Recharger la page » conserve le lien mais exige une nouvelle connexion, puisque le jeton reste en mémoire. Le catalogue et les conversations de démonstration existants sont conservés dans le mode mock.
+
+Pour vérifier les deux variantes avec les dépendances installées :
+
+```sh
+npm test --prefix apps/console -- --reporter=dot
+npm run build --prefix apps/console
+VITE_DATA_MODE=api npm run build --prefix apps/console -- --outDir ../../.runtime/brain/console-api-dist --emptyOutDir
+```
+
+La dernière commande vide uniquement ce répertoire de build généré, pour ne pas confondre d’anciens chunks avec la livraison courante. Les tailles minifiées ne qualifient ni le temps de chargement, ni la capacité du graphe.
 
 ## Recette connectée
 
 Pour distinguer les parcours API effectivement raccordés des démonstrations mock, suivre le [guide d’essai du frontend connecté](../../docs/frontend-real-acceptance.fr.md). Il décrit l’authentification locale, les conversations, tickets, propositions et confirmations, ainsi que les limites actuelles.
+
+La [matrice de recette du 3 octobre](../../docs/product/frontend-acceptance-matrix.fr.md) donne les résultats navigateur par parcours et les fonctions absentes, sans confondre simulation et raccordement. Le [bilan de préparation au pilote](../../docs/product/brain-pilot-readiness.fr.md) rassemble les preuves courantes, les limites et les consignes de reprise ; les résultats du 25 septembre ci-dessus restent un jalon historique.
+
+## BrainMap et Chronique — première tranche
+
+La vue `/views/brain` présente le savoir publié du mock et les changements enregistrés depuis l’activation de son suivi. Cliquer le domaine puis un voisinage révèle les concepts et relations ; la sélection ouvre les preuves. Le journal partage le périmètre et la période avec la carte. Le contexte est conservé dans l’URL et restauré au retour/rechargement. Les thèmes Système, Clair et Sombre sont monochromes ; les couleurs des changements sont facultatives.
+
+Un nouvel onglet « Cerveau » existe aussi après connexion API et sélection d’un domaine. La carte utilise `graph.window` : 24 résumés par page, stocks autorisés distincts du nombre dessiné, navigation aller/retour et centre conservé dans le voisinage sortant. La recherche consulte tout le domaine autorisé ; une sélection depuis la recherche ou la Chronique positionne la page concernée. `concepts.read` charge le détail sélectionné et les preuves sont relues à la demande. Les curseurs spatiaux sont conservés dans l’URL.
+
+Le journal des publications exige actuellement le rôle owner et charge les différences auditées de 20 publications par page, des plus récentes vers les plus anciennes. « Publications plus anciennes/récentes » parcourt un intervalle et une version fixes. Un changement de période ou une actualisation revient à la première page. Les droits restent actuels ; version et visibilité sont vérifiées avant/après les lectures, et un changement invalide la vue. Les compteurs de changements restent ceux de la page du journal et du périmètre, avec un avertissement tant que la période est partielle. Les événements des voisins hors page restent inclus ; ces voisins ne deviennent pas des traces historiques. Cette adaptation ne qualifie pas la grande volumétrie : le serveur charge encore le snapshot entier et les différences compactes du journal conservent les relations, dont les volumes denses restent à qualifier.
+
+Le contrôle « Profondeur du journal » permet une lecture étendue de cinq pages serveur, jusqu’à cent publications (`history_pages=5`). Si toutes les publications accessibles et datées de la période sont couvertes depuis la première page, la frise devient complète. Sinon elle reste partielle avec continuation. Chaque lecture repart des droits et versions courants, relit les pages après les différences et conserve les vérifications finales du graphe. Des budgets de JSON et d’événements ainsi qu’une annulation à 45 secondes évitent une accumulation sans borne ; un dépassement masque le résultat et permet de réduire la profondeur. Ce mode ne remplace pas l’agrégation serveur. Voir [ADR 0006](../../docs/architecture/decisions/0006-bounded-extended-journal.md).
+
+Le rendu de la Chronique est borné séparément : cinq événements en aperçu, puis quarante par page avec accès direct au numéro de page. Le [jeu connecté de 1 000 concepts](../../docs/product/brain-scale-1000.fr.md) vérifie 3 019 événements sur 76 pages. Cette pagination allège le DOM, sans réduire à elle seule le coût de collecte serveur ou qualifier une charge de production.
+
+La frise des changements ajoute une lecture temporelle monochrome : 24 intervalles pour 24 heures ou l’historique disponible, 7 pour sept jours, 30 pour trente jours. Les intervalles sont des durées écoulées en UTC, pas des jours calendaires locaux. Un clic filtre les deltas de la carte, le journal et les compteurs de changements ; les stocks restent courants. `time_from` et `time_to` conservent dans l’URL les bornes inclusives/exclusives exactes. Le retour/rechargement restaure cette sélection et le focus ; changer de période l’efface. La frise compte les événements une fois, distingue les publications ayant produit ces événements et garde ses bornes au changement de périmètre spatial. Les intervalles incomplets sont hachurés : absence de barre ≠ absence d’activité. Elle ne calcule ni tendance comparative complète ni nouvel état historique, et n’ajoute aucune lecture serveur.
+
+Les mécanismes de mémoire active, poids automatiques, archivage et sommeil restent non instrumentés ; la console ne les présente pas comme fonctionnels. Un poids modifié par publication peut être observé sans en déduire un mécanisme automatique. Voir le [suivi de réalisation et de recette](../../docs/product/brain-delivery-status.fr.md).
+
+Le changement du marqueur de relation principale est lui aussi expliqué par publication, avec son état avant/après et ses preuves. Il n’incrémente ni les créations de relations ni les renforcements. Si un voisinage devient indisponible, l’actualisation revient à la synthèse après vérification des droits et nettoie le focus dans l’URL. Les erreurs d’accès et de version continuent de masquer la lecture précédente.
+
+Après connexion, « Vue d’ensemble BrainMap » affiche six domaines accessibles par page, leur version publiée et leurs stocks autorisés. Les totaux portent seulement sur la page ; une lecture incomplète les rend indisponibles. Chaque domaine est observé séparément : pas de version globale ni de relation entre domaines inventée. L’ouverture d’un domaine mène à sa carte et sa Chronique, avec retour navigateur et restauration après reconnexion. Les paramètres `api_domain`, `api_view` et `domains_page` portent ce contexte dans l’URL ; les jetons restent uniquement en mémoire. La liste des domaines est relue lors de l’actualisation. Voir [ADR 0005](../../docs/architecture/decisions/0005-domain-overview-observations.md).
+
+### Explorer un bundle OKF local
+
+Préparer le ZIP depuis la racine du dépôt avec `python scripts/prepare_okf_bundle.py /chemin/bundle.zip --output .runtime/brain/okf`, puis ouvrir « Cerveau » → « Charger un catalogue OKF » et choisir le `catalog.json` produit. Le texte n’est pas envoyé au backend. Le catalogue est conservé dans IndexedDB sur ce navigateur ; si ce stockage échoue, il reste disponible pour la session. « Retirer le corpus local » retire cette copie, sans toucher au ZIP ni au cerveau de démonstration.
+
+L’aperçu distingue territoires, familles et fiches, avec macro-connexions, recherche sans accents, références entrantes/sortantes et texte source intégral. Les statuts `draft`, `stable` et `deprecated` restent ceux du corpus. Ils ne deviennent ni maturité Cortex ni archivage. Aucun événement d’apprentissage, poids ou type de relation n’est inventé. La vue de publication reste distincte.
+
+Les familles de plus de 24 fiches se subdivisent par marques déclarées, puis par plages alphabétiques, avec au plus 12 enfants par regroupement et 24 fiches par feuille. Ce classement de navigation ne crée aucune connaissance. Les compteurs et macro-connexions suivent le niveau sélectionné ; les liens directs restaurent tous ses ancêtres. Les plages restent stables pour un même catalogue, mais leurs frontières peuvent changer lors d’un nouvel import.
+
+Le rendu est paginé : 12 éléments par page sur grand écran, 6 sur petit écran, 24 macro-connexions principales et 60 relations détaillées au maximum. Une recherche ou une sélection historique amène directement à la page correspondante. Ces bornes et ce regroupement local protègent le rendu ; l’agrégation serveur et les groupes stables entre versions comparées restent à réaliser dans BRN-04.
+
+`node scripts/measure_brain_catalog.mjs .runtime/brain/okf/catalog.json` mesure séparément le parsing/contrôle, la préparation du modèle et l’agrégation des territoires. Cette mesure Node exclut le navigateur, le stockage, le réseau et le serveur ; elle ne qualifie pas la capacité de production.

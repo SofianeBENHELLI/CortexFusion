@@ -1,6 +1,9 @@
 /** Presentation adapter. Local simulation, not an HTTP server or an authorization boundary. */
+import type { PublicationObservation } from "./brain/model";
+import { observePublication } from "./brain/mock-projection";
 export type Role = "owner" | "corpus_manager" | "viewer";
 export type View =
+  | "brain"
   | "concepts"
   | "memory"
   | "validate"
@@ -77,6 +80,8 @@ export interface State {
   sources: Source[];
   events: Event[];
   members: { name: string; role: Role }[];
+  brainObservedSince?: string;
+  brainObservations?: PublicationObservation[];
 }
 export class MockError extends Error {
   constructor(
@@ -264,6 +269,15 @@ export class MockGateway {
     this.storage = options.storage ?? true;
     this.state = options.state ?? read();
     this.delay = options.delay ?? 220;
+    // Add observability without resetting existing local knowledge or fabricating its history.
+    if (
+      !this.state.brainObservedSince ||
+      !Array.isArray(this.state.brainObservations)
+    ) {
+      this.state.brainObservedSince = new Date().toISOString();
+      this.state.brainObservations = [];
+      if (this.storage) localStorage.setItem(key, JSON.stringify(this.state));
+    }
   }
   private save() {
     this.state.revision++;
@@ -302,6 +316,8 @@ export class MockGateway {
             "Publication en échec à l’étape index (DG-7f3a). Le savoir publié reste inchangé.";
           this.log("Échec de publication", p.id + " · DG-7f3a");
         } else {
+          const beforeConcepts = structuredClone(this.state.concepts);
+          const before = beforeConcepts.find((c) => c.id === p.concept);
           p.status = "published";
           this.state.version = p.base + 1;
           const c = this.state.concepts.find((c) => c.id === p.concept);
@@ -319,6 +335,24 @@ export class MockGateway {
           }
           const source = this.state.sources.find((s) => s.id === p.source);
           if (source) source.status = "published";
+          const publicationId = `publication:${p.id}:${this.state.version}`;
+          if (
+            !this.state.brainObservations?.some((o) => o.id === publicationId)
+          ) {
+            this.state.brainObservations ??= [];
+            this.state.brainObservations.push(
+              observePublication({
+                id: publicationId,
+                time: new Date().toISOString(),
+                version: this.state.version,
+                proposalId: p.id,
+                before,
+                after: this.state.concepts.find((c) => c.id === p.concept)!,
+                beforeConcepts,
+                afterConcepts: this.state.concepts,
+              }),
+            );
+          }
           this.log(
             "Publication v" + this.state.version,
             p.title + " · " + p.receipt,
@@ -441,6 +475,19 @@ export class MockGateway {
     previous?: string,
   ) {
     const c = this.state.concepts.find((x) => x.id === concept);
+    const nextRelations = c
+      ? [...c.relations.filter((x) => x !== target && x !== previous), target]
+      : [target];
+    if (
+      c &&
+      c.source === source &&
+      nextRelations.length === c.relations.length &&
+      nextRelations.every((relation) => c.relations.includes(relation))
+    )
+      throw new MockError(
+        422,
+        "Aucun changement à proposer : cette relation et cette preuve sont déjà publiées.",
+      );
     const id =
       "PR-" +
       (3090 +
@@ -452,12 +499,7 @@ export class MockGateway {
       concept,
       title: (c?.name ?? concept) + " — correction proposée",
       before,
-      after: c
-        ? [
-            ...c.relations.filter((x) => x !== target && x !== previous),
-            target,
-          ].join(", ")
-        : target,
+      after: nextRelations.join(", "),
       target,
       source,
       status: "ready",
@@ -637,6 +679,8 @@ export class MockGateway {
   }
   reset() {
     this.state = seed();
+    this.state.brainObservedSince = new Date().toISOString();
+    this.state.brainObservations = [];
     this.offline = false;
     this.failPublication = false;
     this.save();

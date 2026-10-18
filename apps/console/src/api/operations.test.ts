@@ -9,6 +9,18 @@ it("transport methods and paths match the backend OpenAPI operations", () => {
       "utf8",
     ),
   );
+  Object.assign(
+    spec.paths,
+    JSON.parse(
+      readFileSync(
+        new URL(
+          "../../../../packages/contracts/rust-extensions.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    ).paths,
+  );
   for (const [id, route] of Object.entries(operations)) {
     expect(spec.paths[route.path][route.method.toLowerCase()].operationId).toBe(
       id,
