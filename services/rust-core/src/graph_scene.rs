@@ -11,7 +11,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
-    collections::{BTreeMap, BTreeSet, VecDeque},
+    collections::{BTreeMap, BTreeSet, HashMap, VecDeque},
+    sync::{Arc, Mutex, PoisonError},
     time::{Duration, Instant},
 };
 use uuid::Uuid;
@@ -637,9 +638,11 @@ async fn read(
         .map_err(|_| CoreError::invalid_uuid())?
         .to_string();
     let graph = s.graph.as_ref().ok_or_else(CoreError::database)?;
-    // Serialize scene preparation/assembly, not authentication. No unbounded
-    // parallel copies of a cold global topology; cancelled waiters hold no DB lock.
-    let mut cache = graph.spatial.lock().await;
+    // Serialize scene preparation/assembly per tenant and domain, not authentication.
+    // No parallel copies of one cold topology; other domains proceed independently
+    // and cancelled waiters hold no DB lock.
+    let lease = graph.scene_locks.lease(&p.tenant, &domain);
+    let _turn = lease.turn().await;
     p.check_fresh()?;
     let version = graph.ensure_read_projection(&p, &domain).await?;
     if q.at_version.is_some_and(|v| v != version) {
@@ -662,7 +665,12 @@ async fn read(
     let overlay = format!("{:x}", Sha256::digest(bytes.as_deref().unwrap_or_default()));
     let layout = q.layout.as_deref().unwrap_or("territories");
     let key = cache_key(&p.tenant, &domain, &p.subject, &revision, &overlay, layout);
-    let result = if let Some(prepared) = cache.get(&key, Instant::now()) {
+    let cached = graph
+        .scene_cache
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .get(&key, Instant::now());
+    let result = if let Some(prepared) = cached {
         prepared.response(&q, list)?
     } else {
         let data = graph_map::load(&mut tx, &p, &domain, version, bytes.as_deref()).await?;
@@ -679,7 +687,11 @@ async fn read(
             visibility,
         };
         let result = prepared.response(&q, list)?;
-        cache.insert(key, prepared, Instant::now());
+        graph
+            .scene_cache
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(key, prepared, Instant::now());
         result
     };
     let output = bounded(result)?;
@@ -757,7 +769,7 @@ impl Prepared {
 }
 struct CacheEntry {
     key: String,
-    value: Prepared,
+    value: Arc<Prepared>,
     charge: usize,
     used: Instant,
 }
@@ -767,7 +779,7 @@ pub(crate) struct SceneCache {
     charged: usize,
 }
 impl SceneCache {
-    fn get(&mut self, key: &str, now: Instant) -> Option<&Prepared> {
+    fn get(&mut self, key: &str, now: Instant) -> Option<Arc<Prepared>> {
         self.entries
             .retain(|e| now.saturating_duration_since(e.used) < CACHE_TTL);
         self.charged = self.entries.iter().map(|e| e.charge).sum();
@@ -775,7 +787,7 @@ impl SceneCache {
         let mut entry = self.entries.remove(i).unwrap();
         entry.used = now;
         self.entries.push_back(entry);
-        Some(&self.entries.back().unwrap().value)
+        Some(self.entries.back().unwrap().value.clone())
     }
     fn insert(&mut self, key: String, value: Prepared, now: Instant) {
         let charge = value.charge();
@@ -785,7 +797,7 @@ impl SceneCache {
         self.charged += charge;
         self.entries.push_back(CacheEntry {
             key,
-            value,
+            value: Arc::new(value),
             charge,
             used: now,
         });
@@ -800,6 +812,58 @@ impl SceneCache {
             self.charged -= self.entries.pop_front().unwrap().charge;
         }
         true
+    }
+}
+/// One turn per (tenant, domain) currently running or waiting.
+type SceneTurns = HashMap<(String, String), Arc<tokio::sync::Mutex<()>>>;
+/// Serializes scene preparation per tenant and domain, so one cold topology is
+/// never built twice in parallel while other domains proceed independently.
+#[derive(Default)]
+pub(crate) struct SceneLocks {
+    turns: Mutex<SceneTurns>,
+}
+impl SceneLocks {
+    fn lease(&self, tenant: &str, domain: &str) -> SceneLease<'_> {
+        let key = (tenant.to_owned(), domain.to_owned());
+        let turn = self
+            .turns
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .entry(key.clone())
+            .or_default()
+            .clone();
+        SceneLease {
+            locks: self,
+            key,
+            turn,
+        }
+    }
+}
+/// One request's claim on a domain turn. Dropping it, even while still waiting,
+/// forgets the slot once no other request runs or waits on that domain.
+struct SceneLease<'a> {
+    locks: &'a SceneLocks,
+    key: (String, String),
+    turn: Arc<tokio::sync::Mutex<()>>,
+}
+impl SceneLease<'_> {
+    async fn turn(&self) -> tokio::sync::MutexGuard<'_, ()> {
+        self.turn.lock().await
+    }
+}
+impl Drop for SceneLease<'_> {
+    fn drop(&mut self) {
+        let mut turns = self
+            .locks
+            .turns
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        let unused = turns
+            .get(&self.key)
+            .is_some_and(|t| Arc::ptr_eq(t, &self.turn) && Arc::strong_count(t) == 2);
+        if unused {
+            turns.remove(&self.key);
+        }
     }
 }
 fn cache_key(
@@ -976,6 +1040,43 @@ mod tests {
             p.response(&Request::default(), false).unwrap()["totals"]["concepts"],
             3
         );
+    }
+    #[tokio::test]
+    async fn scene_turns_serialize_one_domain_without_blocking_others() {
+        use tokio::time::timeout;
+        let wait = Duration::from_millis(50);
+        let locks = SceneLocks::default();
+        let first = locks.lease("tenant", "a");
+        let held = first.turn().await;
+        let other_domain = locks.lease("tenant", "b");
+        let other_tenant = locks.lease("other", "a");
+        assert!(timeout(wait, other_domain.turn()).await.is_ok());
+        assert!(timeout(wait, other_tenant.turn()).await.is_ok());
+        let same = locks.lease("tenant", "a");
+        assert!(timeout(wait, same.turn()).await.is_err());
+        drop(held);
+        assert!(timeout(wait, same.turn()).await.is_ok());
+    }
+    #[tokio::test]
+    async fn scene_turn_slots_are_forgotten_once_unused_even_after_cancelled_waits() {
+        use tokio::time::timeout;
+        let locks = SceneLocks::default();
+        {
+            let first = locks.lease("tenant", "a");
+            let _held = first.turn().await;
+            let waiter = locks.lease("tenant", "a");
+            assert!(
+                timeout(Duration::from_millis(20), waiter.turn())
+                    .await
+                    .is_err()
+            );
+            assert_eq!(locks.turns.lock().unwrap().len(), 1);
+        }
+        assert!(locks.turns.lock().unwrap().is_empty());
+        let again = locks.lease("tenant", "a");
+        drop(again.turn().await);
+        drop(again);
+        assert!(locks.turns.lock().unwrap().is_empty());
     }
     #[test]
     fn cache_evicts_by_recency_budget_and_idle_expiry() {
