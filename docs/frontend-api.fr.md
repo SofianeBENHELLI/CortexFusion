@@ -2284,6 +2284,8 @@ Champs non déclarés interdits.
 | `id` | oui | texte | format : `"uuid"` |
 | `name` | oui | texte | — |
 | `role` | oui | `"owner"`, `"corpus_manager"`, `"contributor"`, `"agent"`, `"viewer"` | — |
+| `roles` | non | liste de `"owner"`, `"corpus_manager"`, `"contributor"`, `"agent"`, `"viewer"` / null | — |
+| `membership_revision` | non | entier / null | — |
 | `capabilities` | oui | liste de texte | — |
 
 <a id="schema-approvalinput"></a>
@@ -3030,6 +3032,7 @@ Champs non déclarés interdits.
 |---|---|---|---|
 | `subject` | oui | texte | — |
 | `role` | oui | texte | — |
+| `roles` | non | liste de texte / null | — |
 | `revision` | oui | entier | — |
 
 <a id="schema-membershipeventpage"></a>
@@ -3051,6 +3054,7 @@ Champs non déclarés interdits.
 |---|---|---|---|
 | `subject` | oui | texte | longueur min. : `1`; longueur max. : `300` |
 | `role` | oui | `"owner"`, `"corpus_manager"`, `"contributor"`, `"agent"`, `"viewer"` / null | — |
+| `roles` | non | liste de `"owner"`, `"corpus_manager"`, `"contributor"`, `"agent"`, `"viewer"` / null | — |
 | `expected_revision` | non | entier / null | — |
 | `reason` | oui | texte | longueur min. : `1`; longueur max. : `2000` |
 | `idempotency_key` | oui | texte | longueur min. : `8`; longueur max. : `128` |
@@ -3067,6 +3071,8 @@ Champs non déclarés interdits.
 | `subject` | oui | texte | — |
 | `previous_role` | oui | texte / null | — |
 | `new_role` | oui | texte / null | — |
+| `previous_roles` | non | liste de texte / null | — |
+| `new_roles` | non | liste de texte / null | — |
 | `resulting_revision` | oui | entier / null | — |
 | `reason` | oui | texte | — |
 | `created_at` | oui | texte | format : `"date-time"` |

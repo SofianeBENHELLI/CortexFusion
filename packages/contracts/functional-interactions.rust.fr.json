@@ -58856,6 +58856,38 @@
             ],
             "title": "Role"
           },
+          "roles": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "owner",
+                    "corpus_manager",
+                    "contributor",
+                    "agent",
+                    "viewer"
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roles"
+          },
+          "membership_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Membership Revision"
+          },
           "capabilities": {
             "items": {
               "type": "string"
@@ -61359,6 +61391,20 @@
             "type": "string",
             "title": "Role"
           },
+          "roles": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roles"
+          },
           "revision": {
             "type": "integer",
             "title": "Revision"
@@ -61428,6 +61474,29 @@
               }
             ],
             "title": "Role"
+          },
+          "roles": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "owner",
+                    "corpus_manager",
+                    "contributor",
+                    "agent",
+                    "viewer"
+                  ]
+                },
+                "type": "array",
+                "maxItems": 4,
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roles"
           },
           "expected_revision": {
             "anyOf": [
@@ -61500,6 +61569,34 @@
               }
             ],
             "title": "New Role"
+          },
+          "previous_roles": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Roles"
+          },
+          "new_roles": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Roles"
           },
           "resulting_revision": {
             "anyOf": [

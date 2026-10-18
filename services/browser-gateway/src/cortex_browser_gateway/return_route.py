@@ -46,7 +46,17 @@ def safe_return_route(value: str = "/") -> str:
             }:
                 valid = _uuid(item)
             elif name == "api_dossier":
-                valid = item in {"cases", "tasks", "sources", "issues", "proposals", "imports", "references", "referenceReviews", "missions"}
+                valid = item in {
+                    "cases",
+                    "tasks",
+                    "sources",
+                    "issues",
+                    "proposals",
+                    "imports",
+                    "references",
+                    "referenceReviews",
+                    "missions",
+                }
             elif name == "api_view":
                 valid = item in {"brain", "work", "overview"}
             elif name in {"colors", "map_changes"}:

@@ -65,9 +65,11 @@ def configuration(create=False):
             )
             private_file(
                 DIRECTORY / f"{name}.pem",
-                key.public_key().public_bytes(
+                key.public_key()
+                .public_bytes(
                     serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
-                ).decode(),
+                )
+                .decode(),
             )
         private_file(path, json.dumps(cfg, indent=2) + "\n")
     cfg = json.loads(path.read_text())
@@ -115,11 +117,21 @@ def ensure_container(cfg, name, image, port, container_port, mount, env_content)
         private_file(env_path, env_content)
     run(
         [
-            "docker", "run", "--detach", "--pull=never", "--name", name,
-            "--label", f"cortex.private-workspace={label}",
-            "--publish", f"127.0.0.1:{port}:{container_port}",
-            "--mount", f"type=volume,src={volume},dst={mount}",
-            "--env-file", str(env_path), image,
+            "docker",
+            "run",
+            "--detach",
+            "--pull=never",
+            "--name",
+            name,
+            "--label",
+            f"cortex.private-workspace={label}",
+            "--publish",
+            f"127.0.0.1:{port}:{container_port}",
+            "--mount",
+            f"type=volume,src={volume},dst={mount}",
+            "--env-file",
+            str(env_path),
+            image,
         ]
     )
 
@@ -149,11 +161,21 @@ def environment(cfg):
 
 def initialize(cfg):
     ensure_container(
-        cfg, "cortex-okf-postgres", PG_IMAGE, 55433, 5432, "/var/lib/postgresql/data",
+        cfg,
+        "cortex-okf-postgres",
+        PG_IMAGE,
+        55433,
+        5432,
+        "/var/lib/postgresql/data",
         f"POSTGRES_PASSWORD={cfg['postgres_password']}\nPOSTGRES_DB=cortex_okf\n",
     )
     ensure_container(
-        cfg, "cortex-okf-terminus", GRAPH_IMAGE, 6364, 6363, "/app/terminusdb/storage",
+        cfg,
+        "cortex-okf-terminus",
+        GRAPH_IMAGE,
+        6364,
+        6363,
+        "/app/terminusdb/storage",
         f"TERMINUSDB_ADMIN_PASS={cfg['graph_password']}\n",
     )
     env = environment(cfg)
@@ -169,16 +191,32 @@ def initialize(cfg):
                     raise RuntimeError("Private PostgreSQL did not become available") from None
                 time.sleep(0.5)
         with db.begin() as conn:
-            exists = conn.execute(text("SELECT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='cortex_app')")).scalar_one()
+            exists = conn.execute(
+                text("SELECT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='cortex_app')")
+            ).scalar_one()
             if not exists:
                 password = cfg["app_password"]
                 if len(password) != 64 or any(c not in "0123456789abcdef" for c in password):
                     raise ValueError("Unexpected generated application credential format")
-                conn.execute(text(f"CREATE ROLE cortex_app LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD '{password}'"))
+                conn.execute(
+                    text(
+                        f"CREATE ROLE cortex_app LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD '{password}'"
+                    )
+                )
         run([str(ROOT / ".venv/bin/alembic"), "upgrade", "head"], env=env)
         run(
-            [str(ROOT / ".venv/bin/cortex"), "bootstrap", "--tenant", cfg["tenant"],
-             "--domain", cfg["domain"], "--owner", cfg["subject"], "--name", "Savoir OKF privé"],
+            [
+                str(ROOT / ".venv/bin/cortex"),
+                "bootstrap",
+                "--tenant",
+                cfg["tenant"],
+                "--domain",
+                cfg["domain"],
+                "--owner",
+                cfg["subject"],
+                "--name",
+                "Savoir OKF privé",
+            ],
             env=env,
         )
     finally:
@@ -194,7 +232,16 @@ def initialize(cfg):
             if attempt == 59:
                 raise RuntimeError("Private TerminusDB did not become available")
             time.sleep(0.5)
-    print(json.dumps({"workspace": str(DIRECTORY), "tenant": cfg["tenant"], "domain": cfg["domain"], "published_by_initialization": 0}))
+    print(
+        json.dumps(
+            {
+                "workspace": str(DIRECTORY),
+                "tenant": cfg["tenant"],
+                "domain": cfg["domain"],
+                "published_by_initialization": 0,
+            }
+        )
+    )
 
 
 def headers(cfg, *, lifetime=300):
@@ -202,18 +249,42 @@ def headers(cfg, *, lifetime=300):
         raise ValueError("Local session lifetime must be between 30 and 1800 seconds")
     now = int(time.time())
     token = jwt.encode(
-        {"iss": ISSUER, "aud": "cortex-core", "sub": cfg["subject"], "tenant": cfg["tenant"], "iat": now, "exp": now + lifetime},
-        (DIRECTORY / "identity-private.pem").read_bytes(), algorithm="RS256",
+        {
+            "iss": ISSUER,
+            "aud": "cortex-core",
+            "sub": cfg["subject"],
+            "tenant": cfg["tenant"],
+            "iat": now,
+            "exp": now + lifetime,
+        },
+        (DIRECTORY / "identity-private.pem").read_bytes(),
+        algorithm="RS256",
     )
     return {"Authorization": "Bearer " + token, "X-Tenant-ID": cfg["tenant"]}
 
 
 def signed(cfg, action, arguments):
     now = int(time.time())
-    canonical = json.dumps({"action": action, "arguments": arguments}, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    canonical = json.dumps(
+        {"action": action, "arguments": arguments},
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
     proof = jwt.encode(
-        {"iss": "cortex-trusted-host", "aud": "cortex-mcp-confirmation", "sub": cfg["subject"], "tenant": cfg["tenant"], "action": action, "command_hash": hashlib.sha256(canonical.encode()).hexdigest(), "jti": str(uuid4()), "iat": now, "exp": now + 120},
-        (DIRECTORY / "confirmation-private.pem").read_bytes(), algorithm="RS256",
+        {
+            "iss": "cortex-trusted-host",
+            "aud": "cortex-mcp-confirmation",
+            "sub": cfg["subject"],
+            "tenant": cfg["tenant"],
+            "action": action,
+            "command_hash": hashlib.sha256(canonical.encode()).hexdigest(),
+            "jti": str(uuid4()),
+            "iat": now,
+            "exp": now + 120,
+        },
+        (DIRECTORY / "confirmation-private.pem").read_bytes(),
+        algorithm="RS256",
     )
     return {**headers(cfg), "X-Cortex-Confirmation": proof}
 
@@ -233,7 +304,12 @@ def serve(cfg, duration):
     signal.signal(signal.SIGINT, shutdown)
     log_path = DIRECTORY / f"server-{int(time.time())}.log"
     with os.fdopen(os.open(log_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w") as log:
-        process = subprocess.Popen([str(ROOT / "target/debug/cortex-rust-core")], env=environment(cfg), stdout=log, stderr=log)
+        process = subprocess.Popen(
+            [str(ROOT / "target/debug/cortex-rust-core")],
+            env=environment(cfg),
+            stdout=log,
+            stderr=log,
+        )
         try:
             with httpx.Client(base_url=BASE_URL, trust_env=False, timeout=3) as client:
                 for attempt in range(60):
@@ -251,7 +327,17 @@ def serve(cfg, duration):
                     if attempt == 59:
                         raise RuntimeError("Private runtime did not become ready")
                     time.sleep(0.5)
-            print(json.dumps({"ready": True, "base_url": BASE_URL, "domain": cfg["domain"], "runtime_pid": process.pid}), flush=True)
+            print(
+                json.dumps(
+                    {
+                        "ready": True,
+                        "base_url": BASE_URL,
+                        "domain": cfg["domain"],
+                        "runtime_pid": process.pid,
+                    }
+                ),
+                flush=True,
+            )
             deadline = Deadline(duration)
             while not stop and not deadline.expired():
                 time.sleep(0.5)
@@ -276,7 +362,16 @@ def main():
         serve(cfg, args.duration)
     else:
         path = DIRECTORY / f"session-{int(time.time())}.json"
-        private_file(path, json.dumps({"tenant": cfg["tenant"], "domain": cfg["domain"], "token": headers(cfg, lifetime=1800)["Authorization"].removeprefix("Bearer ")}))
+        private_file(
+            path,
+            json.dumps(
+                {
+                    "tenant": cfg["tenant"],
+                    "domain": cfg["domain"],
+                    "token": headers(cfg, lifetime=1800)["Authorization"].removeprefix("Bearer "),
+                }
+            ),
+        )
         print(json.dumps({"private_session_file": str(path), "expires_in_seconds": 1800}))
 
 
@@ -285,4 +380,6 @@ if __name__ == "__main__":
         main()
     except Exception as exc:
         # A DB exception can echo a SQL statement containing a generated password.
-        raise SystemExit(f"Private workspace failed ({type(exc).__name__}); data preserved.") from None
+        raise SystemExit(
+            f"Private workspace failed ({type(exc).__name__}); data preserved."
+        ) from None

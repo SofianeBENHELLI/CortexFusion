@@ -806,8 +806,12 @@ def test_gateway_authentication_over_real_loopback_http_and_shutdown_revocation(
 
 
 def test_return_route_preserves_opaque_work_targets_only():
-    assert "api_dossier=references" in safe_return_route("/?" + urlencode({"api_domain": DOMAIN, "api_dossier": "references"}))
-    assert "api_dossier=referenceReviews" in safe_return_route("/?" + urlencode({"api_domain": DOMAIN, "api_dossier": "referenceReviews"}))
+    assert "api_dossier=references" in safe_return_route(
+        "/?" + urlencode({"api_domain": DOMAIN, "api_dossier": "references"})
+    )
+    assert "api_dossier=referenceReviews" in safe_return_route(
+        "/?" + urlencode({"api_domain": DOMAIN, "api_dossier": "referenceReviews"})
+    )
     values = {"api_domain": DOMAIN, "api_dossier": "cases", "api_case": CONCEPT, "api_task": TENANT}
     route = safe_return_route("/?" + urlencode(values))
     assert {k: v[0] for k, v in parse_qs(urlsplit(route).query).items()} == values

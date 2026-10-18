@@ -656,7 +656,9 @@ def main():
                 elif args.mode == "measure":
                     value = measure(reader, expected)
                 elif args.mode == "concurrent":
-                    value = concurrent(state["base_url"], directory, state, expected, deadline, continuity)
+                    value = concurrent(
+                        state["base_url"], directory, state, expected, deadline, continuity
+                    )
                 else:
                     params = {"limit": 24, "direction": "outgoing", "at_version": expected.version}
                     page, value = reader.get(expected.root + "/graph/window", params)
@@ -672,7 +674,9 @@ def main():
             "completed"  # Measurements may still contain failures or exceeded budgets.
         )
     except Exception as error:
-        report["status"] = "invalid_interrupted" if isinstance(error, ClockDiscontinuity) else "failed"
+        report["status"] = (
+            "invalid_interrupted" if isinstance(error, ClockDiscontinuity) else "failed"
+        )
         report["failure"] = {"type": type(error).__name__, "sample": getattr(error, "sample", None)}
         raise
     finally:

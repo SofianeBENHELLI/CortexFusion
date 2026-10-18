@@ -22,8 +22,15 @@ import httpx
 
 ROOT = Path(__file__).resolve().parents[1]
 HOP_HEADERS = {
-    "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
-    "te", "trailer", "transfer-encoding", "upgrade", "content-length",
+    "connection",
+    "keep-alive",
+    "proxy-authenticate",
+    "proxy-authorization",
+    "te",
+    "trailer",
+    "transfer-encoding",
+    "upgrade",
+    "content-length",
     "content-encoding",
 }
 
@@ -81,12 +88,15 @@ def serve(directory):
             is_feedback = bool(feedback_path.fullmatch(path))
             writable = is_feedback or bool(writes.fullmatch(path))
             if (
-                stopping or time.time() >= deadline
+                stopping
+                or time.time() >= deadline
                 or self.headers.get("x-tenant-id") != state["tenant"]
                 or not self.headers.get("authorization", "").startswith("Bearer ")
-                or not ((self.command == "GET" and readable)
-                        or (self.command == "POST" and writable))
-                or ".." in path or "%" in path
+                or not (
+                    (self.command == "GET" and readable) or (self.command == "POST" and writable)
+                )
+                or ".." in path
+                or "%" in path
             ):
                 self.reply(403, b'{"error":"fixture_scope"}')
                 return
@@ -96,8 +106,12 @@ def serve(directory):
                     raise ValueError("Invalid length")
                 body = self.rfile.read(size)
                 headers = {k: v for k, v in self.headers.items() if k.lower() not in HOP_HEADERS}
-                with httpx.Client(base_url=state["base_url"], trust_env=False, timeout=15) as client:
-                    response = client.request(self.command, self.path, content=body, headers=headers)
+                with httpx.Client(
+                    base_url=state["base_url"], trust_env=False, timeout=15
+                ) as client:
+                    response = client.request(
+                        self.command, self.path, content=body, headers=headers
+                    )
             except (ValueError, httpx.HTTPError):
                 self.reply(502, b'{"error":"fixture_upstream"}')
                 return
@@ -110,8 +124,11 @@ def serve(directory):
                         dropped = {"path": path, "request_sha256": digest, "feedback_id": receipt}
                     emit(
                         "committed_response_dropped" if first else "feedback_response_delivered",
-                        path=path, request_sha256=digest, feedback_id=receipt,
-                        same_request_as_dropped=path == dropped["path"] and digest == dropped["request_sha256"],
+                        path=path,
+                        request_sha256=digest,
+                        feedback_id=receipt,
+                        same_request_as_dropped=path == dropped["path"]
+                        and digest == dropped["request_sha256"],
                         same_receipt_as_dropped=receipt == dropped["feedback_id"],
                         upstream_status=response.status_code,
                     )

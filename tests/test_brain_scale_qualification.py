@@ -189,7 +189,9 @@ def test_container_memory_preserves_units_rounding_and_combined_budget():
     sampler = ContainerMemory()
     upper = sum(v["upper_rounding_bound_bytes"] for v in parsed.values())
     assert upper > 4 * 1024**3
-    assert parsed["cortex-brain-postgres"]["upper_rounding_bound_bytes"] == pytest.approx(139.95 * 1024**2)
+    assert parsed["cortex-brain-postgres"]["upper_rounding_bound_bytes"] == pytest.approx(
+        139.95 * 1024**2
+    )
     sampler.samples.append({"sum_upper_rounding_bound_bytes": upper})
     assert sampler.report()["within_4GiB_upper_estimate"] is False
     sampler.failures = 1

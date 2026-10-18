@@ -1,4 +1,5 @@
 """Private conversation drafts and content-free idempotent save receipts."""
+
 from alembic import op
 
 revision = "0027"

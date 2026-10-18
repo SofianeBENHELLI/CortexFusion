@@ -7,6 +7,12 @@
       "mimeType": "text/plain"
     },
     {
+      "name": "workflow_catalog",
+      "uri": "cortex://guides",
+      "description": "Six focused companion workflows and client qualification limits; documentation only.",
+      "mimeType": "application/json"
+    },
+    {
       "name": "my_workspace",
       "uri": "cortex://workspace",
       "description": "Current authenticated subject, authorized domains and capabilities; never cached across users.",
@@ -21,6 +27,12 @@
   ],
   "resource_templates": [
     {
+      "name": "workflow_guide",
+      "uriTemplate": "cortex://guides/{guide_id}",
+      "description": "Read one workflow from the advertised catalog; metadata grants no permissions.",
+      "mimeType": "application/json"
+    },
+    {
       "name": "domain_context",
       "uriTemplate": "cortex://domains/{domain_id}/context",
       "description": "Authorized domain versions and the caller's collection preferences. Contains no source text.",
@@ -28,6 +40,20 @@
     }
   ],
   "prompts": [
+    {
+      "name": "openbrain_workflow",
+      "description": "Prepare a selected workflow in a currently authorized domain; runs no business action.",
+      "arguments": [
+        {
+          "name": "domain_id",
+          "required": true
+        },
+        {
+          "name": "guide_id",
+          "required": true
+        }
+      ]
+    },
     {
       "name": "ask_cortex",
       "description": "Prepare an evidence-based query workflow for an authorized domain; executes no query.",

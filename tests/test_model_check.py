@@ -45,9 +45,7 @@ def test_live_diagnostic_calls_actual_adapter_once(monkeypatch):
             "choices": [
                 {
                     "finish_reason": "stop",
-                    "message": {
-                        "content": json.dumps({"quote": "Procédure fictive Open BrAIn."})
-                    },
+                    "message": {"content": json.dumps({"quote": "Procédure fictive Open BrAIn."})},
                 }
             ],
         }

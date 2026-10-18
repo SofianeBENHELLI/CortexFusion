@@ -207,7 +207,7 @@ def main():
         checks.append("role_revocation_and_withdrawal_remove_counts_without_tombstone_content")
         rpc = client.post(
             "/mcp",
-            headers={**fixture.headers("alice"), "Accept":"application/json, text/event-stream"},
+            headers={**fixture.headers("alice"), "Accept": "application/json, text/event-stream"},
             json={
                 "jsonrpc": "2.0",
                 "id": 1,

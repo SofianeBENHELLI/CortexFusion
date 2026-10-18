@@ -429,9 +429,7 @@ def main():
         state = initialize(directory, manifest, manifest_hash)
         provision(directory, state)
         signer = Signer(directory, state)
-        state.update(
-            base_url=f"http://127.0.0.1:{args.port}", expires_at=deadline.wall_end
-        )
+        state.update(base_url=f"http://127.0.0.1:{args.port}", expires_at=deadline.wall_end)
 
         def checkpoint():
             save(directory / "state.json", state)

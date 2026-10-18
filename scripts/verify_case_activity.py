@@ -3,6 +3,7 @@
 import json
 import os
 from uuid import uuid4
+
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 from verify_coordinated_restore import Fixture
@@ -155,7 +156,7 @@ def main():
             "viewer downgrade hides existing task notifications without granting other work families"
         )
         q = command(s["case"], 1, "qualify", qualification="unclear")
-        close = command(
+        command(
             s["case"],
             q["revision"],
             "close_without_change",

@@ -26,14 +26,16 @@ FRONTEND_LICENSES = {
     ("node", "tslib", "2.8.1"): "0BSD",
 }
 INTACT_MPL = {("certifi", "2026.7.22")}
+# Workspace packages; the project license is a separate, deliberately unmade decision.
+FIRST_PARTY = {"cortex-core", "cortex-browser-gateway"}
 
 
 def inventory():
     rows = {}
     for dist in distributions():
         name, version = dist.metadata["Name"], dist.version
-        if name == "cortex-core":
-            continue  # Project license is a separate, deliberately unmade decision.
+        if name in FIRST_PARTY:
+            continue
         declared = (
             dist.metadata.get("License-Expression") or dist.metadata.get("License") or "UNKNOWN"
         )
