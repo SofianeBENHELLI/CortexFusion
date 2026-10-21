@@ -28,16 +28,25 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let auth = Authenticator::from_environment(&issuer, &audience)
         .await
         .map_err(|_| "Invalid identity configuration")?;
+    let options = cortex_rust_core::database::connect_options(
+        &url,
+        env::var("CORTEX_STATEMENT_TIMEOUT_SECONDS").ok().as_deref(),
+    )?;
     let db = Database {
         pool: PgPoolOptions::new()
             .max_connections(10)
             .acquire_timeout(Duration::from_secs(3))
-            .connect_with(cortex_rust_core::database::connect_options(
-                &url,
-                env::var("CORTEX_STATEMENT_TIMEOUT_SECONDS").ok().as_deref(),
-            )?)
+            .connect_with(options.clone())
             .await
             .map_err(|_| "Database connection failed")?,
+    };
+    // The public readiness probe never borrows application connections: one
+    // lazily opened session, waited on for at most a second.
+    let readiness = Database {
+        pool: PgPoolOptions::new()
+            .max_connections(1)
+            .acquire_timeout(Duration::from_secs(1))
+            .connect_lazy_with(options),
     };
     db.verify_role()
         .await
@@ -190,6 +199,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             extraction,
             public_resource: public_resource.clone(),
             db: db.clone(),
+            readiness,
             graph,
             confirmation: confirmation.clone(),
         }),

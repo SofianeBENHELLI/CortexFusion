@@ -18,6 +18,8 @@ pub struct StateData {
     pub extraction: Option<crate::model_provider::PassageProvider>,
     pub public_resource: Option<crate::discovery::PublicResource>,
     pub db: Database,
+    /// Dedicated single-connection pool for the unauthenticated readiness probe.
+    pub readiness: Database,
     pub graph: Option<crate::graph::GraphService>,
     pub confirmation: Option<crate::confirmation::ConfirmationVerifier>,
 }

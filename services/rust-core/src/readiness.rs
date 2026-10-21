@@ -8,8 +8,8 @@ pub const REVISION: &str = "0043";
 const TABLES: &str = "cf_work_activity_reads cf_agent_mission_preparations cf_agent_missions cf_agent_mission_commands cf_reference_review_preparations cf_reference_reviews cf_reference_review_commands cf_reference_drafts cf_reference_draft_receipts cf_import_commands cf_task_proposals cf_expert_reviews cf_case_preparations cf_shared_cases cf_case_events cf_case_commands cf_workspace_cursors cf_task_notification_reads cf_work_tasks cf_task_events cf_task_commands cf_task_outbox cf_workspace_drafts cf_workspace_draft_receipts cf_collection_sources cf_collections cf_commits cf_companion_responses cf_concepts cf_conversation_episodes cf_conversations cf_domains cf_episodes cf_extractions cf_feedback cf_feedback_preferences cf_feedback_signals cf_files cf_import_items cf_imports cf_issue_events cf_issues cf_mcp_confirmations cf_membership_events cf_memberships cf_model_attempts cf_model_outcomes cf_outbox cf_proposals cf_reviews cf_graph_preparations cf_graph_manifests cf_graph_read_versions cf_graph_read_nodes cf_graph_read_sources cf_graph_read_edges cf_graph_attempts cf_graph_attempt_events cf_graph_protocols cf_publications cf_source_access_events cf_sources cf_synthesis_attempts cf_synthesis_outcomes cf_tenants";
 pub async fn ready(State(s): State<StateData>) -> Result<Json<Value>, CoreError> {
     let result=tokio::time::timeout(Duration::from_secs(2),async {
-        s.db.verify_role().await?;
-        let mut tx=s.db.pool.begin().await.map_err(CoreError::sql)?;
+        s.readiness.verify_role().await?;
+        let mut tx=s.readiness.pool.begin().await.map_err(CoreError::sql)?;
         sqlx::query("SET LOCAL statement_timeout='1500ms'").execute(&mut *tx).await.map_err(CoreError::sql)?;
         let revisions:Vec<String>=sqlx::query_scalar("SELECT version_num FROM public.alembic_version").fetch_all(&mut *tx).await.map_err(CoreError::sql)?;
         if revisions!=[REVISION]{return Err(CoreError::database());}
