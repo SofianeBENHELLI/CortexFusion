@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 import { loadEnv } from "vite";
+import { contentSecurityPolicy } from "./src/server/contentSecurity";
 import { navigationGuard } from "./src/server/navigationGuard";
 import { sessionGateway } from "./src/server/sessionGateway";
 export default defineConfig(({ mode }) => {
@@ -29,6 +30,7 @@ export default defineConfig(({ mode }) => {
     );
   return {
     plugins: [
+      contentSecurityPolicy(),
       navigationGuard(),
       ...(auth === "session"
         ? [sessionGateway(env.CORTEX_BROWSER_GATEWAY_TARGET)]
