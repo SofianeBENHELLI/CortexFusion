@@ -80,7 +80,10 @@ class BoundaryMiddleware:
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
-        headers = {k.decode().lower(): v.decode() for k, v in scope.get("headers", [])}
+        # ASGI header bytes are Latin-1; a non-UTF-8 byte must not turn into a 500.
+        headers = {
+            k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope.get("headers", [])
+        }
         if scope["path"].startswith("/mcp"):
             try:
                 # Token verification may fetch JWKS; keep it off the event loop.

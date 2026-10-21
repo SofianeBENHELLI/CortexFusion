@@ -220,3 +220,25 @@ def test_legacy_mcp_tools_run_off_the_event_loop_with_their_signature():
     loop_thread, (worker_thread, *values) = asyncio.run(scenario())
     assert worker_thread != loop_thread
     assert values == ["d", "q", 8000]
+
+
+def test_non_utf8_header_bytes_are_rejected_without_a_server_error():
+    class Rejecting:
+        def authenticate(self, authorization, tenant):
+            assert tenant == "\xff"
+            raise CoreError("NOT_AUTHORIZED", "Valid identity and tenant are required", 401)
+
+    async def scenario():
+        scope = {"type": "http", "path": "/mcp/", "headers": [(b"x-tenant-id", b"\xff")]}
+        sent = []
+
+        async def receive():
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        async def send(message):
+            sent.append(message)
+
+        await BoundaryMiddleware(downstream, Rejecting(), limit=1024)(scope, receive, send)
+        return sent
+
+    assert asyncio.run(scenario())[0]["status"] == 401
