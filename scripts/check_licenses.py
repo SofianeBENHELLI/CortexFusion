@@ -26,6 +26,11 @@ FRONTEND_LICENSES = {
     ("node", "tslib", "2.8.1"): "0BSD",
 }
 INTACT_MPL = {("certifi", "2026.7.22")}
+# Exact development-only artifacts of the console lint toolchain; never shipped.
+LINT_TOOLCHAIN = {
+    ("node", "caniuse-lite", "1.0.30001818"): "CC-BY-4.0",  # browserslist data via Babel
+    ("node", "minimatch", "10.2.6"): "BlueOak-1.0.0",  # typescript-eslint file matching
+}
 # Workspace packages; the project license is a separate, deliberately unmade decision.
 FIRST_PARTY = {"cortex-core", "cortex-browser-gateway"}
 
@@ -59,6 +64,7 @@ if __name__ == "__main__":
         allowed = (
             declared in ALLOWED
             or FRONTEND_LICENSES.get((ecosystem, name, version)) == declared
+            or LINT_TOOLCHAIN.get((ecosystem, name, version)) == declared
             or (declared == "MPL-2.0" and (name.lower(), version) in INTACT_MPL)
         )
         if not allowed:
