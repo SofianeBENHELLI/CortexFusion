@@ -1,7 +1,9 @@
+import time
 from contextlib import contextmanager
 
 import pytest
-from cortex_core.readiness import SCHEMA_REVISION, verify_schema
+from cortex_core.auth import CoreError
+from cortex_core.readiness import SCHEMA_REVISION, ReadinessService, verify_schema
 from sqlalchemy import text
 
 
@@ -58,11 +60,19 @@ def test_readiness_rejects_privileged_role(world):
 def test_unreachable_database_returns_safe_503_while_liveness_stays_ok(world, monkeypatch):
     import cortex_core.readiness as module
 
-    def failure(*args, **kwargs):
-        assert kwargs["connect_args"]["timeout"] == 2
-        raise RuntimeError("PRIVATE_CONNECTION_STRING_AND_PASSWORD")
+    class Unreachable:
+        def begin(self):
+            raise RuntimeError("PRIVATE_CONNECTION_STRING_AND_PASSWORD")
 
-    monkeypatch.setattr(module, "create_engine", failure)
+        def dispose(self):
+            pass
+
+    # The probe connection is bounded: one session and a short driver timeout.
+    seen = {}
+    monkeypatch.setattr(module, "create_engine", lambda *a, **k: seen.update(k) or Unreachable())
+    module.ReadinessService(world.db)
+    assert (seen["connect_args"]["timeout"], seen["pool_size"], seen["max_overflow"]) == (2, 1, 0)
+    monkeypatch.setattr(world.app.state.readiness, "engine", Unreachable())
     response = world.client.get("/ready")
     assert response.status_code == 503
     assert response.json() == {
@@ -71,3 +81,19 @@ def test_unreachable_database_returns_safe_503_while_liveness_stays_ok(world, mo
     }
     assert "PRIVATE" not in response.text
     assert world.client.get("/health").status_code == 200
+
+
+def test_readiness_uses_one_dedicated_connection_and_fails_fast_when_busy(world):
+    readiness = ReadinessService(world.db)
+    try:
+        assert readiness.check()["status"] == "ready"
+        assert readiness.check()["status"] == "ready"
+        assert (readiness.engine.pool.size(), readiness.engine.pool.checkedin()) == (1, 1)
+        with readiness.engine.connect():  # hold its only connection
+            started = time.monotonic()
+            with pytest.raises(CoreError) as raised:
+                readiness.check()
+            assert raised.value.status == 503
+            assert time.monotonic() - started < 3
+    finally:
+        readiness.dispose()

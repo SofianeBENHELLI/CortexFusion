@@ -125,6 +125,7 @@ def create_app(settings: Settings | None = None):
     db = Database(settings.database_url, settings.statement_timeout_seconds)
     auth = Authenticator(settings)
     confirmation_guard = HTTPConfirmationGuard(settings, auth, db)
+    readiness = ReadinessService(db)
     service = KnowledgeService(db)
     model_adapter = None
     if (
@@ -162,6 +163,7 @@ def create_app(settings: Settings | None = None):
         db.verify_role()
         async with mcp.session_manager.run():
             yield
+        readiness.dispose()
         db.dispose()
 
     app = FastAPI(
@@ -174,6 +176,7 @@ def create_app(settings: Settings | None = None):
     app.state.mcp = mcp
     app.state.service = service
     app.state.db = db
+    app.state.readiness = readiness
     app.state.synthesis = synthesis
     app.state.confirmation_guard = confirmation_guard
     app.add_middleware(
@@ -284,7 +287,7 @@ def create_app(settings: Settings | None = None):
 
     @app.get("/ready", response_model=ReadinessView)
     def ready():
-        return ReadinessService(db).check()
+        return readiness.check()
 
     @app.get("/health", response_model=HealthView)
     def health():

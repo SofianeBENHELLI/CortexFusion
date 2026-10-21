@@ -1,7 +1,6 @@
 """Public readiness checks disclose only readiness, never database diagnostics."""
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.pool import NullPool
 
 from .auth import CoreError
 
@@ -50,23 +49,28 @@ def verify_schema(conn):
 
 class ReadinessService:
     def __init__(self, db):
-        self.db = db
+        # Never the application pool, and never more than one session: this public
+        # probe waits at most a second for its connection, so unauthenticated
+        # callers cannot open unbounded PostgreSQL sessions. Driver socket and
+        # statement deadlines bound each probe; they are not an overall SLA.
+        self.engine = create_engine(
+            db.engine.url,
+            pool_size=1,
+            max_overflow=0,
+            pool_timeout=1,
+            pool_pre_ping=True,
+            connect_args={"timeout": 2},
+        )
 
     def check(self):
-        engine = None
         try:
-            # Do not wait for the application pool. Driver socket and statement
-            # deadlines bound each probe operation; they are not an overall SLA.
-            engine = create_engine(
-                self.db.engine.url, poolclass=NullPool, connect_args={"timeout": 2}
-            )
-            with engine.begin() as conn:
+            with self.engine.begin() as conn:
                 conn.execute(text("SET LOCAL statement_timeout='1500ms'"))
                 if not verify_schema(conn):
                     raise ValueError("incompatible database")
             return {"status": "ready", "schema_revision": SCHEMA_REVISION}
         except Exception:
             raise CoreError("NOT_READY", "Backend database readiness checks failed", 503) from None
-        finally:
-            if engine is not None:
-                engine.dispose()
+
+    def dispose(self):
+        self.engine.dispose()
