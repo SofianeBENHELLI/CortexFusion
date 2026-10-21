@@ -15,7 +15,11 @@ def main():
     previous = json.loads((OUT / "planning-native-report.json").read_text())
     assert previous["synthetic_only"]
     u = make_url(os.environ["CORTEX_TEST_ADMIN_URL"])
-    assert u.host == "127.0.0.1" and u.port == 55432 and u.database.endswith("_test")
+    assert (
+        u.host == "127.0.0.1"
+        and u.port == int(os.environ.get("CORTEX_QUALIFICATION_PORT", "55432"))
+        and u.database.endswith("_test")
+    )
     state = {"tenant": previous["tenant"], "domain": str(uuid4()), "synthetic_only": True}
     db = create_engine(u)
     with db.begin() as c:

@@ -209,8 +209,9 @@ def run(directory):
             {"focus": "bad"},
         ]:
             assert client.get(root, headers=fixture.headers(), params=params).status_code == 422
+        # Tokens name their tenant, so another tenant's header is rejected (401).
         other = {**fixture.headers(), "X-Tenant-ID": str(uuid4())}
-        assert client.get(root, headers=other).status_code == 404
+        assert client.get(root, headers=other).status_code == 401
         assert client.get(root).status_code == 401
         rpc = client.post(
             "/mcp",
@@ -309,7 +310,11 @@ def run(directory):
         )
         checks.append("publication_fence_and_current_source_revocation_invalidate_continuation")
         catalog = client.get("/v1/interactions", headers=fixture.headers()).json()
-        assert len(catalog["items"]) == 90
+        # Inventory sizes follow the native contract bundle instead of fixed counts.
+        bundle = json.loads(
+            (ROOT / "packages/contracts/functional-interactions.rust.fr.json").read_text()
+        )
+        assert len(catalog["items"]) == bundle["http_operations_count"]
         graph_op = next(op for op in catalog["items"] if op["operation_id"] == "graph.window")
         assert "viewer" in graph_op["roles"]
         tools = client.post(
@@ -317,10 +322,10 @@ def run(directory):
             headers={**fixture.headers(), "Accept": "application/json, text/event-stream"},
             json={"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
         ).json()["result"]["tools"]
-        assert len(tools) == 106
-        checks.append("native_90_http_106_mcp_inventory_and_member_role_contract")
+        assert len(tools) == bundle["mcp_tools_count"]
+        checks.append("native_http_and_mcp_inventory_match_contracts_and_member_role_contract")
         summary_root = f"/v1/domains/{domain}/proposals/{proposal}/diff/summary"
-        assert client.get(summary_root, headers=other).status_code == 404
+        assert client.get(summary_root, headers=other).status_code == 401
         assert client.get(summary_root).status_code == 401
         body = {"allowed_subjects": ["bob"]}
         response = client.put(

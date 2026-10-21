@@ -165,9 +165,10 @@ def run(directory, duration, offline_engine):
         ]:
             assert client.get(root, headers=fixture.headers(), params=params).status_code == status
         assert client.get(root, headers=fixture.headers("no-membership")).status_code == 404
+        # Tokens name their tenant, so another tenant's header is rejected (401).
         assert (
             client.get(root, headers={**fixture.headers(), "X-Tenant-ID": str(uuid4())}).status_code
-            == 404
+            == 401
         )
         assert client.get(root).status_code == 401
         with create_engine(os.environ["CORTEX_TEST_ADMIN_URL"]).connect() as conn:

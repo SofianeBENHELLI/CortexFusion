@@ -19,7 +19,11 @@ def main():
     state = json.loads((KEYS / "state.json").read_text())
     assert state["synthetic_only"]
     url = make_url(os.environ["CORTEX_TEST_ADMIN_URL"])
-    assert url.host == "127.0.0.1" and url.port == 55432 and url.database.endswith("_test")
+    assert (
+        url.host == "127.0.0.1"
+        and url.port == int(os.environ.get("CORTEX_QUALIFICATION_PORT", "55432"))
+        and url.database.endswith("_test")
+    )
     domain = str(uuid4())
     tenant = state["tenant"]
     db = create_engine(url)

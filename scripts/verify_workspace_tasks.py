@@ -6,14 +6,27 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from uuid import uuid4
 
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 from verify_coordinated_restore import Fixture
 from verify_rust_configured import native_client
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / ".runtime/brain/openbrain-20261016"
-KEYS = ROOT / ".runtime/brain/aud02-native-20261005"
+# The retained local qualification fixture by default. CI builds a fresh one with
+# verify_bounded_retrieval.py and points these variables at it.
+OUT = Path(
+    os.environ.get("CORTEX_QUALIFICATION_OUTPUT") or ROOT / ".runtime/brain/openbrain-20261016"
+)
+KEYS = Path(
+    os.environ.get("CORTEX_QUALIFICATION_FIXTURE") or ROOT / ".runtime/brain/aud02-native-20261005"
+)
+
+
+def schema_head():
+    """Current migration head, so readiness checks follow new migrations."""
+    return ScriptDirectory.from_config(Config(str(ROOT / "alembic.ini"))).get_current_head()
 
 
 def task_fixture():
@@ -80,7 +93,7 @@ def main():
             )
             return result.json()
 
-        assert req("GET", "/ready")["schema_revision"] == "0040"
+        assert req("GET", "/ready")["schema_revision"] == schema_head()
         assert req("GET", base, actor="reader")["items"] == [] or all(
             x["assignee"] == "reader" for x in req("GET", base, actor="reader")["items"]
         )

@@ -16,7 +16,11 @@ def main():
     state = json.loads((OUT / "overview-native-report.json").read_text())
     assert state["synthetic_only"] is True
     url = make_url(os.environ["CORTEX_TEST_ADMIN_URL"])
-    assert url.host == "127.0.0.1" and url.port == 55432 and url.database.endswith("_test")
+    assert (
+        url.host == "127.0.0.1"
+        and url.port == int(os.environ.get("CORTEX_QUALIFICATION_PORT", "55432"))
+        and url.database.endswith("_test")
+    )
     state = {"tenant": state["tenant"], "domain": str(uuid4()), "synthetic_only": True}
     db = create_engine(url)
     params = {"t": state["tenant"], "d": state["domain"]}

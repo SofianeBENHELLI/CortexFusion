@@ -9,9 +9,12 @@ from uuid import uuid4
 from sqlalchemy.engine import make_url
 from verify_coordinated_restore import Fixture
 from verify_rust_configured import native_client
+from verify_workspace_tasks import schema_head
 
 ROOT = Path(__file__).resolve().parents[1]
-DIRECTORY = ROOT / ".runtime/brain/aud02-native-20261005"
+DIRECTORY = Path(
+    os.environ.get("CORTEX_QUALIFICATION_FIXTURE") or ROOT / ".runtime/brain/aud02-native-20261005"
+)
 
 
 def main():
@@ -38,7 +41,7 @@ def main():
             assert response.status_code == status, (method, status, response.status_code)
             return response.json()
 
-        assert request("GET", "/ready")["schema_revision"] == "0040"
+        assert request("GET", "/ready")["schema_revision"] == schema_head()
         checks.append("ready0029")
         domain = state["domain"]
         base = f"/v1/domains/{domain}"

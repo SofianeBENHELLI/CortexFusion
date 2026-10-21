@@ -9,13 +9,17 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 from verify_coordinated_restore import Fixture
 from verify_rust_configured import native_client
-from verify_workspace_tasks import KEYS, OUT, ROOT, task_fixture
+from verify_workspace_tasks import KEYS, OUT, ROOT, schema_head, task_fixture
 
 
 def main():
     state = {**task_fixture(), "domain": str(uuid4())}
     u = make_url(os.environ["CORTEX_TEST_ADMIN_URL"])
-    assert u.host == "127.0.0.1" and u.port == 55432 and u.database.endswith("_test")
+    assert (
+        u.host == "127.0.0.1"
+        and u.port == int(os.environ.get("CORTEX_QUALIFICATION_PORT", "55432"))
+        and u.database.endswith("_test")
+    )
     db = create_engine(u)
     fixture = Fixture(state["tenant"], {"identity": (KEYS / "identity-private.pem").read_bytes()})
     with db.begin() as t:
@@ -55,7 +59,7 @@ def main():
             assert r.status_code == status, (path, r.status_code, r.text[:180])
             return r.json()
 
-        assert client.get("/ready").json()["schema_revision"] == "0043"
+        assert client.get("/ready").json()["schema_revision"] == schema_head()
         before = req("GET", "/version")
         source = req(
             "POST",

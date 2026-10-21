@@ -104,6 +104,12 @@ jobs:
         run: uv run python scripts/verify_browser_imports.py --fixture .runtime/brain/ci-aud02 --output .runtime/brain/ci-imports
       - name: Verify proposal review and idempotent existing receipt on the same corpus
         run: uv run python scripts/verify_browser_reviews.py --fixture .runtime/brain/ci-aud02 --output .runtime/brain/ci-reviews --retry-existing
+      - name: Qualify native workspace scripts on the same corpus
+        env:
+          CORTEX_QUALIFICATION_FIXTURE: ${{ github.workspace }}/.runtime/brain/ci-aud02
+          CORTEX_QUALIFICATION_OUTPUT: ${{ github.workspace }}/.runtime/brain/ci-qualification
+          CORTEX_QUALIFICATION_PORT: '5432'
+        run: scripts/qualify_workspaces.sh
       - name: Report only stage status and explicit non-browser scope
         if: always()
         run: |

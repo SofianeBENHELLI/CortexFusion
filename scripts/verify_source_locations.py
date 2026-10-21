@@ -16,7 +16,11 @@ def main():
     state = json.loads((OUT / "reference-passage-native-report.json").read_text())
     assert state["synthetic_only"]
     url = make_url(os.environ["CORTEX_TEST_ADMIN_URL"])
-    assert url.host == "127.0.0.1" and url.port == 55432 and url.database.endswith("_test")
+    assert (
+        url.host == "127.0.0.1"
+        and url.port == int(os.environ.get("CORTEX_QUALIFICATION_PORT", "55432"))
+        and url.database.endswith("_test")
+    )
     db = create_engine(url)
     fixture = Fixture(state["tenant"], {"identity": (KEYS / "identity-private.pem").read_bytes()})
     env = {k: v for k, v in os.environ.items() if not k.startswith(("CORTEX_", "OPENROUTER_"))}

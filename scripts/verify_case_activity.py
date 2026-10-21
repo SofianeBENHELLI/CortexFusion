@@ -14,7 +14,11 @@ from verify_workspace_tasks import KEYS, OUT, ROOT, task_fixture
 def main():
     s = {**task_fixture(), "domain": str(uuid4())}
     u = make_url(os.environ["CORTEX_TEST_ADMIN_URL"])
-    assert u.host == "127.0.0.1" and u.port == 55432 and u.database.endswith("_test")
+    assert (
+        u.host == "127.0.0.1"
+        and u.port == int(os.environ.get("CORTEX_QUALIFICATION_PORT", "55432"))
+        and u.database.endswith("_test")
+    )
     db = create_engine(u)
     with db.begin() as t:
         t.execute(

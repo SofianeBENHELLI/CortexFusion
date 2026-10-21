@@ -17,7 +17,11 @@ from verify_workspace_tasks import KEYS, OUT, ROOT, task_fixture
 def main():
     state = task_fixture()
     u = make_url(os.environ["CORTEX_TEST_ADMIN_URL"])
-    assert u.host == "127.0.0.1" and u.port == 55432 and u.database.endswith("_test")
+    assert (
+        u.host == "127.0.0.1"
+        and u.port == int(os.environ.get("CORTEX_QUALIFICATION_PORT", "55432"))
+        and u.database.endswith("_test")
+    )
     db = create_engine(u)
     state = {**state, "domain": str(uuid4())}
     fixture = Fixture(state["tenant"], {"identity": (KEYS / "identity-private.pem").read_bytes()})

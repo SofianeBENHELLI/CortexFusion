@@ -246,9 +246,10 @@ def run(directory):
         )
         url = root + f"/proposals/{second}/diff/summary"
         assert client.get(url).status_code == 401
+        # Tokens name their tenant, so another tenant's header is rejected (401).
         assert (
             client.get(url, headers={**fixture.headers(), "X-Tenant-ID": str(uuid4())}).status_code
-            == 404
+            == 401
         )
 
     with native_client(binary, {**env, "CORTEX_TERMINUS_URL": "http://127.0.0.1:1"}) as client:
