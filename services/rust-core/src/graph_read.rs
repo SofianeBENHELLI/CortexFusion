@@ -18,6 +18,17 @@ impl GraphService {
         p: &Principal,
         domain: &str,
     ) -> Result<i64, CoreError> {
+        match self.build_read_projection(p, domain).await {
+            // Concurrent cold readers of one version race to build it; the loser's
+            // snapshot predates the winner's commit. A fresh attempt sees the
+            // finished projection (or a newer version) instead of a spurious 409.
+            Err(error) if error.code == "CONCURRENT_CHANGE" => {
+                self.build_read_projection(p, domain).await
+            }
+            other => other,
+        }
+    }
+    async fn build_read_projection(&self, p: &Principal, domain: &str) -> Result<i64, CoreError> {
         let mut tx = self.db.transaction(p, domain, false).await?;
         let row = sqlx::query("SELECT d.published_version, m.snapshot, r.digest FROM cf_domains d LEFT JOIN cf_graph_manifests m ON m.tenant_id=d.tenant_id AND m.domain_id=d.id AND m.version=d.published_version LEFT JOIN cf_graph_read_versions r ON r.tenant_id=m.tenant_id AND r.domain_id=m.domain_id AND r.version=m.version WHERE d.tenant_id=$1 AND d.id=$2")
             .bind(&p.tenant).bind(domain).fetch_one(&mut *tx).await.map_err(CoreError::sql)?;
