@@ -428,11 +428,11 @@ fn scene(data: &Value, world: &World, q: &Request, visibility: &str) -> Value {
     });
     let mut landmark_map = BTreeMap::new();
     for i in ranked.into_iter().take(MAX_LANDMARKS) {
-        if let Some(owner) = owners[i] {
-            if glyphs[owner]["concept_id"].is_string() {
-                landmark_map.insert(i, owner);
-                continue;
-            }
+        if let Some(owner) = owners[i]
+            && glyphs[owner]["concept_id"].is_string()
+        {
+            landmark_map.insert(i, owner);
+            continue;
         }
         let idx = glyphs.len();
         landmark_map.insert(i, idx);
@@ -449,12 +449,12 @@ fn scene(data: &Value, world: &World, q: &Request, visibility: &str) -> Value {
                 json!({"from":a,"to":b,"kind":e[2],"count":1,"weight":e[3],"aggregate":false}),
             );
         }
-        if let (Some(a), Some(b)) = (owners[a], owners[b]) {
-            if a != b {
-                *routes
-                    .entry((a, b, e[2].as_str().unwrap().to_owned()))
-                    .or_default() += 1;
-            }
+        if let (Some(a), Some(b)) = (owners[a], owners[b])
+            && a != b
+        {
+            *routes
+                .entry((a, b, e[2].as_str().unwrap().to_owned()))
+                .or_default() += 1;
         }
     }
     let selected_glyph = selected.and_then(|s| landmark_map.get(&s).copied());
@@ -715,14 +715,13 @@ impl Prepared {
         if q.visibility.as_ref().is_some_and(|v| v != &self.visibility) {
             return Err(changed());
         }
-        if let Some(target) = &q.target {
-            if !self.world.by_id.contains_key(target)
+        if let Some(target) = &q.target
+            && (!self.world.by_id.contains_key(target)
                 || q.focus
                     .as_ref()
-                    .is_none_or(|f| !self.world.by_id.contains_key(f))
-            {
-                return Err(CoreError::not_found());
-            }
+                    .is_none_or(|f| !self.world.by_id.contains_key(f)))
+        {
+            return Err(CoreError::not_found());
         }
         if list {
             listing(&self.data, &self.world, q, &self.visibility)
@@ -754,8 +753,8 @@ impl Prepared {
             + self
                 .world
                 .by_id
-                .iter()
-                .map(|(k, _)| k.capacity() + 96)
+                .keys()
+                .map(|k| k.capacity() + 96)
                 .sum::<usize>()
             + self
                 .world
@@ -1254,16 +1253,15 @@ mod tests {
         assert_eq!(a["cell_size"], b["cell_size"]);
         let mut matched = 0;
         for n in a["glyphs"].as_array().unwrap() {
-            if n["concept_id"].is_null() {
-                if let Some(other) = b["glyphs"]
+            if n["concept_id"].is_null()
+                && let Some(other) = b["glyphs"]
                     .as_array()
                     .unwrap()
                     .iter()
                     .find(|m| m["id"] == n["id"])
-                {
-                    assert_eq!(n, other);
-                    matched += 1;
-                }
+            {
+                assert_eq!(n, other);
+                matched += 1;
             }
         }
         assert!(matched > 0);

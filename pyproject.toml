@@ -16,6 +16,7 @@ dev = ["pytest>=8,<9", "pytest-cov>=6,<8", "httpx>=0.28,<1", "ruff>=0.12,<1", "j
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-ra"
 
 [tool.ruff]

@@ -146,16 +146,16 @@ mod tests {
             excerpts: BTreeMap::new(),
         };
         for change in changes {
-            if let Change::PutConcept { concept } = change {
-                if joined_length(concept) == Some(concept.body.chars().count()) {
-                    for span in &concept.sources {
-                        if let Some(value) =
-                            full.get(&span.source_id).and_then(|s| span.excerpt(s).ok())
-                        {
-                            evidence
-                                .excerpts
-                                .insert((span.source_id, span.start, span.end), value);
-                        }
+            if let Change::PutConcept { concept } = change
+                && joined_length(concept) == Some(concept.body.chars().count())
+            {
+                for span in &concept.sources {
+                    if let Some(value) =
+                        full.get(&span.source_id).and_then(|s| span.excerpt(s).ok())
+                    {
+                        evidence
+                            .excerpts
+                            .insert((span.source_id, span.start, span.end), value);
                     }
                 }
             }

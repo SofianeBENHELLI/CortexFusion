@@ -279,6 +279,7 @@ async fn prior(
     })
     .transpose()
 }
+#[allow(clippy::too_many_arguments)]
 async fn record(
     tx: &mut Transaction<'_, Postgres>,
     p: &Principal,
@@ -292,6 +293,7 @@ async fn record(
 ) -> Result<Value, CoreError> {
     record_with_task(tx, p, d, id, revision, status, action, key, hash, None).await
 }
+#[allow(clippy::too_many_arguments)]
 async fn record_with_task(
     tx: &mut Transaction<'_, Postgres>,
     p: &Principal,

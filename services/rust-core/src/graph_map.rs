@@ -75,10 +75,12 @@ fn project(
             }
         }
         for (a, b) in index.references {
-            if let (Some(&a), Some(&b)) = (by_id.get(a.as_str()), by_id.get(b.as_str())) {
-                if annotations.contains_key(&a) && annotations.contains_key(&b) && a != b {
-                    references.insert((a, b));
-                }
+            if let (Some(&a), Some(&b)) = (by_id.get(a.as_str()), by_id.get(b.as_str()))
+                && annotations.contains_key(&a)
+                && annotations.contains_key(&b)
+                && a != b
+            {
+                references.insert((a, b));
             }
         }
     }
@@ -179,7 +181,7 @@ pub(crate) async fn load(
         .map_err(CoreError::sql)?;
     let raw: Value = sqlx::query_scalar(include_str!("sql/graph_map.sql"))
         .bind(&p.tenant)
-        .bind(&domain)
+        .bind(domain)
         .bind(version)
         .bind(&p.subject)
         .fetch_one(&mut **tx)

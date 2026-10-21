@@ -45,9 +45,9 @@ pub(crate) async fn snapshot(
     let scope = if domain_scope { "domain" } else { "assigned" };
     // All counts and selected rows share the same repeatable-read transaction/time.
     let counts = sqlx::query("SELECT count(*) AS active,count(*) FILTER (WHERE due_at<$5) AS overdue,count(*) FILTER (WHERE status='offered') AS offered,count(*) FILTER (WHERE status='review') AS review,count(*) FILTER (WHERE status='blocked') AS blocked,count(*) FILTER (WHERE status='unassigned') AS unassigned,count(*) FILTER (WHERE status='in_progress') AS in_progress FROM cf_work_tasks WHERE tenant_id=$1 AND domain_id=$2 AND ($3 OR assignee=$4) AND status NOT IN ('completed','cancelled')")
-        .bind(&p.tenant).bind(&d).bind(domain_scope).bind(&p.subject).bind(window.as_of).fetch_one(&mut **tx).await.map_err(CoreError::sql)?;
+        .bind(&p.tenant).bind(d).bind(domain_scope).bind(&p.subject).bind(window.as_of).fetch_one(&mut **tx).await.map_err(CoreError::sql)?;
     let rows = sqlx::query("SELECT *,to_jsonb(created_at) AS created,to_jsonb(updated_at) AS updated,to_jsonb(due_at) AS due,to_jsonb(offered_at) AS offered,to_jsonb(accepted_at) AS accepted,COALESCE(due_at<$5,false) AS overdue FROM cf_work_tasks WHERE tenant_id=$1 AND domain_id=$2 AND ($3 OR assignee=$4) AND status NOT IN ('completed','cancelled') ORDER BY CASE WHEN due_at<$5 THEN 0 ELSE 1 END,CASE priority WHEN 'high' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END,CASE WHEN due_at<$5 THEN 0 WHEN status='review' AND $6 THEN 1 WHEN status='offered' AND assignee=$4 THEN 2 WHEN status='blocked' THEN 3 WHEN status='unassigned' THEN 4 WHEN status='in_progress' THEN 5 ELSE 6 END,due_at ASC NULLS LAST,created_at,id LIMIT 5")
-        .bind(&p.tenant).bind(&d).bind(domain_scope).bind(&p.subject).bind(window.as_of).bind(manager(r)).fetch_all(&mut **tx).await.map_err(CoreError::sql)?;
+        .bind(&p.tenant).bind(d).bind(domain_scope).bind(&p.subject).bind(window.as_of).bind(manager(r)).fetch_all(&mut **tx).await.map_err(CoreError::sql)?;
     let total = counts.get::<i64, _>("active");
     let items: Vec<Value> = rows
         .iter()

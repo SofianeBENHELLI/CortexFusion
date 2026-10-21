@@ -69,15 +69,15 @@ fn passage_range(
             if chars[a..end].iter().any(|c| !c.is_whitespace()) {
                 let nonempty =
                     |&(a, b): &(usize, usize)| chars[a..b].iter().any(|c| !c.is_whitespace());
-                if let Some(&(previous, _)) = units[..left].iter().rev().find(|u| nonempty(u)) {
-                    if end - previous <= budget {
-                        a = previous;
-                    }
+                if let Some(&(previous, _)) = units[..left].iter().rev().find(|u| nonempty(u))
+                    && end - previous <= budget
+                {
+                    a = previous;
                 }
-                if let Some(&(_, following)) = units[right + 1..].iter().find(|u| nonempty(u)) {
-                    if following - a <= budget {
-                        end = following;
-                    }
+                if let Some(&(_, following)) = units[right + 1..].iter().find(|u| nonempty(u))
+                    && following - a <= budget
+                {
+                    end = following;
                 }
                 return Some((a, end));
             }

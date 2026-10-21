@@ -266,7 +266,7 @@ async fn process_items(
     r: &PgRow,
     limit: usize,
 ) -> Result<(), CoreError> {
-    let items=sqlx::query("SELECT position,payload,attempts FROM cf_import_items WHERE tenant_id=$1 AND domain_id=$2 AND import_id=$3 AND status='pending' ORDER BY position LIMIT $4").bind(&p.tenant).bind(&d).bind(&id).bind(limit as i64).fetch_all(&mut **tx).await.map_err(CoreError::sql)?;
+    let items=sqlx::query("SELECT position,payload,attempts FROM cf_import_items WHERE tenant_id=$1 AND domain_id=$2 AND import_id=$3 AND status='pending' ORDER BY position LIMIT $4").bind(&p.tenant).bind(d).bind(id).bind(limit as i64).fetch_all(&mut **tx).await.map_err(CoreError::sql)?;
     for i in items {
         let item: Item =
             serde_json::from_value(i.get("payload")).map_err(|_| CoreError::database())?;
@@ -277,7 +277,7 @@ async fn process_items(
         let mut nested = tx.begin().await.map_err(CoreError::sql)?;
         let outcome:Result<String,CoreError>=async{let lower=item.filename.to_lowercase();if ![".txt",".md",".markdown"].iter().any(|s|lower.ends_with(s)){return Err(CoreError{code:"UNSUPPORTED_FORMAT",message:"Only text and Markdown are supported",status:StatusCode::UNPROCESSABLE_ENTITY})}
 if item.content.contains('\0'){return Err(CoreError{code:"INVALID_TEXT",message:"Text contains null characters",status:StatusCode::UNPROCESSABLE_ENTITY})}
- let source=sources::create_in_transaction(&mut nested,p,d,sources::SourceInput{title:item.filename.clone(),location:format!("upload://{}/{}",r.get::<String,_>("collection_id"),item.filename),content:item.content,allowed_subjects:item.allowed_subjects,supersedes:None}).await?;let source=source["id"].as_str().ok_or_else(CoreError::database)?.to_owned();sqlx::query("INSERT INTO cf_collection_sources(tenant_id,domain_id,collection_id,source_id) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING").bind(&p.tenant).bind(&d).bind(r.get::<String,_>("collection_id")).bind(&source).execute(&mut *nested).await.map_err(CoreError::sql)?;Ok(source)}.await;
+ let source=sources::create_in_transaction(&mut nested,p,d,sources::SourceInput{title:item.filename.clone(),location:format!("upload://{}/{}",r.get::<String,_>("collection_id"),item.filename),content:item.content,allowed_subjects:item.allowed_subjects,supersedes:None}).await?;let source=source["id"].as_str().ok_or_else(CoreError::database)?.to_owned();sqlx::query("INSERT INTO cf_collection_sources(tenant_id,domain_id,collection_id,source_id) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING").bind(&p.tenant).bind(d).bind(r.get::<String,_>("collection_id")).bind(&source).execute(&mut *nested).await.map_err(CoreError::sql)?;Ok(source)}.await;
         let (source, error) = match outcome {
             Ok(source) => {
                 nested.commit().await.map_err(CoreError::sql)?;
@@ -294,7 +294,7 @@ if item.content.contains('\0'){return Err(CoreError{code:"INVALID_TEXT",message:
                 (None, Some(e.code))
             }
         };
-        sqlx::query("UPDATE cf_import_items SET status=$1,source_id=$2,error_code=$3,attempts=$4 WHERE tenant_id=$5 AND domain_id=$6 AND import_id=$7 AND position=$8").bind(if error.is_some(){"failed"}else{"succeeded"}).bind(source).bind(error).bind(attempt).bind(&p.tenant).bind(&d).bind(&id).bind(i.get::<i32,_>("position")).execute(&mut **tx).await.map_err(CoreError::sql)?;
+        sqlx::query("UPDATE cf_import_items SET status=$1,source_id=$2,error_code=$3,attempts=$4 WHERE tenant_id=$5 AND domain_id=$6 AND import_id=$7 AND position=$8").bind(if error.is_some(){"failed"}else{"succeeded"}).bind(source).bind(error).bind(attempt).bind(&p.tenant).bind(d).bind(id).bind(i.get::<i32,_>("position")).execute(&mut **tx).await.map_err(CoreError::sql)?;
     }
     Ok(())
 }
@@ -344,11 +344,11 @@ async fn change_items(
         if r.get::<bool, _>("cancelled") {
             return Err(cancelled());
         }
-        sqlx::query("UPDATE cf_import_items SET status='pending',error_code=NULL WHERE tenant_id=$1 AND domain_id=$2 AND import_id=$3 AND status='failed'").bind(&p.tenant).bind(&d).bind(&id).execute(&mut **tx).await.map_err(CoreError::sql)?;
+        sqlx::query("UPDATE cf_import_items SET status='pending',error_code=NULL WHERE tenant_id=$1 AND domain_id=$2 AND import_id=$3 AND status='failed'").bind(&p.tenant).bind(d).bind(id).execute(&mut **tx).await.map_err(CoreError::sql)?;
     } else {
-        let affected=sqlx::query("UPDATE cf_import_items SET status='cancelled' WHERE tenant_id=$1 AND domain_id=$2 AND import_id=$3 AND status='pending'").bind(&p.tenant).bind(&d).bind(&id).execute(&mut **tx).await.map_err(CoreError::sql)?.rows_affected();
+        let affected=sqlx::query("UPDATE cf_import_items SET status='cancelled' WHERE tenant_id=$1 AND domain_id=$2 AND import_id=$3 AND status='pending'").bind(&p.tenant).bind(d).bind(id).execute(&mut **tx).await.map_err(CoreError::sql)?.rows_affected();
         if affected > 0 {
-            sqlx::query("UPDATE cf_imports SET cancelled=true WHERE tenant_id=$1 AND domain_id=$2 AND id=$3").bind(&p.tenant).bind(&d).bind(&id).execute(&mut **tx).await.map_err(CoreError::sql)?;
+            sqlx::query("UPDATE cf_imports SET cancelled=true WHERE tenant_id=$1 AND domain_id=$2 AND id=$3").bind(&p.tenant).bind(d).bind(id).execute(&mut **tx).await.map_err(CoreError::sql)?;
         }
     }
     Ok(())

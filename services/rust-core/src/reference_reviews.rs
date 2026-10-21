@@ -245,6 +245,7 @@ async fn prior(
     })
     .transpose()
 }
+#[allow(clippy::too_many_arguments)]
 async fn record(
     tx: &mut Transaction<'_, Postgres>,
     p: &Principal,

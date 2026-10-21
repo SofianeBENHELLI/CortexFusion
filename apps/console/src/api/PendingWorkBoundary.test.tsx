@@ -7,7 +7,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, expect, it, vi } from "vitest";
 import {
   createMemoryRouter,
   RouterProvider,
@@ -21,6 +21,28 @@ import {
   useExitRequest,
 } from "./PendingWorkBoundary";
 afterEach(cleanup);
+
+// The data router builds a Node Request with an AbortSignal from the test DOM.
+// Node 24 rejects a signal from another realm there, so navigation would throw.
+// These routes have no loaders or actions, so the router never reads the signal;
+// browsers share one realm and are unaffected.
+beforeAll(() => {
+  vi.stubGlobal(
+    "Request",
+    new Proxy(globalThis.Request, {
+      construct(target, [input, init]: [RequestInfo | URL, RequestInit?]) {
+        try {
+          return new target(input, init);
+        } catch (error) {
+          if (!(error instanceof TypeError) || init?.signal == null)
+            throw error;
+          return new target(input, { ...init, signal: undefined });
+        }
+      },
+    }),
+  );
+});
+afterAll(() => vi.unstubAllGlobals());
 
 function Fixture({ exit }: { exit: () => void }) {
   const [state, setState] = useState<"sending" | "uncertain" | "draft">(

@@ -188,10 +188,10 @@ async fn save(
             return Err(error(StatusCode::CONFLICT, "IDEMPOTENCY_CONFLICT"));
         }
         // A receipt is content-free, but never bypass current access to the referenced source.
-        if let Some(c) = &input.content {
-            if source(&mut tx, &p, &d, c, false).await? == "source_unavailable" {
-                return Err(error(StatusCode::NOT_FOUND, "NOT_FOUND"));
-            }
+        if let Some(c) = &input.content
+            && source(&mut tx, &p, &d, c, false).await? == "source_unavailable"
+        {
+            return Err(error(StatusCode::NOT_FOUND, "NOT_FOUND"));
         }
         let result =
             json!({"receipt_id":old.get::<String,_>("id"),"revision":old.get::<i64,_>("revision")});
