@@ -2085,3 +2085,56 @@ main {
 .conversation-support:focus-visible { outline:2px solid var(--ink); outline-offset:-2px; }
 .companion-guide-choices { list-style:none; padding-left:0; }
 .companion-guide-choices li { margin-block:14px; }
+
+/* Desktop chat: keep the conversation, not the tools around it, in view.
+   The send button sits beside the question and the private-draft controls fold
+   into one compact row; every state (conflict, comparison, receipts) still shows. */
+@media (min-width: 851px) {
+  .unified-chat .conversation-compose > form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+    align-items: end;
+  }
+  .unified-chat .conversation-compose > form > label { grid-column: 1; grid-row: 1; min-width: 0; }
+  .unified-chat .conversation-compose > form > button { grid-column: 2; grid-row: 1; }
+  .unified-chat .conversation-compose > form > :not(label):not(button) { grid-column: 1 / -1; }
+  .unified-chat .personal-draft {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    margin-top: 8px;
+    padding: 6px 0 0;
+    border: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+  }
+  .unified-chat .personal-draft-actions button { padding: 4px 10px; font-size: 13px; }
+  .unified-chat .personal-draft > small,
+  .unified-chat .personal-draft > p { margin: 0; }
+  .unified-chat .personal-draft > .draft-comparison { flex-basis: 100%; }
+}
+
+/* Desktop work view: role, versions and the Explorer/Conversation switch share
+   one row under the domain picker, so the workspace gets the height back. */
+@media (min-width: 851px) and (min-height: 650px) {
+  .work-active > section {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    column-gap: 16px;
+    align-items: center;
+  }
+  .work-active > section > * { grid-column: 1 / -1; min-width: 0; }
+  .work-active > section > .workspace-responsibility { grid-column: 1; grid-row: 2; margin: 0; }
+  .work-active > section > .api-domain-version { grid-column: 2; grid-row: 2; }
+  .work-active > section > .api-workspace-nav {
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;
+    margin: 4px 0 8px;
+  }
+  .work-active > section > :last-child { align-self: stretch; }
+  .work-active .unified-heading { padding: 12px 20px; }
+}

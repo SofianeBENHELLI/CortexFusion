@@ -270,7 +270,9 @@ export function ApiConnection({
             />
           </label>
           <label>
-            Jeton d’accès <BrandName />
+            <span>
+              Jeton d’accès <BrandName />
+            </span>
             <input
               required
               type="password"
