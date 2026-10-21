@@ -876,6 +876,39 @@ it("reads the personal brief from chat without creating a corpus query and opens
   ).toBe(true);
 });
 
+it("reports a failed chat command and keeps the typed text", async () => {
+  const api = new CortexApi(() => null);
+  vi.spyOn(api, "call").mockImplementation(async (op) => {
+    if (op === "conversations.list") return { items: [], next_after: null };
+    throw Error(op);
+  });
+  const onGuideIntent = vi.fn().mockRejectedValue(new Error("offline"));
+  render(
+    <QueryClientProvider
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
+    >
+      <ConversationWorkspace
+        api={api}
+        domain={domain}
+        onWorkspaceAction={() => true}
+        onGuideIntent={onGuideIntent}
+      />
+    </QueryClientProvider>,
+  );
+  fireEvent.change(screen.getByLabelText("Votre question"), {
+    target: { value: "Montre les guides MCP" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Envoyer" }));
+  await screen.findByText(/La commande n’a pas abouti/);
+  expect(onGuideIntent).toHaveBeenCalledOnce();
+  expect(screen.getByLabelText("Votre question")).toHaveProperty(
+    "value",
+    "Montre les guides MCP",
+  );
+});
+
 it("opens personal sharing follow-up from chat and explicitly refuses unavailable coordinator categories", async () => {
   const api = new CortexApi(() => null);
   const group = {

@@ -756,6 +756,19 @@ export function ConversationWorkspace({
     setCommandMessage("Projet de retour fermé. Aucun nouvel envoi.");
   }
   async function submitComposer() {
+    const typed = question;
+    try {
+      await runComposer();
+    } catch {
+      // Workspaces report their own failures; anything that still escapes must
+      // reach the user, with their text kept, instead of vanishing.
+      setQuestion((current) => current || typed);
+      setCommandMessage(
+        "La commande n’a pas abouti. Votre texte est conservé ; vérifiez l’espace concerné, puis réessayez.",
+      );
+    }
+  }
+  async function runComposer() {
     if (!onWorkspaceAction) return send();
     const intent = chatIntent(question);
     if (intent.kind === "source_read") {
