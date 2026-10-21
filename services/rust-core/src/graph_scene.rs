@@ -661,7 +661,7 @@ async fn read(
         .fetch_one(&mut *tx)
         .await
         .map_err(CoreError::sql)?;
-    let bytes = graph_map::documentary_bytes()?;
+    let bytes = graph_map::documentary_bytes().await?;
     let overlay = format!("{:x}", Sha256::digest(bytes.as_deref().unwrap_or_default()));
     let layout = q.layout.as_deref().unwrap_or("territories");
     let key = cache_key(&p.tenant, &domain, &p.subject, &revision, &overlay, layout);
@@ -680,7 +680,14 @@ async fn read(
         hash.update(p.subject.as_bytes());
         hash.update(encoded);
         let visibility = format!("{:x}", hash.finalize());
-        let world = place(&data, layout);
+        // Layout is CPU-bound for large domains; keep it off the async workers.
+        let owned_layout = layout.to_owned();
+        let (data, world) = tokio::task::spawn_blocking(move || {
+            let world = place(&data, &owned_layout);
+            (data, world)
+        })
+        .await
+        .map_err(|_| CoreError::database())?;
         let prepared = Prepared {
             data,
             world,

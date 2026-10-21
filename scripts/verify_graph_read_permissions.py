@@ -12,6 +12,8 @@ from copy import deepcopy
 from pathlib import Path
 from uuid import uuid4
 
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 from brain_browser_fixture import prepare, publish, source_concept
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
@@ -291,7 +293,8 @@ def run(directory):
             elapsed = time.monotonic() - started
             assert blocked.status_code == 503 and 1.5 <= elapsed < 4, (blocked.status_code, elapsed)
         assert client.get(root, headers=fixture.headers("reader")).json() == current
-        assert client.get("/ready").json() == {"status": "ready", "schema_revision": "0026"}
+        head = ScriptDirectory.from_config(Config(str(ROOT / "alembic.ini"))).get_current_head()
+        assert client.get("/ready").json() == {"status": "ready", "schema_revision": head}
     with native_client(binary, {**env, "CORTEX_TERMINUS_URL": "http://127.0.0.1:1"}) as client:
         assert client.get(root, headers=fixture.headers("reader")).json() == current
         assert (

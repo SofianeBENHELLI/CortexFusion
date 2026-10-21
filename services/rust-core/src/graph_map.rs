@@ -141,7 +141,7 @@ pub(crate) async fn read(
     let mut tx = graph
         .read_projection_transaction(&p, &domain, version)
         .await?;
-    let bytes = documentary_bytes()?;
+    let bytes = documentary_bytes().await?;
     let output = load(&mut tx, &p, &domain, version, bytes.as_deref()).await?;
     p.check_fresh()?;
     tx.commit().await.map_err(CoreError::sql)?;
@@ -149,8 +149,14 @@ pub(crate) async fn read(
     Ok(Json(output))
 }
 /// Operator-owned local overlay. Hash the actual bytes on every cached read;
-/// file metadata alone cannot fence an in-place replacement.
-pub(crate) fn documentary_bytes() -> Result<Option<Vec<u8>>, CoreError> {
+/// file metadata alone cannot fence an in-place replacement. The read (up to
+/// 16 MB) runs on the blocking pool, never on an async worker.
+pub(crate) async fn documentary_bytes() -> Result<Option<Vec<u8>>, CoreError> {
+    tokio::task::spawn_blocking(read_documentary_bytes)
+        .await
+        .map_err(|_| CoreError::database())?
+}
+fn read_documentary_bytes() -> Result<Option<Vec<u8>>, CoreError> {
     let Some(path) = std::env::var_os("CORTEX_DOCUMENTARY_MAP_INDEX") else {
         return Ok(None);
     };
