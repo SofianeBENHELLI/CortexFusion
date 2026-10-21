@@ -56,7 +56,7 @@ class Settings(BaseSettings):
                     "CORS origins require canonical HTTPS or explicit HTTP loopback, without a path"
                 )
         if not self.database_url.startswith("postgresql+pg8000://"):
-            raise ValueError("Cortex requires PostgreSQL through pg8000")
+            raise ValueError("Open BrAIn requires PostgreSQL through pg8000")
         if bool(self.jwt_public_key_file) == bool(self.jwks_url):
             raise ValueError("configure exactly one public key file or HTTPS JWKS URL")
         if self.jwks_url and urlparse(self.jwks_url).scheme != "https":

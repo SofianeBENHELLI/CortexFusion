@@ -4,6 +4,7 @@ import Markdown from "react-markdown";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
+import { BrandName } from "../BrandName";
 import { ThemeControl } from "../theme";
 import { ApiError, CortexApi } from "../api/client";
 import { SourceEvidence } from "../api/SourceEvidence";
@@ -240,7 +241,9 @@ export function SpatialBrainWorkspace({
     >
       <header className="spatial-header">
         <div>
-          <span className="spatial-eyebrow">CORTEX FUSION / {name}</span>
+          <span className="spatial-eyebrow">
+            <BrandName /> / {name}
+          </span>
           <h1>
             BrainMap<span>Explorer le savoir.</span>
           </h1>
@@ -462,7 +465,7 @@ export function SpatialBrainWorkspace({
                         ))}
                         <p>
                           {data.edges[edge][2] === "reference"
-                            ? "Lien explicite de la source importée. Aucun poids ou type de relation Cortex n’en est déduit."
+                            ? "Lien explicite de la source importée. Aucun poids ou type de relation Open BrAIn n’en est déduit."
                             : `Type ${data.edges[edge][2]} · poids publié ${data.edges[edge][3]}`}
                         </p>
                         <button onClick={closeEdge}>Fermer le lien</button>

@@ -95,7 +95,7 @@ def build_app(settings: Settings):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Local Cortex browser session gateway")
+    parser = argparse.ArgumentParser(description="Local Open BrAIn browser session gateway")
     parser.add_argument(
         "--check",
         action="store_true",

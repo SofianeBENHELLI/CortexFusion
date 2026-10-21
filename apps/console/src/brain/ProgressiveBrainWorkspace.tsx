@@ -5,6 +5,7 @@ import Markdown from "react-markdown";
 import { CortexApi, ApiError } from "../api/client";
 import { SourceEvidence } from "../api/SourceEvidence";
 import { SceneEventDetail } from "./SceneEventDetail";
+import { BrandName } from "../BrandName";
 import { ThemeControl } from "../theme";
 import { readApiBrain, validateConcept } from "./api-projection";
 import { changeLabels, readSelection } from "./model";
@@ -399,7 +400,9 @@ export function ProgressiveBrainWorkspace({
     <section className="spatial-workspace" aria-label="BrainMap et Chronique">
       <header className="spatial-header">
         <div>
-          <span className="spatial-eyebrow">CORTEX FUSION / {name}</span>
+          <span className="spatial-eyebrow">
+            <BrandName /> / {name}
+          </span>
           <h1>
             BrainMap<span>Explorer le savoir.</span>
           </h1>

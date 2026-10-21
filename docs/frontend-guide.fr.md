@@ -94,7 +94,7 @@ Cette sonde ne contacte aucun fournisseur IA, ne teste pas la validité de sa cl
 
 ## Identité, rôles et confirmations
 
-L'authentification est fournie par un IdP externe. Cortex vérifie les JWT RS256 avec émetteur, audience et clé/JWKS configurés ; il ne fournit pas de formulaire de connexion ni de route de création de session utilisateur. Le rôle applicatif provient de l'appartenance stockée côté serveur ; un champ role dans le JWT ne l'impose pas.
+L'authentification est fournie par un IdP externe. Open Br**AI**n vérifie les JWT RS256 avec émetteur, audience et clé/JWKS configurés ; il ne fournit pas de formulaire de connexion ni de route de création de session utilisateur. Le rôle applicatif provient de l'appartenance stockée côté serveur ; un champ role dans le JWT ne l'impose pas.
 
 | Rôle technique | Responsabilité |
 |---|---|
@@ -114,7 +114,7 @@ Dans la référence Python seulement, le mode explicite `CORTEX_HTTP_CONFIRMATIO
 
 Le pont MCP transmet une preuve en mémoire après vérification pour éviter une seconde consommation au passage HTTP interne. Aucun en-tête de contournement n'est accepté depuis le réseau. Une confirmation utilisée reste consommée même si une précondition métier échoue ensuite : relire l'état avant une nouvelle décision, conserver la clé métier si l'intention est la même.
 
-La clé privée de confirmation reste côté hôte de confiance qui recueille la décision, distinct du backend Cortex, lequel ne reçoit que la clé publique. Les clés OpenRouter et les secrets d'IdP restent dans les processus serveur concernés. Ils ne doivent jamais être inclus dans les variables publiques de build Vite, le navigateur ou les arguments d'un modèle. L'hôte de confiance prépare la confirmation HTTP/MCP après avoir recueilli le choix sur les paramètres exacts.
+La clé privée de confirmation reste côté hôte de confiance qui recueille la décision, distinct du backend Open Br**AI**n, lequel ne reçoit que la clé publique. Les clés OpenRouter et les secrets d'IdP restent dans les processus serveur concernés. Ils ne doivent jamais être inclus dans les variables publiques de build Vite, le navigateur ou les arguments d'un modèle. L'hôte de confiance prépare la confirmation HTTP/MCP après avoir recueilli le choix sur les paramètres exacts.
 
 ### Préparer une confirmation depuis le serveur de l'interface
 

@@ -25,7 +25,7 @@ binaire uniquement ; ce n’est pas une validation de109 outils ni de tous les c
 | Nom libre | Open Br**AI**n |
 | Transport | Streamable HTTP |
 | URL sur ce Mac | `http://127.0.0.1:8013/mcp/` |
-| Header `Authorization` | `Bearer <jeton utilisateur Cortex>` fourni par l’hôte, jamais dans le prompt |
+| Header `Authorization` | `Bearer <jeton utilisateur Open BrAIn>` fourni par l’hôte, jamais dans le prompt |
 | Header `X-Tenant-ID` | UUID du tenant privé existant |
 | Domaine des appels | UUID du domaine, distinct du tenant |
 

@@ -1,4 +1,4 @@
-# Maquettes de conception Open BrAIn
+# Maquettes de conception Open Br**AI**n
 
 Ces fichiers appartiennent à la spécification, pas à l’application. Ils ne lisent aucune base et ne publient aucune donnée. Les identités, documents, chiffres, tâches et résultats sont fictifs. Les thèmes et le format mobile sont examinables ; les actions produisent uniquement des états locaux de démonstration.
 

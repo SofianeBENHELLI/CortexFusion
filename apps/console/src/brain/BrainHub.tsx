@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Upload, X } from "lucide-react";
+import { BrandName } from "../BrandName";
 import { BrainWorkspace } from "./BrainWorkspace";
 import type { BrainProjection } from "./model";
 import { catalogProjection, validateCatalog, type Catalog } from "./catalog";
@@ -178,7 +179,7 @@ export function BrainHub({
         <footer className="brain-catalog-footer">
           <p>
             Corpus conservé uniquement dans ce navigateur. Son aperçu ne publie
-            aucune connaissance dans Open BrAIn.
+            aucune connaissance dans <BrandName />.
           </p>
           <button onClick={() => void forget()}>Retirer le corpus local</button>
         </footer>

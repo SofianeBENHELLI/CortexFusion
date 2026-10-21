@@ -64,7 +64,7 @@ En production, `VITE_DATA_MODE=api` doit être défini au build et un reverse pr
 
 ## Session manuelle et droits
 
-L’écran demande un UUID de tenant et un **jeton utilisateur Cortex** déjà émis par le système d’identité. Ce n’est ni une clé OpenRouter, ni une clé de signature serveur. Aucun jeton n’est embarqué dans le bundle ou enregistré dans localStorage/sessionStorage. Le jeton est effacé du champ à la connexion, reste en mémoire et disparaît au rechargement ou à la déconnexion.
+L’écran demande un UUID de tenant et un **jeton utilisateur Open Br**AI**n** déjà émis par le système d’identité. Ce n’est ni une clé OpenRouter, ni une clé de signature serveur. Aucun jeton n’est embarqué dans le bundle ou enregistré dans localStorage/sessionStorage. Le jeton est effacé du champ à la connexion, reste en mémoire et disparaît au rechargement ou à la déconnexion.
 
 Le transport manuel envoie `Authorization: Bearer …` et `x-tenant-id`. La déconnexion annule les lectures en cours et retire les données API du cache. Les redirections sont refusées et les cookies ne sont pas envoyés dans ce mode. Les rôles et capacités proviennent de `/v1/me` ; le sélecteur de rôle de démonstration n’existe pas en mode API.
 
