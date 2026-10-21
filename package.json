@@ -11,7 +11,8 @@
     "build": "tsc",
     "console:dev": "pnpm --filter @cortexfusion/console dev",
     "console:build": "pnpm --filter @cortexfusion/console build",
-    "console:test": "pnpm --filter @cortexfusion/console test"
+    "console:test": "pnpm --filter @cortexfusion/console test",
+    "console:lint": "pnpm --filter @cortexfusion/console lint"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.2",

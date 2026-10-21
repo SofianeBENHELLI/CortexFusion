@@ -19,8 +19,9 @@ jobs:
         run: |
           npm install --global pnpm@10.15.1
           pnpm install --frozen-lockfile
-      - name: Typecheck, build and verify mock contracts
+      - name: Typecheck, lint, build and verify mock contracts
         run: |
+          pnpm console:lint
           pnpm console:build
           pnpm console:test
       - name: Verify browser journeys without a backend
