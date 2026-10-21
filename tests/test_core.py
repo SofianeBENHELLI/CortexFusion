@@ -611,3 +611,45 @@ def test_statement_timeout_bounds_every_pooled_connection(admin):
     finally:
         default.dispose()
         bounded.dispose()
+
+
+def test_whole_domain_reads_check_source_rights_without_per_concept_queries(world):
+    from cortex_core.contracts import QueryInput
+    from sqlalchemy import event
+
+    def source_queries(read):
+        statements = []
+
+        def count(conn, cursor, statement, *args):
+            if "FROM cf_sources" in statement:
+                statements.append(statement)
+
+        event.listen(world.db.engine, "before_cursor_execute", count)
+        try:
+            result = read()
+        finally:
+            event.remove(world.db.engine, "before_cursor_execute", count)
+        return result, len(statements)
+
+    def reads():
+        owner, listed = source_queries(lambda: world.service.concepts(world.owner, world.domain))
+        viewer, _ = source_queries(lambda: world.service.concepts(world.viewer, world.domain))
+        _, queried = source_queries(
+            lambda: world.service.query(
+                world.viewer, world.domain, QueryInput(question="escalate incident", limit=2)
+            )
+        )
+        return len(owner), len(viewer), listed, queried
+
+    private = world.source(content="Private escalation evidence.", subjects=["alice"])
+    world.approve(world.proposal(source=private))
+    for _ in range(6):
+        world.approve(world.proposal())
+    small = reads()
+    for _ in range(7):
+        world.approve(world.proposal())
+    large = reads()
+    # Rights are checked once per read; only cited passages look up their source.
+    assert small[:2] == (7, 6) and large[:2] == (14, 13)
+    assert small[2] == large[2] == 1
+    assert small[3] == large[3]

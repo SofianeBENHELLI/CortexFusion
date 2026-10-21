@@ -74,6 +74,24 @@ class KnowledgeService:
         except CoreError:
             return False
 
+    def _visible_state(self, conn, p, domain, state):
+        """Concepts whose every source the subject may read, with one source query
+        for the whole domain instead of one per source reference."""
+        allowed = set(
+            run(
+                conn,
+                "SELECT id::text FROM cf_sources WHERE tenant_id=:tenant AND domain_id=:domain "
+                "AND allowed_subjects @> jsonb_build_array(CAST(:subject AS text))",
+                **self.keys(p, domain),
+                subject=p.subject,
+            ).scalars()
+        )
+        return {
+            ident: value
+            for ident, value in state.items()
+            if all(str(ref["source_id"]) in allowed for ref in value["sources"])
+        }
+
     def _state(self, conn, p, domain):
         return {
             r["id"]: r["payload"]
@@ -608,11 +626,7 @@ class KnowledgeService:
             for commit in commits:
                 self._apply(conn, p, domain, commit["sequence"], commit["changes"])
             state = self._state(conn, p, domain)
-            visible = {
-                ident: value
-                for ident, value in state.items()
-                if self._visible(conn, p, domain, value)
-            }
+            visible = self._visible_state(conn, p, domain, state)
             visible = {
                 ident: {
                     **value,
@@ -685,11 +699,7 @@ class KnowledgeService:
     def concepts(self, p, domain):
         with self.db.transaction(p, domain) as conn:
             state = self._state(conn, p, domain)
-            visible = {
-                ident: value
-                for ident, value in state.items()
-                if self._visible(conn, p, domain, value)
-            }
+            visible = self._visible_state(conn, p, domain, state)
             return [
                 Concept.model_validate(
                     {
@@ -763,7 +773,7 @@ class KnowledgeService:
 
             d = self._domain(conn, p, domain)
             state = self._state(conn, p, domain)
-            visible = {ident: c for ident, c in state.items() if self._visible(conn, p, domain, c)}
+            visible = self._visible_state(conn, p, domain, state)
             terms = set(re.findall(r"\w{3,}", data.question.casefold())) - {
                 "the",
                 "what",
