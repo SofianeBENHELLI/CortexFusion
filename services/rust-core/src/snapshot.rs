@@ -20,6 +20,10 @@ const WRITE_DOCUMENT_BYTES: usize = 1_300_000;
 pub const MAX_CONCEPT_BODY_CHARS: usize = 200_000;
 const WRITE_BATCH_DOCUMENTS: usize = 128;
 const READ_PAGE_DOCUMENTS: usize = 64;
+// Later pages are sized from the documents already read, aiming at half the
+// engine response guard: few round trips for short concepts, small pages for long ones.
+const READ_PAGE_TARGET_BYTES: usize = 2_000_000;
+const MAX_READ_PAGE_DOCUMENTS: usize = 4_096;
 const SNAPSHOT_BYTES: usize = 64_000_000;
 const SNAPSHOT_CONCEPTS: usize = 100_000;
 
@@ -221,7 +225,7 @@ impl Terminus {
         self.request(
             Method::POST,
             &["db", "admin", &database],
-            Some(&json!({"label":"CortexFusion private snapshot","schema":true,"public":false})),
+            Some(&json!({"label":"Open BrAIn private snapshot","schema":true,"public":false})),
             &[],
         )
         .await?;
@@ -366,6 +370,7 @@ impl Terminus {
                 return Err(EngineError::InvalidResponse);
             }
             let received = values.len();
+            let page_start = bytes;
             for value in values {
                 let concept = decode(value.clone())?;
                 bytes += serde_json::to_vec(&concept)
@@ -376,6 +381,10 @@ impl Terminus {
                     return Err(EngineError::TooLarge);
                 }
                 concepts.push(concept);
+            }
+            if received > 0 {
+                let average = (bytes - page_start).div_ceil(received);
+                page_size = (READ_PAGE_TARGET_BYTES / average).clamp(1, MAX_READ_PAGE_DOCUMENTS);
             }
             if received < requested {
                 break;
@@ -456,7 +465,7 @@ mod tests {
                     assert_eq!(q.get("type").unwrap(), "CortexConcept");
                     let skip = q["skip"].parse::<usize>().unwrap();
                     let count = q["count"].parse::<usize>().unwrap();
-                    assert!((1..=READ_PAGE_DOCUMENTS).contains(&count));
+                    assert!((1..=MAX_READ_PAGE_DOCUMENTS).contains(&count));
                     seen.lock().unwrap().push((skip, count));
                     axum::Json(
                         values
@@ -502,6 +511,20 @@ mod tests {
         assert_eq!(calls[0], (0, 64));
         assert_eq!(calls[1], (0, 32)); // 64 large Unicode bodies exceed the unchanged 4 MB guard.
         assert!(calls.len() >= 4);
+        task.abort();
+    }
+
+    #[tokio::test]
+    async fn short_concepts_are_read_in_few_round_trips() {
+        let values = concepts(2000, "Short synthetic evidence.");
+        let snapshot = manifest(&values);
+        let (engine, calls, task) = paged_engine(values.iter().map(encode).collect()).await;
+        let actual = engine.read_snapshot(&snapshot).await.unwrap();
+        assert_eq!(actual.len(), 2000);
+        assert_eq!(digest(&actual).unwrap(), snapshot.digest);
+        let calls = calls.lock().unwrap();
+        assert_eq!(calls[0], (0, 64));
+        assert!(calls.len() <= 3, "{calls:?}");
         task.abort();
     }
 
