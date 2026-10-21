@@ -122,7 +122,7 @@ class BoundaryMiddleware:
 
 def create_app(settings: Settings | None = None):
     settings = settings or Settings()
-    db = Database(settings.database_url)
+    db = Database(settings.database_url, settings.statement_timeout_seconds)
     auth = Authenticator(settings)
     confirmation_guard = HTTPConfirmationGuard(settings, auth, db)
     service = KnowledgeService(db)

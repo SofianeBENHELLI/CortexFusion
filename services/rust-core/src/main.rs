@@ -32,7 +32,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         pool: PgPoolOptions::new()
             .max_connections(10)
             .acquire_timeout(Duration::from_secs(3))
-            .connect(&url)
+            .connect_with(cortex_rust_core::database::connect_options(
+                &url,
+                env::var("CORTEX_STATEMENT_TIMEOUT_SECONDS").ok().as_deref(),
+            )?)
             .await
             .map_err(|_| "Database connection failed")?,
     };

@@ -1,3 +1,4 @@
+import os
 from concurrent.futures import ThreadPoolExecutor
 from uuid import UUID, uuid4
 
@@ -593,3 +594,20 @@ def test_proposal_endpoint_evidence_is_rechecked_after_revocation(world):
     with pytest.raises(CoreError, match="Source"):
         world.approve(linked)
     assert linked["id"] not in str(world.service.brief(world.owner, world.domain))
+
+
+def test_statement_timeout_bounds_every_pooled_connection(admin):
+    url = os.environ["CORTEX_TEST_DATABASE_URL"]
+    default = Database(url)
+    bounded = Database(url, statement_timeout_seconds=1)
+    try:
+        with default.engine.connect() as conn:
+            assert conn.execute(text("SHOW statement_timeout")).scalar_one() == "1min"
+        with bounded.engine.connect() as conn:
+            assert conn.execute(text("SHOW statement_timeout")).scalar_one() == "1s"
+            with pytest.raises(DBAPIError) as raised:
+                conn.execute(text("SELECT pg_sleep(3)"))
+            assert "57014" in str(raised.value.orig)
+    finally:
+        default.dispose()
+        bounded.dispose()

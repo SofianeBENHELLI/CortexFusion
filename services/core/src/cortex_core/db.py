@@ -1,13 +1,20 @@
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, make_url, text
 
 from .auth import CoreError, Principal
 
 
 class Database:
-    def __init__(self, url: str):
-        self.engine = create_engine(url, pool_pre_ping=True)
+    def __init__(self, url: str, statement_timeout_seconds: int = 60):
+        # Set once per pooled connection, so every transaction is bounded; tighter
+        # SET LOCAL limits (readiness, graph reads) still take precedence.
+        connect_args = (
+            {"startup_params": {"statement_timeout": f"{statement_timeout_seconds}s"}}
+            if make_url(url).get_driver_name() == "pg8000"
+            else {}
+        )
+        self.engine = create_engine(url, pool_pre_ping=True, connect_args=connect_args)
 
     def verify_role(self):
         with self.engine.connect() as conn:

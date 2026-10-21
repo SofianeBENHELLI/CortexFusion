@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     local_model: str | None = None
     ollama_url: str = "http://127.0.0.1:11434"
     max_request_bytes: int = Field(default=1000000, ge=1000)
+    # Upper bound for any single SQL statement; tighter local limits still apply.
+    statement_timeout_seconds: int = Field(default=60, ge=1, le=3600)
 
     @model_validator(mode="after")
     def validate_security(self):
