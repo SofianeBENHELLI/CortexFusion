@@ -352,6 +352,7 @@ export function SceneCanvas({
                 />
               )}
               <circle
+                className="scene-halo"
                 cx={p.x}
                 cy={p.y}
                 r={r + 6}

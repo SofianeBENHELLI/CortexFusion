@@ -715,8 +715,15 @@
 .scene-svg [role="button"]:focus {
   outline: none;
 }
-.scene-svg [role="button"]:focus > circle:first-child {
+.scene-svg [role="button"]:focus > .scene-halo {
   opacity: 0.2;
+}
+/* Keyboard focus needs more than a tint: ring the focused node in ink. */
+.scene-svg [role="button"]:focus-visible > .scene-halo {
+  opacity: 1;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2px;
 }
 .scene-svg text {
   user-select: none;
