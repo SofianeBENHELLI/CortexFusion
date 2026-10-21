@@ -174,7 +174,8 @@ impl GraphService {
         }
         let snapshot = match prepared {
             Ok(s) => s,
-            Err(_) => {
+            Err(error) => {
+                eprintln!("graph snapshot preparation failed: {error}");
                 graph_attempts::mark(
                     &mut tx,
                     p,
