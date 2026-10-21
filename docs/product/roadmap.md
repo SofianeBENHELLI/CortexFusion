@@ -1,6 +1,6 @@
 # Development roadmap
 
-**État au 22 octobre 2026.** Le travail de la branche `feat/frontend-mock` est versionné et en revue dans la PR #2, empilée sur la PR #1 ; toutes les vérifications CI passent. Les résumés de lots des 16 et 17 octobre, qui ouvraient ce document, sont conservés dans le [journal de la fenêtre autonome](openbrain-autonomous-2026-10-16.fr.md#résumés-de-lots-repris-de-la-feuille-de-route). Défaut prioritaire toujours ouvert : défilements imbriqués et espace de travail trop contraint, signalés par Sofiane le 17 octobre.
+**État au 22 octobre 2026.** Le travail de la branche `feat/frontend-mock` est versionné et en revue dans la PR #2, empilée sur la PR #1 ; toutes les vérifications CI passent. Les résumés de lots des 16 et 17 octobre, qui ouvraient ce document, sont conservés dans le [journal de la fenêtre autonome](openbrain-autonomous-2026-10-16.fr.md#résumés-de-lots-repris-de-la-feuille-de-route). Le défaut prioritaire signalé par Sofiane le 17 octobre (défilements imbriqués, brief coupé, espace de travail contraint) est corrigé sur bureau à partir de 850 px de hauteur : à 1440×900, la conversation passe de 171 à 314 px et seuls la navigation et la conversation défilent. En dessous de 850 px, le défilement unique de la colonne de conversation est conservé.
 
 
 ## Fenêtre d’implémentation approuvée — 16 octobre 2026
