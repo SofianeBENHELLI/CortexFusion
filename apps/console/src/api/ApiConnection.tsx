@@ -42,7 +42,7 @@ const ApiBrainOverview = lazy(() =>
     default: m.ApiBrainOverview,
   })),
 );
-const ApiBrainWorkspace = lazy(() =>
+const SpatialBrainWorkspace = lazy(() =>
   import("../brain/SpatialBrainWorkspace").then((m) => ({
     default: m.SpatialBrainWorkspace,
   })),
@@ -100,7 +100,7 @@ export function ApiConnection({
   const BrainWorkspace =
     params.get("map_transport") === "viewport"
       ? ProgressiveBrainWorkspace
-      : ApiBrainWorkspace;
+      : SpatialBrainWorkspace;
   const page = Number(params.get("domains_page") ?? 0);
   const chooseDomain = (
     id: string,
