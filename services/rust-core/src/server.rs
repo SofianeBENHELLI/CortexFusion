@@ -67,6 +67,27 @@ pub fn router(state: StateData) -> Router {
         .merge(crate::extraction::routes())
         .fallback(||async{(StatusCode::NOT_IMPLEMENTED,Json(json!({"error":"MIGRATION_NOT_IMPLEMENTED","message":"This operation is not yet served by the native Rust candidate"})))})
         .with_state(state)
+        .layer(axum::middleware::from_fn(log_failures))
+}
+/// One stderr line per server-side failure (HTTP and MCP calls share this
+/// router). Only method, path, status and latency: no query string, header or
+/// body, and clients still receive the generic error body.
+async fn log_failures(
+    request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    let method = request.method().clone();
+    let path = request.uri().path().to_owned();
+    let started = std::time::Instant::now();
+    let response = next.run(request).await;
+    if response.status().is_server_error() {
+        eprintln!(
+            "{method} {path} -> {} in {} ms",
+            response.status().as_u16(),
+            started.elapsed().as_millis()
+        );
+    }
+    response
 }
 async fn version(
     State(s): State<StateData>,
