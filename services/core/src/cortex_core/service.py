@@ -74,10 +74,9 @@ class KnowledgeService:
         except CoreError:
             return False
 
-    def _visible_state(self, conn, p, domain, state):
-        """Concepts whose every source the subject may read, with one source query
-        for the whole domain instead of one per source reference."""
-        allowed = set(
+    def _allowed_sources(self, conn, p, domain):
+        """Ids of every source the subject may read, in one query."""
+        return set(
             run(
                 conn,
                 "SELECT id::text FROM cf_sources WHERE tenant_id=:tenant AND domain_id=:domain "
@@ -86,6 +85,11 @@ class KnowledgeService:
                 subject=p.subject,
             ).scalars()
         )
+
+    def _visible_state(self, conn, p, domain, state):
+        """Concepts whose every source the subject may read, with one source query
+        for the whole domain instead of one per source reference."""
+        allowed = self._allowed_sources(conn, p, domain)
         return {
             ident: value
             for ident, value in state.items()
@@ -376,10 +380,32 @@ class KnowledgeService:
         with self.db.transaction(p, domain, write=True) as conn:
             return self._propose(conn, p, domain, data)
 
-    def _check_proposal_access(self, conn, p, domain, row):
-        for source_id in row["validation"].get("source_ids", []):
-            self._source(conn, p, domain, source_id)
-        self._check_change_access(conn, p, domain, row["payload"])
+    def _check_proposal_access(self, conn, p, domain, row, cache=None):
+        """Raise NOT_FOUND unless every cited source and touched concept is readable.
+        Listings pass one cache per transaction so rights and state are read once
+        per page instead of once per proposal; the rule is the same."""
+        if cache is None:
+            for source_id in row["validation"].get("source_ids", []):
+                self._source(conn, p, domain, source_id)
+            self._check_change_access(conn, p, domain, row["payload"])
+            return
+        if "allowed" not in cache:
+            cache["allowed"] = self._allowed_sources(conn, p, domain)
+        allowed = cache["allowed"]
+        hidden = CoreError("NOT_FOUND", "Proposal not found", 404)
+        if any(str(s) not in allowed for s in row["validation"].get("source_ids", [])):
+            raise hidden
+        for change in row["payload"]:
+            if change["kind"] == "put_concept":
+                concept = change["concept"]
+            else:
+                if "state" not in cache:
+                    cache["state"] = self._state(conn, p, domain)
+                concept = cache["state"].get(change["concept_id"])
+                if not concept:
+                    continue
+            if any(str(ref["source_id"]) not in allowed for ref in concept["sources"]):
+                raise hidden
 
     def _check_change_access(self, conn, p, domain, changes):
         state = None
@@ -977,10 +1003,10 @@ class KnowledgeService:
                 "SELECT * FROM cf_proposals WHERE tenant_id=:tenant AND domain_id=:domain AND status='ready' ORDER BY created_at",
                 **self.keys(p, domain),
             ).mappings()
-            pending = []
+            pending, access = [], {}
             for row in proposals:
                 try:
-                    self._check_proposal_access(conn, p, domain, row)
+                    self._check_proposal_access(conn, p, domain, row, access)
                     pending.append(self._proposal_view(row))
                 except CoreError:
                     pass

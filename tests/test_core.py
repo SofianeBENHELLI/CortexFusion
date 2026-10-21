@@ -653,3 +653,36 @@ def test_whole_domain_reads_check_source_rights_without_per_concept_queries(worl
     assert small[:2] == (7, 6) and large[:2] == (14, 13)
     assert small[2] == large[2] == 1
     assert small[3] == large[3]
+
+
+def test_proposal_listing_reads_source_rights_once_per_page(world):
+    from sqlalchemy import event
+
+    def listing():
+        statements = []
+
+        def count(conn, cursor, statement, *args):
+            if "FROM cf_sources" in statement:
+                statements.append(statement)
+
+        event.listen(world.db.engine, "before_cursor_execute", count)
+        try:
+            response = world.client.get(
+                world.prefix + "/proposals?limit=50", headers=world.headers("agent")
+            )
+        finally:
+            event.remove(world.db.engine, "before_cursor_execute", count)
+        assert response.status_code == 200, response.text
+        return len(response.json()["items"]), len(statements)
+
+    private = world.source(content="Private escalation evidence.", subjects=["alice"])
+    world.proposal(source=private)
+    for _ in range(3):
+        world.proposal()
+    small = listing()
+    for _ in range(4):
+        world.proposal()
+    large = listing()
+    # The agent never sees the private proposal; rights are read once per page.
+    assert (small[0], large[0]) == (3, 7)
+    assert small[1] == large[1] == 1

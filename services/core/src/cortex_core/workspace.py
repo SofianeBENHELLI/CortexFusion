@@ -118,6 +118,7 @@ class WorkspaceService:
         with self.db.transaction(p, domain, write=True) as conn:
             if source_id:
                 self.k._source(conn, p, domain, source_id)
+            access = {}
             return self._page(
                 conn,
                 p,
@@ -125,7 +126,7 @@ class WorkspaceService:
                 "cf_proposals",
                 limit,
                 after,
-                lambda row: self.k._check_proposal_access(conn, p, domain, row),
+                lambda row: self.k._check_proposal_access(conn, p, domain, row, access),
                 self.k._proposal_view,
                 "AND (:status='' OR status=:status)"
                 + (
