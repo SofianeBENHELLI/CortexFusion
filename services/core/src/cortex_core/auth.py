@@ -73,6 +73,9 @@ class Authenticator:
                 issuer=self.settings.jwt_issuer,
                 options={"require": ["exp", "iat", "iss", "aud", "sub"]},
             )
+            # A token that names its tenant cannot be replayed against another one.
+            if "tenant" in claims and str(UUID(str(claims["tenant"]))) != tenant_id:
+                raise ValueError("tenant mismatch")
             subject = claims["sub"]
             if not isinstance(subject, str) or not subject or len(subject) > 300:
                 raise ValueError("invalid subject")

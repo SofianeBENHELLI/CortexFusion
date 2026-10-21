@@ -1,11 +1,13 @@
 """Compatibility MCP tools; the generated exhaustive facade is installed by mcp_bridge."""
 
+import functools
 from typing import Annotated
 from uuid import UUID
 
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field
+from starlette.concurrency import run_in_threadpool
 
 from .contracts import (
     ConversationInput,
@@ -22,6 +24,17 @@ from .governance import GovernanceService
 from .issues import IssueService
 from .mcp_onboarding import GUIDE, install_onboarding
 from .workspace import WorkspaceService
+
+
+def off_loop(fn):
+    """Run a blocking tool in a worker thread; FastMCP would otherwise call it on the
+    event loop, where one slow query stalls every HTTP and MCP request."""
+
+    @functools.wraps(fn)
+    async def tool(*args, **kwargs):
+        return await run_in_threadpool(fn, *args, **kwargs)
+
+    return tool
 
 
 def create_mcp(
@@ -51,6 +64,7 @@ def create_mcp(
             readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=False
         )
     )
+    @off_loop
     def query(domain_id: UUID, question: str, ctx: Context, max_chars: int = 8000):
         """Return exact approved excerpts with source citations; no model synthesis."""
         return service.query(
@@ -60,6 +74,7 @@ def create_mcp(
     @server.tool(
         annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False)
     )
+    @off_loop
     def inspect_concept(domain_id: UUID, concept_id: UUID, ctx: Context):
         """Inspect a concept and only its authorized relationships."""
         return service.concept(caller(ctx), str(domain_id), str(concept_id))
@@ -69,6 +84,7 @@ def create_mcp(
             readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False
         )
     )
+    @off_loop
     def propose(domain_id: UUID, proposal: ProposalInput, ctx: Context):
         """Submit a source-backed proposal; this cannot change trusted knowledge."""
         return service.propose(caller(ctx), str(domain_id), proposal)
@@ -78,6 +94,7 @@ def create_mcp(
             readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False
         )
     )
+    @off_loop
     def feedback(domain_id: UUID, episode_id: UUID, feedback: FeedbackInput, ctx: Context):
         """Append feedback on your own authorized episode without rewriting knowledge."""
         return service.feedback(caller(ctx), str(domain_id), str(episode_id), feedback)
@@ -85,12 +102,14 @@ def create_mcp(
     read_only = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False)
 
     @server.tool(annotations=read_only)
+    @off_loop
     def describe_actions(ctx: Context):
         """Discover HTTP interaction contracts and human decision policies. Metadata does not grant access."""
         caller(ctx)
         return interaction_catalog() if interaction_catalog else {"items": []}
 
     @server.tool(annotations=read_only)
+    @off_loop
     def my_workspace(ctx: Context):
         """Discover this authenticated subject's domains and capabilities; never invent identity or roles."""
         return WorkspaceService(service, extraction_provider, synthesis_enabled).identity(
@@ -98,6 +117,7 @@ def create_mcp(
         )
 
     @server.tool(annotations=read_only)
+    @off_loop
     def list_sources(
         domain_id: UUID,
         ctx: Context,
@@ -111,6 +131,7 @@ def create_mcp(
         )
 
     @server.tool(annotations=read_only)
+    @off_loop
     def read_source_chunks(
         domain_id: UUID,
         source_id: UUID,
@@ -124,6 +145,7 @@ def create_mcp(
         )
 
     @server.tool(annotations=read_only)
+    @off_loop
     def list_proposals(
         domain_id: UUID,
         ctx: Context,
@@ -136,11 +158,13 @@ def create_mcp(
         )
 
     @server.tool(annotations=read_only)
+    @off_loop
     def proposal_diff(domain_id: UUID, proposal_id: UUID, ctx: Context):
         """Read an authorized proposal's changes and stale-base indicator before preparing a human decision."""
         return GovernanceService(service).diff(caller(ctx), str(domain_id), str(proposal_id))
 
     @server.tool(annotations=read_only)
+    @off_loop
     def list_conversations(
         domain_id: UUID,
         ctx: Context,
@@ -158,6 +182,7 @@ def create_mcp(
             readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False
         )
     )
+    @off_loop
     def create_conversation(domain_id: UUID, conversation: ConversationInput, ctx: Context):
         """Create a personal conversation after user intent. Reuse the same idempotency key for retries."""
         return ConversationService(service).create(caller(ctx), str(domain_id), conversation)
@@ -167,6 +192,7 @@ def create_mcp(
             readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False
         )
     )
+    @off_loop
     def conversation_query(
         domain_id: UUID, conversation_id: UUID, question: ConversationQueryInput, ctx: Context
     ):
@@ -176,6 +202,7 @@ def create_mcp(
         )
 
     @server.tool(annotations=read_only)
+    @off_loop
     def conversation_messages(
         domain_id: UUID,
         conversation_id: UUID,
@@ -189,6 +216,7 @@ def create_mcp(
         )
 
     @server.tool(annotations=read_only)
+    @off_loop
     def list_issues(
         domain_id: UUID,
         ctx: Context,
@@ -206,6 +234,7 @@ def create_mcp(
             readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False
         )
     )
+    @off_loop
     def decide_issue(domain_id: UUID, issue_id: UUID, decision: IssueDecisionInput, ctx: Context):
         """Apply the user's explicit decision to their own issue. Refresh stale revisions; resolution does not fix or certify knowledge."""
         return IssueService(service).decide(caller(ctx), str(domain_id), str(issue_id), decision)

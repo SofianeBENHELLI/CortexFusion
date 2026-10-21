@@ -1,4 +1,4 @@
-"""JWKS refresh throttling and off-loop authentication, without a database or network."""
+"""Authentication and event-loop boundaries of the Python core, without a database or network."""
 
 import asyncio
 import json
@@ -165,3 +165,58 @@ def test_mcp_authentication_failure_still_returns_a_challenge():
     sent = asyncio.run(call(middleware, "/mcp/"))
     assert sent[0]["status"] == 401
     assert (b"www-authenticate", b"Bearer") in sent[0]["headers"]
+
+
+def test_a_tenant_claim_binds_the_tenant_header(clock):
+    private, jwk = keypair("current")
+    settings = Settings(
+        database_url="postgresql+pg8000://unused",
+        jwt_issuer="https://identity.invalid",
+        jwks_url="https://identity.invalid/keys",
+    )
+    authenticator = Authenticator(settings)
+    served = client_serving([jwk])
+    authenticator.jwks.fetch_data = served.fetch_data
+    authenticator.jwks.jwk_set_cache = served.jwk_set_cache
+    other = "00000000-0000-4000-8000-000000000002"
+
+    def token(**extra):
+        now = int(time.time())
+        claims = {
+            "sub": "alice",
+            "iss": settings.jwt_issuer,
+            "aud": settings.jwt_audience,
+            "iat": now,
+            "exp": now + 60,
+            **extra,
+        }
+        return "Bearer " + jwt.encode(claims, private, "RS256", headers={"kid": "current"})
+
+    assert authenticator.authenticate(token(), TENANT).tenant_id == TENANT
+    assert authenticator.authenticate(token(tenant=TENANT.upper()), TENANT).tenant_id == TENANT
+    for bound in [other, "not-a-uuid", 7, None]:
+        with pytest.raises(CoreError) as raised:
+            authenticator.authenticate(token(tenant=bound), TENANT)
+        assert raised.value.status == 401
+
+
+def test_legacy_mcp_tools_run_off_the_event_loop_with_their_signature():
+    import inspect
+
+    from cortex_core.mcp_adapter import off_loop
+
+    def blocking(domain_id: str, question: str, max_chars: int = 8000):
+        """Docstring kept for the tool description."""
+        return threading.get_ident(), domain_id, question, max_chars
+
+    tool = off_loop(blocking)
+    assert inspect.iscoroutinefunction(tool)
+    assert inspect.signature(tool) == inspect.signature(blocking)
+    assert tool.__doc__ == blocking.__doc__
+
+    async def scenario():
+        return threading.get_ident(), await tool("d", question="q")
+
+    loop_thread, (worker_thread, *values) = asyncio.run(scenario())
+    assert worker_thread != loop_thread
+    assert values == ["d", "q", 8000]
