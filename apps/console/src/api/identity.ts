@@ -1,6 +1,6 @@
 import type { IdentityView } from "../../../../packages/contracts/src/IdentityView";
 import { ApiError } from "./client";
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { uuid } from "./uuid";
 const roleOrder = ["owner", "corpus_manager", "contributor", "viewer", "agent"];
 function validRoles(d: IdentityView["domains"][number]) {
   if (d.roles == null) return true; // Explicit legacy single-role compatibility.

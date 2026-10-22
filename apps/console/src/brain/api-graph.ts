@@ -4,6 +4,7 @@ import type {
 } from "../../../../packages/contracts/src/GraphWindow";
 import { ApiError, CortexApi } from "../api/client";
 import type { BrainNode } from "./model";
+import { isUuid } from "../api/uuid";
 
 export interface GraphRequest {
   after?: string;
@@ -15,9 +16,7 @@ export interface GraphRequest {
   detail?: string;
   historical?: boolean;
 }
-export const isUuid = (s: unknown): s is string =>
-  typeof s === "string" &&
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+export { isUuid };
 const count = (n: unknown): n is number =>
   Number.isSafeInteger(n) && Number(n) >= 0;
 const invalid = () => new ApiError(200, "invalid_response");

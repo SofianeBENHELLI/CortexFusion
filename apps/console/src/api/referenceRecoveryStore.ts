@@ -1,3 +1,5 @@
+import { uuid } from "./uuid";
+
 export type RecoveryScope = { tenant: string; subject: string };
 export type ReferenceRecoveryEntry = {
   command: string;
@@ -8,7 +10,6 @@ export type ReferenceRecoveryEntry = {
 };
 export const recoveryKey = "openbrain.reference-recovery.v1";
 export const recoveryLifetime = 24 * 60 * 60 * 1000;
-const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 function storage(): Storage | undefined {
   try {
     return window.sessionStorage;

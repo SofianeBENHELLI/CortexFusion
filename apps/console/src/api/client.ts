@@ -1,4 +1,5 @@
 import { operations, type Operations } from "./operations";
+import { uuid } from "./uuid";
 
 export interface BearerSession {
   kind?: "bearer";
@@ -83,7 +84,6 @@ export class ApiError extends Error {
     this.name = "ApiError";
   }
 }
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function boundedJson(
   response: Response,
   controller: AbortController,

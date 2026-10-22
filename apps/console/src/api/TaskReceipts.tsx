@@ -4,7 +4,7 @@ import type { TaskCommandRecord } from "../../../../packages/contracts/src/TaskC
 import type { TaskCommandRecordPage } from "../../../../packages/contracts/src/TaskCommandRecordPage";
 import { ApiError, type CortexApi } from "./client";
 import { taskEventLabels, taskStatuses } from "./taskCommands";
-const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+import { uuid } from "./uuid";
 export function validateTaskRecord(r: TaskCommandRecord) {
   if (
     !r ||

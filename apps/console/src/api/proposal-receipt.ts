@@ -1,5 +1,6 @@
 import type { ProposalView } from "../../../../packages/contracts/src/ProposalView";
 import { ApiError } from "./client";
+import { uuid } from "./uuid";
 
 export const proposalLabels: Record<ProposalView["status"], string> = {
   ready: "À examiner",
@@ -20,7 +21,7 @@ export function readProposalReceipt(
   if (
     !value ||
     typeof value.id !== "string" ||
-    !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value.id) ||
+    !uuid.test(value.id) ||
     !Object.hasOwn(proposalLabels, value.status) ||
     value.base_version !== expectedBase ||
     typeof value.digest !== "string" ||

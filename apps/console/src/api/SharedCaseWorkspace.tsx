@@ -32,6 +32,7 @@ import {
   qualifications,
   type CaseChatIntent,
 } from "./caseCommands";
+import { uuid } from "./uuid";
 export interface SharedCaseActions {
   act: (intent: CaseChatIntent) => Promise<string>;
 }
@@ -49,7 +50,6 @@ type Pending =
       body: SharedCaseCommand;
       expires: number;
     };
-const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const valid = (s: string, n: number) => !!s.trim() && Array.from(s).length <= n;
 const rejected = (e: unknown) =>
   e instanceof ApiError && [400, 401, 403, 404, 409, 422].includes(e.status);

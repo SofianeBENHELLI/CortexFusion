@@ -1,3 +1,5 @@
+import { uuid } from "./uuid";
+
 /** Keep same-domain navigation; never add questions or credentials to the URL. */
 export function domainViewParams(
   current: URLSearchParams,
@@ -39,10 +41,7 @@ export function proposalHref(
 
 export function conversationSelection(params: URLSearchParams) {
   const value = params.get("api_conversation") ?? "";
-  const valid =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      value,
-    );
+  const valid = uuid.test(value);
   return { id: valid ? value.toLowerCase() : "", invalid: !!value && !valid };
 }
 
@@ -50,9 +49,7 @@ export function conversationSelection(params: URLSearchParams) {
 export function proposalSelection(params: URLSearchParams) {
   const values = params.getAll("api_proposal");
   const value = values[0] ?? "";
-  const valid =
-    values.length === 1 &&
-    /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value);
+  const valid = values.length === 1 && uuid.test(value);
   return {
     id: valid ? value.toLowerCase() : "",
     invalid: values.length > 0 && !valid,

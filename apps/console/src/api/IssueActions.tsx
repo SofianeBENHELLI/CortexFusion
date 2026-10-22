@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { IssueView } from "../../../../packages/contracts/src/IssueView";
 import type { IssueDecisionInput } from "../../../../packages/contracts/src/IssueDecisionInput";
 import { CortexApi, ApiError } from "./client";
+import { uuid } from "./uuid";
 const actions: Record<IssueDecisionInput["action"], string> = {
   start: "Prendre en charge",
   resolve: "Marquer résolu",
@@ -36,13 +37,7 @@ export function IssueActions({
         : ["reopen"];
   async function decide(action: IssueDecisionInput["action"]) {
     if (!pending.current && !reason.trim()) return;
-    if (
-      !pending.current &&
-      proposal.trim() &&
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        proposal.trim(),
-      )
-    ) {
+    if (!pending.current && proposal.trim() && !uuid.test(proposal.trim())) {
       setError("L’identifiant de proposition doit être un UUID.");
       return;
     }

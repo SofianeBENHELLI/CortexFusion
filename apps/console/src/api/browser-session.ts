@@ -1,5 +1,6 @@
 import { ApiError, boundedJson, type CookieSession } from "./client";
 import { validateIdentity } from "./identity";
+import { isUuid } from "./uuid";
 
 export interface BrowserSession extends CookieSession {
   expiresAt: number;
@@ -110,9 +111,6 @@ export async function browserSessionRequest(
   }
 }
 
-const uuid = (v: unknown): v is string =>
-  typeof v === "string" &&
-  /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(v);
 const choices: Record<string, string[]> = {
   api_view: ["brain", "work", "overview"],
   api_dossier: [
@@ -138,11 +136,11 @@ function validEvent(value: string, domain: string | null): boolean {
     if (
       !Array.isArray(e) ||
       e.length !== 5 ||
-      !uuid(e[0]) ||
+      !isUuid(e[0]) ||
       e[0] !== domain ||
       !Number.isSafeInteger(e[1]) ||
       e[1] < 0 ||
-      !uuid(e[2]) ||
+      !isUuid(e[2]) ||
       typeof e[3] !== "string"
     )
       return false;
@@ -167,7 +165,7 @@ function validEvent(value: string, domain: string | null): boolean {
       r.length === 4 &&
       r[0] === domain &&
       r[1] === e[2] &&
-      uuid(r[2]) &&
+      isUuid(r[2]) &&
       ["structural", "associative"].includes(r[3])
     );
   } catch {
@@ -188,7 +186,7 @@ export function loginLocation(params: URLSearchParams): string {
       "api_case",
       "map_node",
     ].includes(key)
-      ? uuid(value)
+      ? isUuid(value)
       : Object.hasOwn(choices, key)
         ? choices[key].includes(value)
         : key === "domains_page"

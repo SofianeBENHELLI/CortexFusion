@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { uuid } from "./uuid";
 
-export const workId = (value: string) =>
-  /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(value);
+export const workId = (value: string) => uuid.test(value);
 export const workName = (value: string) =>
   value
     .normalize("NFD")

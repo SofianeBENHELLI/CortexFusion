@@ -17,18 +17,16 @@ import {
   type BrainChange,
   type ChangeKind,
 } from "./model";
+import { isUuid } from "../api/uuid";
 
 const invalid = () => new ApiError(200, "invalid_response");
 const integer = (n: unknown): n is number =>
   Number.isSafeInteger(n) && Number(n) >= 0;
-const uuid = (s: unknown): s is string =>
-  typeof s === "string" &&
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 type EvidenceConcept = Concept | DifferenceSummaryConcept;
 function validateEvidenceConcept(c: EvidenceConcept) {
   if (
     !c ||
-    !uuid(c.concept_id) ||
+    !isUuid(c.concept_id) ||
     typeof c.title !== "string" ||
     !c.title.trim() ||
     !Array.isArray(c.sources) ||
@@ -36,7 +34,7 @@ function validateEvidenceConcept(c: EvidenceConcept) {
     c.sources.some(
       (s) =>
         !s ||
-        !uuid(s.source_id) ||
+        !isUuid(s.source_id) ||
         !integer(s.start) ||
         !integer(s.end) ||
         s.end <= s.start,
@@ -50,7 +48,7 @@ function validateEvidenceConcept(c: EvidenceConcept) {
         c.links.some(
           (l) =>
             !l ||
-            !uuid(l.target_id) ||
+            !isUuid(l.target_id) ||
             !["structural", "associative"].includes(l.kind) ||
             (l.weight !== undefined &&
               (!Number.isFinite(l.weight) || l.weight < 0 || l.weight > 1)) ||
@@ -110,7 +108,7 @@ function publicationPage(
         c.sequence < 1 ||
         c.sequence >= upper ||
         c.sequence > anchor ||
-        !uuid(c.proposal_id) ||
+        !isUuid(c.proposal_id) ||
         c.published !== true ||
         typeof c.reason !== "string" ||
         (c.publication !== null &&
@@ -159,7 +157,7 @@ function difference(
   )
     throw invalid();
   for (const item of diff.items) {
-    if (!item || !uuid(item.concept_id) || (!item.before && !item.after))
+    if (!item || !isUuid(item.concept_id) || (!item.before && !item.after))
       throw invalid();
     for (const c of [item.before, item.after])
       if (c) {

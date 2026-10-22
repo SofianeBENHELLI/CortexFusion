@@ -9,6 +9,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { ActivityStatus } from "../ActivityStatus";
 import { ApiError, type CortexApi } from "./client";
 import { taskEventLabels, taskStatuses } from "./taskCommands";
+import { uuid } from "./uuid";
 export interface TaskNotificationsActions {
   read: (id: string) => Promise<string>;
 }
@@ -89,7 +90,7 @@ export const TaskNotifications = forwardRef<
   }, [query.error, onNotice]);
   async function read(id: string) {
     if (active.current) return "Lecture en cours.";
-    if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id))
+    if (!uuid.test(id))
       return notice("Indiquez l’identifiant d’une notification chargée.");
     if (pending && pending.id !== id)
       return notice("Vérifiez d’abord le reçu de lecture en attente.");
