@@ -45,6 +45,7 @@ from .conversations_api import conversations_router
 from .corpus import CorpusService
 from .corpus_api import corpus_router
 from .db import Database
+from .deadlines import DeadlineMiddleware
 from .extraction import ExtractionService
 from .feedback_signals import FeedbackSignalService
 from .feedback_signals_api import feedback_signals_router
@@ -188,6 +189,8 @@ def create_app(settings: Settings | None = None):
         limit=settings.max_request_bytes,
         authentication_challenge=challenge(settings),
     )
+    # Outside the boundary, so a slowly sent body counts against the deadline too.
+    app.add_middleware(DeadlineMiddleware)
     install_browser_transport(app, settings)
 
     @app.exception_handler(CoreError)
