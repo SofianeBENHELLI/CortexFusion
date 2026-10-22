@@ -1,5 +1,8 @@
 name: Rust migration checks
 on:
+  # Every merge to main is checked; pull requests only when Rust or its scripts change.
+  push:
+    branches: [main]
   pull_request:
     paths:
       - 'Cargo.toml'

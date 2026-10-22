@@ -66,7 +66,7 @@ docker run --rm --name cortex-terminus-dev \
   terminusdb/terminusdb-server@sha256:385faf298ad77aaf2d4d6df5e84a4cbe3596d01dab2e3b991af905639ae56388
 ```
 
-Cette instance jetable contient seulement des données synthétiques. Configurer l’URL locale, l’utilisateur `admin` et ce mot de passe dans le processus de test. Les snapshots utilisent une base privée par préparation, un commit immuable et un manifeste SQL. Aucun accès direct au moteur n’est nécessaire au frontend ou au compagnon.
+Avec `TERMINUSDB_ADMIN_PASS` défini dans `.env`, `make graph-up` démarre la même image sur le même port à partir de `infra/compose.graph.yaml`. Cette instance jetable contient seulement des données synthétiques. Configurer l’URL locale, l’utilisateur `admin` et ce mot de passe dans le processus de test. Les snapshots utilisent une base privée par préparation, un commit immuable et un manifeste SQL. Aucun accès direct au moteur n’est nécessaire au frontend ou au compagnon.
 
 Une base historique déjà publiée ne bascule pas automatiquement vers TerminusDB. La commande interne `--import-published UUID_DOMAINE`, avec `CORTEX_MIGRATION_BEARER` et `CORTEX_MIGRATION_TENANT`, reconstruit le savoir publié depuis le journal contigu, vérifie sa concordance avec la projection SQL et prépare ou rapproche le snapshot, sous contrôle owner et accès à toutes les preuves. La migration d’un corpus réel reste une opération à préparer avec sauvegarde et rapprochement dédié.
 
