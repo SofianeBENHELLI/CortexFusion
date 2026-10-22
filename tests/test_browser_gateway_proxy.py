@@ -295,6 +295,7 @@ def test_long_proposal_is_unchanged_and_a_lost_mutation_response_is_not_replayed
         (422, "AMBIGUOUS_EXCERPT"),
         (422, "MAP_CAPACITY_EXCEEDED"),
         (409, "CORRECTION_NOT_ACTIVE"),
+        (503, "REQUEST_TIMEOUT"),
         (500, "PRIVATE_error"),
         (409, "ORIGIN_NOT_ALLOWED"),
     ],

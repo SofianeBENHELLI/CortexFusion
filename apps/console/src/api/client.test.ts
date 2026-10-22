@@ -310,6 +310,7 @@ it.each([
   [422, "MAP_CAPACITY_EXCEEDED", "budget de lecture global"],
   [409, "CORRECTION_NOT_PUBLISHED", "n’est pas encore publiée"],
   [409, "CORRECTION_NOT_ACTIVE", "n’est plus active"],
+  [503, "REQUEST_TIMEOUT", "peut être incertain"],
 ] as const)(
   "explains reviewed error %s/%s without server text",
   async (status, code, text) => {

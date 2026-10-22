@@ -52,6 +52,11 @@ const publicErrors: Record<string, { status: number; message: string }> = {
     message:
       "La proposition corrective liée n’est plus active. Vérifiez son état avant de traiter le ticket.",
   },
+  REQUEST_TIMEOUT: {
+    status: 503,
+    message:
+      "Le serveur ne répond pas à temps. Le résultat d’une action peut être incertain.",
+  },
 };
 export class ApiError extends Error {
   constructor(
@@ -260,7 +265,7 @@ export class CortexApi {
           this.onUnauthorized?.();
         let code = `http_${response.status}`;
         if (
-          [403, 409, 422].includes(response.status) &&
+          [403, 409, 422, 503].includes(response.status) &&
           response.headers.get("content-type")?.includes("application/json")
         ) {
           try {
