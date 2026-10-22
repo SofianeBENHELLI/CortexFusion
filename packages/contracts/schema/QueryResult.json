@@ -61,7 +61,7 @@
           "type": "string"
         },
         "body": {
-          "maxLength": 30000,
+          "maxLength": 200000,
           "minLength": 1,
           "title": "Body",
           "type": "string"
@@ -95,6 +95,64 @@
         "sources"
       ],
       "title": "Concept",
+      "type": "object"
+    },
+    "ContextPassage": {
+      "additionalProperties": false,
+      "description": "Read-only excerpt of a published concept, never a replacement Concept.",
+      "properties": {
+        "concept_id": {
+          "format": "uuid",
+          "title": "Concept Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "maturity": {
+          "$ref": "#/$defs/Maturity"
+        },
+        "body_start": {
+          "description": "Inclusive Unicode offset in the published body",
+          "minimum": 0,
+          "title": "Body Start",
+          "type": "integer"
+        },
+        "body_end": {
+          "description": "Exclusive Unicode offset in the published body",
+          "exclusiveMinimum": 0,
+          "title": "Body End",
+          "type": "integer"
+        },
+        "body_total_chars": {
+          "exclusiveMinimum": 0,
+          "title": "Body Total Chars",
+          "type": "integer"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceRef"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "concept_id",
+        "title",
+        "maturity",
+        "body_start",
+        "body_end",
+        "body_total_chars",
+        "text",
+        "sources"
+      ],
+      "title": "ContextPassage",
       "type": "object"
     },
     "Link": {
@@ -187,7 +245,8 @@
     "status": {
       "enum": [
         "evidence_found",
-        "knowledge_gap"
+        "knowledge_gap",
+        "context_limited"
       ],
       "title": "Status",
       "type": "string"
@@ -203,10 +262,19 @@
       "type": "integer"
     },
     "concepts": {
+      "description": "Complete selected concepts only; long selections are in context_passages. Read the concept endpoint for the full published body.",
       "items": {
         "$ref": "#/$defs/Concept"
       },
       "title": "Concepts",
+      "type": "array"
+    },
+    "context_passages": {
+      "description": "Bounded, source-backed context selections; empty for legacy episodes. Unicode text lengths plus answer separators fit max_chars.",
+      "items": {
+        "$ref": "#/$defs/ContextPassage"
+      },
+      "title": "Context Passages",
       "type": "array"
     },
     "citations": {

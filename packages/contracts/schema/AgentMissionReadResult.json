@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AgentMissionReadResult",
+  "type": "object",
+  "properties": {
+    "receipt": {
+      "$ref": "#/$defs/AgentMissionReceipt"
+    },
+    "source_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source_hash": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "title": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "start": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "end": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "total_characters": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "excerpt": {
+      "type": "string",
+      "maxLength": 8192
+    }
+  },
+  "required": [
+    "receipt",
+    "source_id",
+    "source_hash",
+    "title",
+    "location",
+    "start",
+    "end",
+    "total_characters",
+    "excerpt"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "AgentMissionReceipt": {
+      "type": "object",
+      "properties": {
+        "mission_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "event_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "stopped",
+            "completed"
+          ]
+        },
+        "reads_used": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "chars_used": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "lease_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid"
+        },
+        "lease_expires_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "mission_id",
+        "event_id",
+        "revision",
+        "status",
+        "reads_used",
+        "chars_used",
+        "lease_id",
+        "lease_expires_at"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

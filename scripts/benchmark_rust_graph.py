@@ -186,7 +186,7 @@ def native(binary, env):
             selector.register(process.stdout, selectors.EVENT_READ)
             assert selector.select(20), "Native benchmark server did not start"
             line = process.stdout.readline().strip()
-        prefix = "CortexFusion Rust migration candidate listening on "
+        prefix = "Open BrAIn Rust migration candidate listening on "
         assert line.startswith(prefix), "Unexpected native startup response"
         with httpx.Client(
             base_url="http://" + line.removeprefix(prefix),
@@ -580,7 +580,19 @@ def run(args, report):
                         ).status_code
                         == 404
                     )
-                    for question, budget in [("Signal00001", 8000), ("Signal00000", 100)]:
+                    # A tight budget is served by one bounded, exactly cited passage
+                    # (the minimum budget fits the first sentence); private stays a gap.
+                    bounded = client.post(
+                        f"/v1/domains/{domain}/query",
+                        headers=fixture.headers("bob"),
+                        json={"question": "Signal00000", "max_chars": 100, "limit": 1},
+                    ).json()
+                    assert bounded["status"] in {"context_limited", "evidence_found"}, bounded
+                    assert bounded["citations"] and all(
+                        len(c["excerpt"]) <= 100 and c["excerpt"].startswith("Signal00000")
+                        for c in bounded["citations"]
+                    ), bounded
+                    for question, budget in [("Signal00001", 8000)]:
                         gap = client.post(
                             f"/v1/domains/{domain}/query",
                             headers=fixture.headers("bob"),

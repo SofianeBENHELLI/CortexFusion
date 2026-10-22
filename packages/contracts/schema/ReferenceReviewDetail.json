@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReferenceReviewDetail",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "reviewer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "draft_revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "awaiting_review",
+        "changes_requested",
+        "ready_for_owner",
+        "withdrawn"
+      ]
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "question_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "content": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReferenceDraftContent"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "review_note": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "withdraw",
+          "request_changes",
+          "ready_for_owner"
+        ]
+      }
+    }
+  },
+  "required": [
+    "id",
+    "author",
+    "reviewer",
+    "draft_revision",
+    "revision",
+    "status",
+    "updated_at",
+    "question_id",
+    "content",
+    "review_note",
+    "created_at",
+    "actions"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "ReferenceDraftContent": {
+      "type": "object",
+      "properties": {
+        "theme": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "criteria": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "source_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "source_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "excerpt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000
+        },
+        "selection": {
+          "type": "object",
+          "properties": {
+            "start": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740990
+            },
+            "end": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "start",
+            "end"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "theme",
+        "question",
+        "criteria",
+        "source_id",
+        "source_hash",
+        "excerpt",
+        "selection"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

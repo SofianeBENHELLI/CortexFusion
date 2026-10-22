@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SourceLocateInput",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "excerpt": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200000
+    },
+    "expected_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "start": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483646
+    }
+  },
+  "required": [
+    "excerpt"
+  ]
+}

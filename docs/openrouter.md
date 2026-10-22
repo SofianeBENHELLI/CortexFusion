@@ -8,7 +8,7 @@ export CORTEX_OPENROUTER_API_KEY='your-private-key'
 export CORTEX_OPENROUTER_MODEL='deepseek/deepseek-v4-flash'
 ```
 
-`OPENROUTER_API_KEY` is also accepted; the Cortex-prefixed key takes precedence. Do not commit `.env` or paste real keys into issues, prompts or frontend configuration. The selected model is [DeepSeek V4 Flash](https://openrouter.ai/deepseek/deepseek-v4-flash), using the exact ID `deepseek/deepseek-v4-flash` (currently labeled 0423 in the catalog). The public endpoint catalog advertises structured outputs on several providers; eligibility under the configured routing restrictions and actual extraction behavior remain dependent on provider routing. A server-side key is required before extraction is enabled.
+`OPENROUTER_API_KEY` is also accepted; the `CORTEX_`-prefixed key takes precedence. Do not commit `.env` or paste real keys into issues, prompts or frontend configuration. The selected model is [DeepSeek V4 Flash](https://openrouter.ai/deepseek/deepseek-v4-flash), using the exact ID `deepseek/deepseek-v4-flash` (currently labeled 0423 in the catalog). The public endpoint catalog advertises structured outputs on several providers; eligibility under the configured routing restrictions and actual extraction behavior remain dependent on provider routing. A server-side key is required before extraction is enabled.
 
 An owner with access to the source invokes:
 
@@ -23,7 +23,7 @@ Content-Type: application/json
 
 This sends the source text to OpenRouter. For a long source, browse `/sources/{source}/chunks` and supply `span: {source_id, start, end}` to send only the selected range; offsets in resulting citations still refer to the original source. The destination must match the server configuration; the legacy `/extract-local` route refuses OpenRouter. `GET /v1/me` reports the configured extraction provider and owner capability for frontend integration.
 
-The model selects one exact contiguous quote. Cortex independently verifies that quote, checks permissions again, and creates a proposal requiring ordinary owner approval. It does not publish automatically or change query answers into generated synthesis. Input is limited to 6,000 UTF-8 bytes, selected quotes to 2,000 characters, completion tokens to 256, response size to 64 KiB and request timeout to 45 seconds. There are no automatic provider retries.
+The model selects one exact contiguous quote. Open Br**AI**n independently verifies that quote, checks permissions again, and creates a proposal requiring ordinary owner approval. It does not publish automatically or change query answers into generated synthesis. Input is limited to 6,000 UTF-8 bytes, selected quotes to 2,000 characters, completion tokens to 256, response size to 64 KiB and request timeout to 45 seconds. There are no automatic provider retries.
 
 The fixed HTTPS endpoint refuses redirects and environment proxies. Requests require supported parameters, providers that deny data collection, and ZDR routing. These requirements can leave no eligible endpoint. They are routing controls, not a universal guarantee about every provider's policies: verify the selected model/provider and enterprise processing authorization before using a real corpus.
 

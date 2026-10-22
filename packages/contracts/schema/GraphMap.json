@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GraphMap",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "domain_id",
+    "at_version",
+    "nodes",
+    "edges",
+    "published_relations",
+    "documentary_references"
+  ],
+  "properties": {
+    "domain_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "at_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "nodes": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "maturity",
+          "group",
+          "territory"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "maturity": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          },
+          "territory": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "maxItems": 400000,
+      "description": "Tuples [source node index, target node index, structural|associative|reference, published weight or null].",
+      "items": {
+        "type": "array",
+        "minItems": 4,
+        "maxItems": 4,
+        "items": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "published_relations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "documentary_references": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

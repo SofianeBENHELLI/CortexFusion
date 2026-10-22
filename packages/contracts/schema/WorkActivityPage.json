@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorkActivityPage",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "$ref": "#/$defs/WorkActivityItem"
+      }
+    },
+    "next_after": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unread": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "permissions_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "work_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_access_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "personal"
+      ]
+    },
+    "sort": {
+      "type": "string",
+      "enum": [
+        "created_kind_event_desc"
+      ]
+    },
+    "coverage": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "task_notifications",
+          "named_reference_reviews",
+          "mission_claims_and_reports",
+          "named_shared_cases"
+        ]
+      }
+    }
+  },
+  "required": [
+    "items",
+    "next_after",
+    "total",
+    "unread",
+    "as_of",
+    "permissions_version",
+    "work_version",
+    "source_access_version",
+    "scope",
+    "sort",
+    "coverage"
+  ],
+  "$defs": {
+    "WorkActivityItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "task",
+            "reference_review",
+            "mission",
+            "shared_case"
+          ]
+        },
+        "event_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "target_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "current_status": {
+          "type": "string"
+        },
+        "current_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "action": {
+          "type": "string"
+        },
+        "actor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "read_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "content_available": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "event_id",
+        "target_id",
+        "title",
+        "current_status",
+        "current_revision",
+        "action",
+        "actor",
+        "event_revision",
+        "created_at",
+        "read_at",
+        "content_available"
+      ]
+    }
+  }
+}

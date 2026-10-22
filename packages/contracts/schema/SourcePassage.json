@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SourcePassage",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "source_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "location": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "content_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "start": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483646
+    },
+    "end": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "total_characters": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "excerpt": {
+      "type": "string",
+      "maxLength": 8192
+    },
+    "next_offset": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "offset_unit": {
+      "type": "string",
+      "const": "unicode_code_point"
+    }
+  },
+  "required": [
+    "source_id",
+    "title",
+    "location",
+    "content_hash",
+    "start",
+    "end",
+    "total_characters",
+    "excerpt",
+    "next_offset",
+    "offset_unit"
+  ]
+}

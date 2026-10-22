@@ -3,7 +3,7 @@ use crate::{error::CoreError, server::StateData};
 use axum::{
     Json, Router,
     extract::{Path, Query, State},
-    routing::get,
+    routing::{get, post},
 };
 use http::{HeaderMap, StatusCode};
 use serde::Deserialize;
@@ -60,6 +60,18 @@ struct ChunkInput {
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+struct PassageInput {
+    #[serde(default)]
+    offset: i64,
+    #[serde(default = "passage_limit")]
+    limit: i64,
+    expected_hash: Option<String>,
+}
+fn passage_limit() -> i64 {
+    8192
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct SourceInput {
     pub(crate) title: String,
     pub(crate) location: String,
@@ -69,12 +81,156 @@ pub(crate) struct SourceInput {
 }
 pub fn routes() -> Router<StateData> {
     Router::new()
+        .route(
+            "/v1/domains/{domain}/sources/{source_id}/locate",
+            post(locate),
+        )
         .route("/v1/domains/{domain}/sources", get(list).post(create))
         .route("/v1/domains/{domain}/sources/{source_id}", get(read))
+        .route(
+            "/v1/domains/{domain}/sources/{source_id}/passage",
+            get(passage),
+        )
         .route(
             "/v1/domains/{domain}/sources/{source_id}/chunks",
             get(chunks),
         )
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LocateInput {
+    excerpt: String,
+    expected_hash: Option<String>,
+    start: Option<i64>,
+}
+async fn locate(
+    State(s): State<StateData>,
+    Path((domain, id)): Path<(String, String)>,
+    headers: HeaderMap,
+    input: Result<Json<LocateInput>, axum::extract::rejection::JsonRejection>,
+) -> Result<Json<Value>, CoreError> {
+    let p = s.auth.authenticate(&headers)?;
+    let domain = uuid(&domain)?;
+    let id = uuid(&id)?;
+    let Json(input) = input.map_err(|_| invalid("Invalid source location input"))?;
+    let size = input.excerpt.chars().count() as i64;
+    if !(1..=200000).contains(&size)
+        || input.excerpt.trim().is_empty()
+        || input.excerpt.contains('\0')
+        || input.start.is_some_and(|n| !(0..=2147483646).contains(&n))
+        || input.expected_hash.as_ref().is_some_and(|v| {
+            v.len() != 64
+                || !v
+                    .bytes()
+                    .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
+        })
+    {
+        return Err(invalid("Invalid source location input"));
+    }
+    let mut tx = s.db.transaction(&p, &domain, false).await?;
+    sqlx::query("SELECT subject FROM cf_memberships WHERE tenant_id=$1 AND domain_id=$2 AND subject=$3 FOR SHARE")
+        .bind(&p.tenant).bind(&domain).bind(&p.subject).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?.ok_or_else(missing)?;
+    let row=sqlx::query("SELECT title,location,content_hash,char_length(content) AS total FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND id=$3 AND allowed_subjects ? $4 FOR SHARE")
+        .bind(&p.tenant).bind(&domain).bind(&id).bind(&p.subject).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?.ok_or_else(missing)?;
+    let hash: String = row.get("content_hash");
+    if input.expected_hash.as_ref().is_some_and(|h| h != &hash) {
+        return Err(CoreError {
+            status: StatusCode::CONFLICT,
+            code: "SOURCE_CHANGED",
+            message: "Source fingerprint differs from the expected evidence",
+        });
+    }
+    let total = i64::from(row.get::<i32, _>("total"));
+    let start = if let Some(start) = input.start {
+        if start + size > total {
+            return Err(invalid("Exact passage is outside the source"));
+        }
+        let matches: bool = sqlx::query_scalar("SELECT substring(content FROM $4 FOR $5)=$6 FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND id=$3")
+            .bind(&p.tenant).bind(&domain).bind(&id).bind((start+1) as i32).bind(size as i32).bind(&input.excerpt)
+            .fetch_one(&mut *tx).await.map_err(CoreError::sql)?;
+        if !matches {
+            return Err(invalid("Excerpt differs from the source at this position"));
+        }
+        start
+    } else {
+        let pos: i32 = sqlx::query_scalar("SELECT strpos(content,$4) FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND id=$3")
+            .bind(&p.tenant).bind(&domain).bind(&id).bind(&input.excerpt).fetch_one(&mut *tx).await.map_err(CoreError::sql)?;
+        if pos == 0 {
+            return Err(invalid("Exact excerpt was not found"));
+        }
+        // Start one code point later to detect overlapping occurrences as well.
+        let another: bool = sqlx::query_scalar("SELECT strpos(substring(content FROM $4),$5)>0 FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND id=$3")
+            .bind(&p.tenant).bind(&domain).bind(&id).bind(pos.saturating_add(1)).bind(&input.excerpt).fetch_one(&mut *tx).await.map_err(CoreError::sql)?;
+        if another {
+            return Err(CoreError {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                code: "AMBIGUOUS_EXCERPT",
+                message: "Select an exact occurrence or provide its Unicode start position",
+            });
+        }
+        i64::from(pos) - 1
+    };
+    let value = json!({"source_id":id,"title":row.get::<String,_>("title"),"location":row.get::<String,_>("location"),"content_hash":hash,"start":start,"end":start+size,"total_characters":total,"offset_unit":"unicode_code_point"});
+    p.check_fresh()?;
+    tx.commit().await.map_err(CoreError::sql)?;
+    p.check_fresh()?;
+    Ok(Json(value))
+}
+async fn passage(
+    State(s): State<StateData>,
+    Path((domain, id)): Path<(String, String)>,
+    headers: HeaderMap,
+    input: Result<Query<PassageInput>, axum::extract::rejection::QueryRejection>,
+) -> Result<Json<Value>, CoreError> {
+    let p = s.auth.authenticate(&headers)?;
+    let domain = uuid(&domain)?;
+    let id = uuid(&id)?;
+    let Query(input) = input.map_err(|_| invalid("Invalid source passage query"))?;
+    if !(0..=2_147_483_646).contains(&input.offset)
+        || !(1..=8192).contains(&input.limit)
+        || input.expected_hash.as_ref().is_some_and(|v| {
+            v.len() != 64
+                || !v
+                    .bytes()
+                    .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
+        })
+    {
+        return Err(invalid("Invalid source passage query"));
+    }
+    let mut tx = s.db.transaction(&p, &domain, false).await?;
+    // Current membership and source are locked through this read. A concurrent change
+    // after the repeatable-read snapshot fails closed rather than serving stale rights.
+    sqlx::query("SELECT subject FROM cf_memberships WHERE tenant_id=$1 AND domain_id=$2 AND subject=$3 FOR SHARE")
+        .bind(&p.tenant).bind(&domain).bind(&p.subject).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?.ok_or_else(missing)?;
+    let row=sqlx::query("SELECT title,location,content_hash,char_length(content) AS total FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND id=$3 AND allowed_subjects ? $4 FOR SHARE")
+        .bind(&p.tenant).bind(&domain).bind(&id).bind(&p.subject).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?.ok_or_else(missing)?;
+    let hash: String = row.get("content_hash");
+    if input
+        .expected_hash
+        .as_ref()
+        .is_some_and(|expected| expected != &hash)
+    {
+        return Err(CoreError {
+            status: StatusCode::CONFLICT,
+            code: "SOURCE_CHANGED",
+            message: "Source fingerprint differs from the expected evidence",
+        });
+    }
+    let total = i64::from(row.get::<i32, _>("total"));
+    if input.offset > total {
+        return Err(invalid("Passage offset is outside the source"));
+    }
+    let end = (input.offset + input.limit).min(total);
+    let excerpt: String = sqlx::query_scalar("SELECT substring(content FROM $4 FOR $5) FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND id=$3")
+        .bind(&p.tenant).bind(&domain).bind(&id).bind((input.offset+1) as i32).bind((end-input.offset) as i32).fetch_one(&mut *tx).await.map_err(CoreError::sql)?;
+    if excerpt.chars().count() as i64 != end - input.offset {
+        return Err(CoreError::database());
+    }
+    let value = json!({"source_id":id,"title":row.get::<String,_>("title"),"location":row.get::<String,_>("location"),"content_hash":hash,"start":input.offset,"end":end,"total_characters":total,"excerpt":excerpt,"next_offset":if end<total {Some(end)} else {None},"offset_unit":"unicode_code_point"});
+    p.check_fresh()?;
+    tx.commit().await.map_err(CoreError::sql)?;
+    p.check_fresh()?;
+    Ok(Json(value))
 }
 async fn read(
     State(s): State<StateData>,
@@ -119,7 +275,7 @@ async fn list(
             });
         }
     }
-    let rows=sqlx::query("SELECT s.* FROM cf_sources s WHERE s.tenant_id=$1 AND s.domain_id=$2 AND s.allowed_subjects ? $3 AND s.id>$4 AND strpos(lower(s.title),lower($5))>0 AND ($6='' OR EXISTS(SELECT 1 FROM cf_collection_sources cs WHERE cs.tenant_id=s.tenant_id AND cs.domain_id=s.domain_id AND cs.source_id=s.id AND cs.collection_id=$6)) ORDER BY s.id LIMIT $7").bind(&p.tenant).bind(&domain).bind(&p.subject).bind(input.after.map(|id|id.to_string()).unwrap_or_default()).bind(input.q).bind(collection).bind((input.limit+1)as i64).fetch_all(&mut *tx).await.map_err(CoreError::sql)?;
+    let rows=sqlx::query("SELECT s.id,s.title,s.location,s.content_hash,s.allowed_subjects,s.supersedes FROM cf_sources s WHERE s.tenant_id=$1 AND s.domain_id=$2 AND s.allowed_subjects ? $3 AND s.id>$4 AND strpos(lower(s.title),lower($5))>0 AND ($6='' OR EXISTS(SELECT 1 FROM cf_collection_sources cs WHERE cs.tenant_id=s.tenant_id AND cs.domain_id=s.domain_id AND cs.source_id=s.id AND cs.collection_id=$6)) ORDER BY s.id LIMIT $7").bind(&p.tenant).bind(&domain).bind(&p.subject).bind(input.after.map(|id|id.to_string()).unwrap_or_default()).bind(input.q).bind(collection).bind((input.limit+1)as i64).fetch_all(&mut *tx).await.map_err(CoreError::sql)?;
     let next = if rows.len() > input.limit {
         Some(rows[input.limit - 1].get::<String, _>("id"))
     } else {

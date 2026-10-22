@@ -20,7 +20,7 @@ class WorkspaceService:
             domains = (
                 run(
                     conn,
-                    """SELECT d.id,d.name,m.role FROM cf_domains d JOIN cf_memberships m
+                    """SELECT d.id,d.name,m.role,m.roles,m.revision AS membership_revision FROM cf_domains d JOIN cf_memberships m
                 ON m.tenant_id=d.tenant_id AND m.domain_id=d.id
                 WHERE d.tenant_id=:tenant AND m.subject=:subject ORDER BY d.id""",
                     tenant=p.tenant_id,
@@ -118,6 +118,7 @@ class WorkspaceService:
         with self.db.transaction(p, domain, write=True) as conn:
             if source_id:
                 self.k._source(conn, p, domain, source_id)
+            access = {}
             return self._page(
                 conn,
                 p,
@@ -125,7 +126,7 @@ class WorkspaceService:
                 "cf_proposals",
                 limit,
                 after,
-                lambda row: self.k._check_proposal_access(conn, p, domain, row),
+                lambda row: self.k._check_proposal_access(conn, p, domain, row, access),
                 self.k._proposal_view,
                 "AND (:status='' OR status=:status)"
                 + (

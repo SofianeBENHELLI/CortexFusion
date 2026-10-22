@@ -45,3 +45,21 @@ def test_shared_wire_examples():
             example["value"]
         )
         assert valid == example["valid"], path.name
+
+
+def test_concept_body_uses_unicode_character_boundary_without_truncation():
+    from uuid import uuid4
+
+    import pytest
+    from cortex_core.contracts import MAX_CONCEPT_BODY_CHARS, Concept
+    from pydantic import ValidationError
+
+    raw = {
+        "concept_id": str(uuid4()),
+        "title": "Long synthetic proof",
+        "body": "🧠" * MAX_CONCEPT_BODY_CHARS,
+        "sources": [{"source_id": str(uuid4()), "start": 0, "end": MAX_CONCEPT_BODY_CHARS}],
+    }
+    assert Concept.model_validate(raw).body == raw["body"]
+    with pytest.raises(ValidationError):
+        Concept.model_validate({**raw, "body": raw["body"] + "x"})

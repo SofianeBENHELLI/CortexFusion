@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SharedCaseReceipt",
+  "type": "object",
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "qualified",
+        "closed_without_change",
+        "withdrawn"
+      ]
+    }
+  },
+  "required": [
+    "case_id",
+    "event_id",
+    "revision",
+    "status"
+  ],
+  "additionalProperties": false
+}

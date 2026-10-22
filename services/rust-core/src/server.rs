@@ -8,6 +8,7 @@ use axum::{
 use http::{HeaderMap, StatusCode};
 use serde_json::{Value, json};
 use sqlx::Row;
+use std::time::Duration;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -18,6 +19,8 @@ pub struct StateData {
     pub extraction: Option<crate::model_provider::PassageProvider>,
     pub public_resource: Option<crate::discovery::PublicResource>,
     pub db: Database,
+    /// Dedicated single-connection pool for the unauthenticated readiness probe.
+    pub readiness: Database,
     pub graph: Option<crate::graph::GraphService>,
     pub confirmation: Option<crate::confirmation::ConfirmationVerifier>,
 }
@@ -26,6 +29,7 @@ pub fn router(state: StateData) -> Router {
     Router::new().route("/health",get(||async{Json(json!({"status":"ok","version":"0.1.0","mode":"extractive"}))}))
         .route("/ready",get(crate::readiness::ready))
         .route("/v1/me",get(identity))
+        .route("/v1/companion-guides",get(crate::onboarding::http_guides))
         .route("/v1/domains/{domain}/version",get(version))
         .route("/v1/domains/{domain}/concepts",get(concepts))
         .route("/v1/domains/{domain}/concepts/{concept_id}",get(concept))
@@ -36,12 +40,25 @@ pub fn router(state: StateData) -> Router {
         .merge(crate::proposals::routes())
         .merge(crate::retrieval::routes())
         .merge(crate::signals::routes())
+        .merge(crate::cases::routes())
         .merge(crate::companions::routes())
         .merge(crate::conversations::routes())
+        .merge(crate::drafts::routes())
+        .merge(crate::contribution_drafts::routes())
+        .merge(crate::reference_drafts::routes())
+        .merge(crate::reference_reviews::routes())
+        .merge(crate::agent_missions::routes())
+        .merge(crate::tasks::routes())
+        .merge(crate::work_overview::routes())
+        .merge(crate::work_activity::routes())
         .merge(crate::issues::routes())
         .merge(crate::collections::routes())
         .merge(crate::imports::routes())
         .merge(crate::governance::routes())
+        .merge(crate::publication_journal::routes())
+        .merge(crate::graph_window::routes())
+        .merge(crate::graph_map::routes())
+        .merge(crate::graph_scene::routes())
         .merge(crate::source_access::routes())
         .merge(crate::discovery::routes())
         .merge(crate::model_receipts::routes())
@@ -51,6 +68,72 @@ pub fn router(state: StateData) -> Router {
         .merge(crate::extraction::routes())
         .fallback(||async{(StatusCode::NOT_IMPLEMENTED,Json(json!({"error":"MIGRATION_NOT_IMPLEMENTED","message":"This operation is not yet served by the native Rust candidate"})))})
         .with_state(state)
+        .layer(axum::middleware::from_fn(request_deadline))
+        .layer(axum::middleware::from_fn(log_failures))
+}
+/// Deadline for one HTTP operation, body read included. Model calls and graph
+/// engine writes get longer ones. The MCP transport and streamed response bodies
+/// sit outside these layers; MCP tool calls dispatch through this router and so
+/// inherit their operation's deadline.
+const DEFAULT_DEADLINE: Duration = Duration::from_secs(20);
+const MODEL_DEADLINE: Duration = Duration::from_secs(60);
+const PUBLICATION_DEADLINE: Duration = Duration::from_secs(120);
+const MODEL_ROUTES: [&str; 3] = [
+    "/v1/domains/{domain}/episodes/{episode_id}/syntheses",
+    "/v1/domains/{domain}/sources/{source_id}/extract",
+    "/v1/domains/{domain}/sources/{source_id}/extract-local",
+];
+const PUBLICATION_ROUTES: [&str; 7] = [
+    "/v1/domains/{domain}/proposals/{proposal_id}/publish",
+    "/v1/domains/{domain}/proposals/{proposal_id}/publication-attempts",
+    "/v1/domains/{domain}/publish",
+    "/v1/domains/{domain}/replay",
+    "/v1/domains/{domain}/commits/{sequence}/compensate",
+    "/v1/domains/{domain}/graph-import",
+    "/v1/domains/{domain}/graph-import-attempts",
+];
+fn deadline(route: Option<&str>) -> Duration {
+    match route {
+        Some(r) if MODEL_ROUTES.contains(&r) => MODEL_DEADLINE,
+        Some(r) if PUBLICATION_ROUTES.contains(&r) => PUBLICATION_DEADLINE,
+        _ => DEFAULT_DEADLINE,
+    }
+}
+/// Dropping the handler cancels its work at the next await; a command whose
+/// outcome is then unknown is settled by its receipt or a same-key retry.
+async fn request_deadline(
+    request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    let route = request
+        .extensions()
+        .get::<axum::extract::MatchedPath>()
+        .map(|m| m.as_str());
+    match tokio::time::timeout(deadline(route), next.run(request)).await {
+        Ok(response) => response,
+        Err(_) => CoreError::request_timeout().into_response(),
+    }
+}
+/// One stderr line per server-side failure (HTTP and MCP calls share this
+/// router). Only method, path, status and latency: no query string, header or
+/// body, and clients still receive the generic error body.
+async fn log_failures(
+    request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    let method = request.method().clone();
+    let path = request.uri().path().to_owned();
+    let started = std::time::Instant::now();
+    let response = next.run(request).await;
+    if response.status().is_server_error() {
+        eprintln!(
+            "{method} {path} -> {} in {} ms",
+            response.status().as_u16(),
+            started.elapsed().as_millis()
+        );
+    }
+    response
 }
 async fn version(
     State(s): State<StateData>,
@@ -92,15 +175,17 @@ async fn identity(
         .execute(&mut *tx)
         .await
         .map_err(CoreError::sql)?;
-    let rows=sqlx::query("SELECT d.id,d.name,m.role FROM cf_domains d JOIN cf_memberships m ON m.tenant_id=d.tenant_id AND m.domain_id=d.id WHERE d.tenant_id=$1 AND m.subject=$2 ORDER BY d.id").bind(&p.tenant).bind(&p.subject).fetch_all(&mut *tx).await.map_err(CoreError::sql)?;
+    let rows=sqlx::query("SELECT d.id,d.name,m.role,m.roles,m.revision FROM cf_domains d JOIN cf_memberships m ON m.tenant_id=d.tenant_id AND m.domain_id=d.id WHERE d.tenant_id=$1 AND m.subject=$2 ORDER BY d.id").bind(&p.tenant).bind(&p.subject).fetch_all(&mut *tx).await.map_err(CoreError::sql)?;
     let mut domains = Vec::new();
     for row in rows {
         let role: String = row.get("role");
         // Advertise only capabilities available in this configured runtime.
         let mut capabilities = vec![
+            "companion_guides",
             "query",
             "inspect",
             "personal_history",
+            "personal_drafts",
             "feedback",
             "personal_issues",
         ];
@@ -111,10 +196,41 @@ async fn identity(
             role.as_str(),
             "owner" | "agent" | "contributor" | "corpus_manager"
         ) {
-            capabilities.extend(["propose", "read_proposals"]);
+            capabilities.extend([
+                "propose",
+                "read_proposals",
+                "contribution_drafts",
+                "reference_drafts",
+            ]);
+        }
+        if matches!(
+            role.as_str(),
+            "owner" | "corpus_manager" | "contributor" | "viewer"
+        ) {
+            capabilities.extend([
+                "shared_cases",
+                "case_tasks",
+                "work_overview",
+                "work_activity",
+            ]);
+        }
+        if matches!(role.as_str(), "owner" | "corpus_manager" | "contributor") {
+            capabilities.extend([
+                "reference_reviews",
+                "work_tasks",
+                "expert_reviews",
+                "work_brief",
+                "task_receipts",
+            ]);
+        }
+        if matches!(role.as_str(), "owner" | "corpus_manager" | "agent") {
+            capabilities.push("agent_missions");
         }
         if matches!(role.as_str(), "owner" | "corpus_manager") {
+            capabilities.push("coordinate_tasks");
+            capabilities.push("coordinate_missions");
             capabilities.push("manage_corpus");
+            capabilities.push("import_commands");
         }
         if role == "owner" && s.confirmation.is_some() {
             capabilities.extend(["review", "approve", "manage_members", "source_acl"]);
@@ -125,7 +241,7 @@ async fn identity(
                 capabilities.extend(["publish", "compensate"]);
             }
         }
-        domains.push(json!({"id":row.get::<String,_>("id"),"name":row.get::<String,_>("name"),"role":role,"capabilities":capabilities}));
+        domains.push(json!({"id":row.get::<String,_>("id"),"name":row.get::<String,_>("name"),"role":role,"roles":row.get::<Vec<String>,_>("roles"),"membership_revision":row.get::<i32,_>("revision"),"capabilities":capabilities}));
     }
     p.check_fresh()?;
     tx.commit().await.map_err(CoreError::sql)?;
@@ -160,15 +276,7 @@ async fn concept(
         .to_string();
     let id = Uuid::parse_str(&id).map_err(|_| CoreError::invalid_uuid())?;
     let graph = s.graph.as_ref().ok_or_else(CoreError::database)?;
-    let c = graph
-        .concepts(&p, &domain)
-        .await?
-        .into_iter()
-        .find(|c| c.concept_id == id)
-        .ok_or_else(CoreError::concept_not_found)?;
-    Ok(Json(
-        serde_json::to_value(c).map_err(|_| CoreError::database())?,
-    ))
+    Ok(Json(graph.read_concept(&p, &domain, id).await?))
 }
 
 async fn publish_target(
@@ -242,5 +350,62 @@ async fn publish_target(
             (error.status,Json(json!({"error":error.code,"message":error.message,"confirmation_request":{"action":action,"command_hash":hash,"transport_header":"X-Cortex-Confirmation","max_lifetime_seconds":300}}))).into_response()
         }
         Err(error) => error.into_response(),
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{body::Body, routing::post};
+    use tower::ServiceExt;
+
+    async fn call(path: &str, seconds: u64) -> (StatusCode, Value) {
+        let wait = move || async move {
+            tokio::time::sleep(Duration::from_secs(seconds)).await;
+            Json(json!({"done": true}))
+        };
+        let app = Router::new()
+            .route("/v1/me", post(wait))
+            .route(
+                "/v1/domains/{domain}/sources/{source_id}/extract",
+                post(wait),
+            )
+            .route("/v1/domains/{domain}/publish", post(wait))
+            .layer(axum::middleware::from_fn(request_deadline));
+        let request = http::Request::post(path).body(Body::empty()).unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        let status = response.status();
+        let body = axum::body::to_bytes(response.into_body(), 4096)
+            .await
+            .unwrap();
+        (status, serde_json::from_slice(&body).unwrap())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn each_route_class_answers_until_its_deadline_then_times_out() {
+        for (path, limit) in [
+            ("/v1/me", 20),
+            ("/v1/domains/d/sources/s/extract", 60),
+            ("/v1/domains/d/publish", 120),
+        ] {
+            assert_eq!(call(path, limit - 1).await.0, StatusCode::OK, "{path}");
+            let (status, body) = call(path, limit + 1).await;
+            assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{path}");
+            assert_eq!(body["error"], "REQUEST_TIMEOUT", "{path}");
+        }
+    }
+
+    #[test]
+    fn longer_deadlines_name_native_contract_routes() {
+        let catalog = crate::discovery::catalog().unwrap();
+        let paths: Vec<&str> = catalog["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|item| item["path"].as_str())
+            .collect();
+        for route in MODEL_ROUTES.iter().chain(&PUBLICATION_ROUTES) {
+            assert!(paths.contains(route), "{route}");
+        }
+        assert_eq!(deadline(None), DEFAULT_DEADLINE);
     }
 }

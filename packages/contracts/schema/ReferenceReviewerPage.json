@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReferenceReviewerPage",
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ReferenceReviewerSummary"
+      }
+    },
+    "next_after": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "items",
+    "next_after"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "ReferenceReviewerSummary": {
+      "type": "object",
+      "properties": {
+        "subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "owner",
+            "corpus_manager"
+          ]
+        }
+      },
+      "required": [
+        "subject",
+        "role"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

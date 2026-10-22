@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -40,12 +41,17 @@ def test_discovery_inventory_and_initialize(world):
         "cortex://workspace",
         "cortex://guide",
         "cortex://actions",
+        "cortex://guides",
     }
     templates = rpc(world, "resources/templates/list").json()["result"]["resourceTemplates"]
-    assert [r["uriTemplate"] for r in templates] == ["cortex://domains/{domain_id}/context"]
+    assert {r["uriTemplate"] for r in templates} == {
+        "cortex://domains/{domain_id}/context",
+        "cortex://guides/{guide_id}",
+    }
     prompts = rpc(world, "prompts/list").json()["result"]["prompts"]
     assert {p["name"] for p in prompts} == {
         "ask_cortex",
+        "openbrain_workflow",
         "review_cortex_proposal",
         "report_cortex_feedback",
     }
@@ -163,3 +169,63 @@ def test_resource_errors_hide_storage_diagnostics(world, monkeypatch):
     result = rpc(world, "resources/read", {"uri": "cortex://workspace"}).json()
     assert "error" in result and "CONTEXT_UNAVAILABLE" in str(result)
     assert "private connection diagnostics" not in str(result)
+
+
+def test_focused_guides_have_valid_tools_and_identical_native_metadata(world):
+    from cortex_core.companion_guides import CATALOG
+
+    catalog = resource(world, "cortex://guides")
+    assert catalog == CATALOG
+    assert catalog["documentation_only"] is True
+    assert catalog["client_compatibility"] == "not_qualified"
+    assert [g["id"] for g in catalog["guides"]] == [
+        "consult",
+        "feedback",
+        "follow-up",
+        "task",
+        "correction",
+        "domain",
+    ]
+    root = Path(__file__).resolve().parents[1]
+    native = json.loads((root / "services/rust-core/src/onboarding.json").read_text())
+    assert native["workflows"] == catalog
+    tools = json.loads((root / "packages/contracts/mcp-tools.json").read_text())["tools"]
+    tools += json.loads((root / "packages/contracts/rust-extensions.json").read_text())["tools"]
+    names = {t["name"] for t in tools}
+    for guide in catalog["guides"]:
+        assert resource(world, "cortex://guides/" + guide["id"]) == guide
+        assert set(guide["tools"]) <= names
+    assert len(json.dumps(catalog).encode()) < 65536
+    assert "error" in rpc(world, "resources/read", {"uri": "cortex://guides/unknown"}).json()
+    assert rpc(world, "resources/read", {"uri": "cortex://guides"}, headers={}).status_code == 401
+
+
+@pytest.mark.parametrize("guide", ["consult", "feedback", "domain"])
+def test_selected_workflow_checks_capability_without_executing(world, guide):
+    args = {
+        "name": "openbrain_workflow",
+        "arguments": {"domain_id": world.domain, "guide_id": guide},
+    }
+    response = rpc(world, "prompts/get", args, "alice").json()
+    assert "error" not in response, response
+    value = response["result"]["messages"][0]["content"]["text"]
+    assert "no authority" in value and f'"id": "{guide}"' in value
+    assert (
+        world.client.get(world.prefix + "/episodes", headers=world.headers("alice")).json()["items"]
+        == []
+    )
+    if guide == "domain":
+        assert "error" in rpc(world, "prompts/get", args).json()
+    args["arguments"]["domain_id"] = world.other_domain
+    assert "error" in rpc(world, "prompts/get", args, "alice").json()
+
+
+@pytest.mark.parametrize("guide", ["task", "follow-up", "unknown", "consult/../../private"])
+def test_compatibility_does_not_claim_missing_native_workflow_capabilities(world, guide):
+    response = rpc(
+        world,
+        "prompts/get",
+        {"name": "openbrain_workflow", "arguments": {"domain_id": world.domain, "guide_id": guide}},
+        "alice",
+    ).json()
+    assert "error" in response

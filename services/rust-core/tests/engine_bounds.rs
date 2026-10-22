@@ -42,7 +42,7 @@ async fn fixture(bytes: Vec<u8>, chunked: bool) -> EngineFixture {
         async move {
             calls.fetch_add(1, Ordering::SeqCst);
             let body = to_bytes(request.into_body(), 4_000_001).await.unwrap();
-            received.store(body.len(), Ordering::SeqCst);
+            received.fetch_max(body.len(), Ordering::SeqCst);
             let body = if chunked {
                 let chunks: Vec<_> = (0..bytes.len())
                     .step_by(65_537)
@@ -124,12 +124,14 @@ async fn outbound_limit_is_measured_in_encoded_bytes_and_refuses_before_network(
 #[tokio::test]
 async fn oversized_snapshot_does_not_create_a_database_or_write_schema() {
     let fixture = fixture(b"{}".to_vec(), false).await;
-    let concepts: Vec<Concept> = (1..=150)
+    // The complete canonical snapshot has its own 64 MB budget, independent
+    // of the unchanged 4 MB transport ceiling and the 1 MB write batches.
+    let concepts: Vec<Concept> = (1..=540)
         .map(|id| {
             serde_json::from_value(json!({
                 "concept_id": Uuid::from_u128(id),
                 "title": format!("Synthetic concept {id}"),
-                "body": "a".repeat(30_000),
+                "body": "🧠".repeat(30_000),
                 "maturity": "observed",
                 "sources": [{"source_id": Uuid::nil(), "start": 0, "end": 30_000}],
                 "links": []
@@ -145,4 +147,28 @@ async fn oversized_snapshot_does_not_create_a_database_or_write_schema() {
         Err(EngineError::TooLarge)
     ));
     assert_eq!(fixture.calls.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn larger_snapshots_use_bounded_batches_and_missing_commit_proof_is_uncertain() {
+    let fixture = fixture(b"{}".to_vec(), false).await;
+    let concepts: Vec<Concept> = (1..=150)
+        .map(|id| {
+            serde_json::from_value(json!({
+                "concept_id": Uuid::from_u128(id), "title": format!("Synthetic {id}"),
+                "body": "a".repeat(30_000), "maturity": "observed",
+                "sources": [{"source_id": Uuid::nil(), "start": 0, "end": 1}], "links": []
+            }))
+            .unwrap()
+        })
+        .collect();
+    assert!(matches!(
+        fixture
+            .engine
+            .stage_snapshot_reserved(Uuid::new_v4(), concepts)
+            .await,
+        Err(EngineError::Uncertain)
+    ));
+    assert!(fixture.calls.load(Ordering::SeqCst) >= 7);
+    assert!(fixture.request_bytes.load(Ordering::SeqCst) <= 1_000_000);
 }

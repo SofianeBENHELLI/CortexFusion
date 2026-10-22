@@ -131,7 +131,7 @@ def verify_shutdown(binary, env, admin):
                         selector.register(process.stdout, selectors.EVENT_READ)
                         assert selector.select(15), "Native drain server did not start"
                         line = process.stdout.readline().strip()
-                    prefix = "CortexFusion Rust migration candidate listening on "
+                    prefix = "Open BrAIn Rust migration candidate listening on "
                     assert line.startswith(prefix), line
                     base = "http://" + line.removeprefix(prefix)
                     with httpx.Client(base_url=base, trust_env=False, timeout=15) as client:

@@ -1,0 +1,13 @@
+[project]
+name = "cortex-browser-gateway"
+version = "0.1.0"
+description = "Independent browser identity boundary for Open BrAIn"
+requires-python = ">=3.12,<3.14"
+dependencies = ["httpx>=0.28,<1", "PyJWT[crypto]>=2.10,<3", "starlette>=1.6,<2", "uvicorn>=0.34,<1"]
+
+[project.scripts]
+cortex-browser-gateway = "cortex_browser_gateway.cli:main"
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"

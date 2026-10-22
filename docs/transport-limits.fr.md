@@ -14,6 +14,7 @@ L’exposition de chaque opération en MCP conserve ses droits et sa logique mé
 | Fichier source | 500000 octets décodés | Le champ base64 peut atteindre 666668 caractères avant son enveloppe JSON. Le téléchargement MCP réencode les octets en base64. |
 | Texte d’une source | 200000 points de code Unicode | Les octets UTF-8 et l’échappement JSON peuvent coûter davantage. Les passages utilisent aussi des offsets en points de code. |
 | Timeline de conversation | 500000 octets de JSON applicatif | Réduire les limites enfants ou lire leurs pages séparément si le premier tour ne tient pas. |
+| Durée d’une opération HTTP, lecture du corps comprise | 20 s par défaut ; 60 s pour la synthèse et l’extraction par modèle ; 120 s pour la publication, la reprise, la compensation et l’import du graphe | Au-delà, HTTP 503 `REQUEST_TIMEOUT`. Pour une commande, le résultat est incertain : relire le reçu ou réessayer avec la même clé d’idempotence. Le transport MCP et le corps des flux SSE ne sont pas bornés ; chaque appel d’outil MCP hérite du délai de son opération. |
 
 La borne du pont ne limite pas globalement les réponses HTTP directes. Par exemple, 100 reçus personnels contenant chacun une clarification de 12000 points de code peuvent produire une page HTTP de plus de 4 Mo. Le pont refuse cette page, tandis que deux pages de 50 reçus sont lisibles en MCP. Chacune de ces enveloppes MCP peut elle-même dépasser 4 Mo transmis tout en respectant la borne interne. Les limites maximales de paramètres sont des plafonds, pas toujours la taille de page conseillée.
 

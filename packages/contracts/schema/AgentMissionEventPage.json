@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AgentMissionEventPage",
+  "type": "object",
+  "properties": {
+    "mission_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "current_revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actor": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "create",
+              "claim",
+              "renew",
+              "stop",
+              "resume",
+              "read",
+              "complete"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "stopped",
+              "completed"
+            ]
+          },
+          "reads_used": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "chars_used": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "start": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "end": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "actor",
+          "action",
+          "revision",
+          "status",
+          "reads_used",
+          "chars_used",
+          "start",
+          "end",
+          "reason",
+          "created_at"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 20
+    },
+    "next_after": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "mission_id",
+    "current_revision",
+    "items",
+    "next_after"
+  ],
+  "additionalProperties": false
+}

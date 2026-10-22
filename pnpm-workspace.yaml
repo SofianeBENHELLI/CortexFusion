@@ -1,3 +1,7 @@
 packages:
   - 'packages/contracts'
   - 'apps/harness'
+  - 'apps/console'
+# esbuild runs from its platform package; its optional install step is not needed.
+allowBuilds:
+  esbuild: false

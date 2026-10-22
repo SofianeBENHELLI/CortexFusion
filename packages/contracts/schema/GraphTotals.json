@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GraphTotals",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "concepts",
+    "relations"
+  ],
+  "properties": {
+    "concepts": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "relations": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Directed outgoing relations from concepts in this scope, to any currently authorized concept in the domain. Each (from,to,kind) counts once."
+    }
+  }
+}

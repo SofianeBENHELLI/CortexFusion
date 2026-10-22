@@ -45,13 +45,31 @@ struct Page {
 struct Membership {
     subject: String,
     role: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    roles: Option<Vec<String>>,
     #[serde(default)]
     expected_revision: Option<i64>,
     reason: String,
     idempotency_key: String,
 }
+const ROLE_ORDER: [&str; 5] = ["owner", "corpus_manager", "contributor", "viewer", "agent"];
+fn valid_roles(role: Option<&str>, roles: Option<&[String]>) -> bool {
+    let Some(roles) = roles else {
+        return true;
+    };
+    !roles.is_empty()
+        && roles.len() <= 4
+        && roles.iter().all(|r| ROLE_ORDER.contains(&r.as_str()))
+        && roles.iter().collect::<std::collections::HashSet<_>>().len() == roles.len()
+        && (!roles.iter().any(|r| r == "agent") || roles.len() == 1)
+        && ROLE_ORDER
+            .iter()
+            .find(|r| roles.iter().any(|v| v == **r))
+            .copied()
+            == role
+}
 fn receipt(r: &PgRow) -> Value {
-    json!({"id":r.get::<String,_>("id"),"author":r.get::<String,_>("author"),"subject":r.get::<String,_>("subject"),"previous_role":r.get::<Option<String>,_>("previous_role"),"new_role":r.get::<Option<String>,_>("new_role"),"resulting_revision":r.get::<Option<i32>,_>("resulting_revision"),"reason":r.get::<String,_>("reason"),"created_at":r.get::<Value,_>("created")})
+    json!({"id":r.get::<String,_>("id"),"author":r.get::<String,_>("author"),"subject":r.get::<String,_>("subject"),"previous_role":r.get::<Option<String>,_>("previous_role"),"new_role":r.get::<Option<String>,_>("new_role"),"previous_roles":r.get::<Option<Vec<String>>,_>("previous_roles"),"new_roles":r.get::<Option<Vec<String>>,_>("new_roles"),"resulting_revision":r.get::<Option<i32>,_>("resulting_revision"),"reason":r.get::<String,_>("reason"),"created_at":r.get::<Value,_>("created")})
 }
 pub fn routes() -> Router<StateData> {
     Router::new()
@@ -82,13 +100,13 @@ async fn members(
         return Err(invalid());
     }
     let mut tx = s.db.locked_owner_transaction(&p, &d).await?;
-    let rows=sqlx::query("SELECT subject,role,revision FROM cf_memberships WHERE tenant_id=$1 AND domain_id=$2 AND subject>$3 ORDER BY subject LIMIT $4").bind(&p.tenant).bind(&d).bind(q.after).bind((q.limit+1)as i64).fetch_all(&mut *tx).await.map_err(CoreError::sql)?;
+    let rows=sqlx::query("SELECT subject,role,roles,revision FROM cf_memberships WHERE tenant_id=$1 AND domain_id=$2 AND subject>$3 ORDER BY subject LIMIT $4").bind(&p.tenant).bind(&d).bind(q.after).bind((q.limit+1)as i64).fetch_all(&mut *tx).await.map_err(CoreError::sql)?;
     let next = if rows.len() > q.limit {
         json!(rows[q.limit - 1].get::<String, _>("subject"))
     } else {
         Value::Null
     };
-    let v = json!({"items":rows.iter().take(q.limit).map(|r|json!({"subject":r.get::<String,_>("subject"),"role":r.get::<String,_>("role"),"revision":r.get::<i32,_>("revision")})).collect::<Vec<_>>(),"next_after":next});
+    let v = json!({"items":rows.iter().take(q.limit).map(|r|json!({"subject":r.get::<String,_>("subject"),"role":r.get::<String,_>("role"),"roles":r.get::<Vec<String>,_>("roles"),"revision":r.get::<i32,_>("revision")})).collect::<Vec<_>>(),"next_after":next});
     p.check_fresh()?;
     tx.commit().await.map_err(CoreError::sql)?;
     Ok(Json(v))
@@ -144,6 +162,7 @@ async fn change(
             || !(1..=2000).contains(&data.reason.chars().count())
             || !(8..=128).contains(&data.idempotency_key.chars().count())
             || data.expected_revision.is_some_and(|n| n < 0)
+            || !valid_roles(data.role.as_deref(), data.roles.as_deref())
             || data.role.as_ref().is_some_and(|r| {
                 !matches!(
                     r.as_str(),
@@ -189,9 +208,21 @@ async fn change_service(
         .map_err(|_| invalid())?;
     let mut tx = s.db.locked_owner_transaction(p, d).await?;
     if let Some(r)=sqlx::query("SELECT *,to_jsonb(created_at) AS created FROM cf_membership_events WHERE tenant_id=$1 AND domain_id=$2 AND author=$3 AND idempotency_key=$4").bind(&p.tenant).bind(d).bind(&p.subject).bind(&data.idempotency_key).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?{if r.get::<String,_>("request_hash")!=hash{return Err(conflict("IDEMPOTENCY_CONFLICT"))}let result=receipt(&r);p.check_fresh()?;tx.commit().await.map_err(CoreError::sql)?;return Ok(result)}
-    let old=sqlx::query("SELECT role,revision FROM cf_memberships WHERE tenant_id=$1 AND domain_id=$2 AND subject=$3 FOR UPDATE").bind(&p.tenant).bind(d).bind(&data.subject).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?;
+    let old=sqlx::query("SELECT role,roles,revision FROM cf_memberships WHERE tenant_id=$1 AND domain_id=$2 AND subject=$3 FOR UPDATE").bind(&p.tenant).bind(d).bind(&data.subject).fetch_optional(&mut *tx).await.map_err(CoreError::sql)?;
     let old_revision = old.as_ref().map(|r| r.get::<i32, _>("revision"));
     let old_role = old.as_ref().map(|r| r.get::<String, _>("role"));
+    let old_roles = old.as_ref().map(|r| r.get::<Vec<String>, _>("roles"));
+    let new_roles = data
+        .roles
+        .clone()
+        .or_else(|| data.role.clone().map(|r| vec![r]))
+        .map(|roles| {
+            ROLE_ORDER
+                .iter()
+                .filter(|r| roles.iter().any(|v| v == **r))
+                .map(|r| r.to_string())
+                .collect::<Vec<_>>()
+        });
     if old_revision.map(i64::from) != data.expected_revision {
         return Err(conflict("STALE_MEMBERSHIP"));
     }
@@ -223,10 +254,10 @@ async fn change_service(
             .map_err(CoreError::sql)?;
         }
         Some(role) if old.is_some() => {
-            sqlx::query("UPDATE cf_memberships SET role=$1,revision=$2 WHERE tenant_id=$3 AND domain_id=$4 AND subject=$5").bind(role).bind(revision).bind(&p.tenant).bind(d).bind(&data.subject).execute(&mut *tx).await.map_err(CoreError::sql)?;
+            sqlx::query("UPDATE cf_memberships SET role=$1,revision=$2,roles=$6 WHERE tenant_id=$3 AND domain_id=$4 AND subject=$5").bind(role).bind(revision).bind(&p.tenant).bind(d).bind(&data.subject).bind(&new_roles).execute(&mut *tx).await.map_err(CoreError::sql)?;
         }
         Some(role) => {
-            sqlx::query("INSERT INTO cf_memberships(tenant_id,domain_id,subject,role,revision) VALUES($1,$2,$3,$4,$5)").bind(&p.tenant).bind(d).bind(&data.subject).bind(role).bind(revision).execute(&mut *tx).await.map_err(CoreError::sql)?;
+            sqlx::query("INSERT INTO cf_memberships(tenant_id,domain_id,subject,role,revision,roles) VALUES($1,$2,$3,$4,$5,$6)").bind(&p.tenant).bind(d).bind(&data.subject).bind(role).bind(revision).bind(&new_roles).execute(&mut *tx).await.map_err(CoreError::sql)?;
         }
     }
     sqlx::query(
@@ -237,7 +268,7 @@ async fn change_service(
     .execute(&mut *tx)
     .await
     .map_err(CoreError::sql)?;
-    let r=sqlx::query("INSERT INTO cf_membership_events(tenant_id,domain_id,id,author,subject,previous_role,new_role,resulting_revision,reason,idempotency_key,request_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *,to_jsonb(created_at) AS created").bind(&p.tenant).bind(d).bind(Uuid::new_v4().to_string()).bind(&p.subject).bind(&data.subject).bind(old_role).bind(data.role).bind(revision).bind(data.reason).bind(data.idempotency_key).bind(hash).fetch_one(&mut *tx).await.map_err(CoreError::sql)?;
+    let r=sqlx::query("INSERT INTO cf_membership_events(tenant_id,domain_id,id,author,subject,previous_role,new_role,resulting_revision,reason,idempotency_key,request_hash,previous_roles,new_roles) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *,to_jsonb(created_at) AS created").bind(&p.tenant).bind(d).bind(Uuid::new_v4().to_string()).bind(&p.subject).bind(&data.subject).bind(old_role).bind(data.role).bind(revision).bind(data.reason).bind(data.idempotency_key).bind(hash).bind(old_roles).bind(new_roles).fetch_one(&mut *tx).await.map_err(CoreError::sql)?;
     let v = receipt(&r);
     p.check_fresh()?;
     tx.commit().await.map_err(CoreError::sql)?;

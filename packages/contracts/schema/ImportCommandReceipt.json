@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ImportCommandReceipt",
+  "type": "object",
+  "properties": {
+    "import_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "process",
+        "retry",
+        "cancel"
+      ]
+    },
+    "before_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "after_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "partial",
+        "succeeded",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "affected_items": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 20
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128
+    }
+  },
+  "required": [
+    "import_id",
+    "action",
+    "before_digest",
+    "after_digest",
+    "status",
+    "affected_items",
+    "idempotency_key"
+  ],
+  "additionalProperties": false
+}

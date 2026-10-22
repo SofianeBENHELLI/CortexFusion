@@ -123,6 +123,7 @@ impl Authenticator {
             .map_err(|_| CoreError::auth())?
             .as_secs_f64();
         let subject = validate_claims(&claims, &self.issuer, &self.audience, now)?;
+        check_tenant(&claims, &tenant)?;
         let principal = Principal {
             subject: subject.to_owned(),
             tenant,
@@ -134,6 +135,19 @@ impl Authenticator {
     }
 }
 
+/// A token that names its tenant (as the browser gateway's do) cannot be replayed
+/// against another tenant through X-Tenant-ID; tokens without the claim are unchanged.
+fn check_tenant(claims: &Value, tenant: &str) -> Result<(), CoreError> {
+    match claims.get("tenant") {
+        None => Ok(()),
+        Some(bound) => bound
+            .as_str()
+            .and_then(|s| Uuid::parse_str(s).ok())
+            .filter(|bound| bound.to_string() == tenant)
+            .map(|_| ())
+            .ok_or_else(CoreError::auth),
+    }
+}
 fn numeric_date(value: &Value) -> Result<f64, CoreError> {
     let number = match value {
         Value::Number(n) => n.as_f64().ok_or_else(CoreError::auth)?,
@@ -211,6 +225,20 @@ impl Principal {
 mod tests {
     use super::*;
     use serde_json::json;
+    #[test]
+    fn tenant_claim_binds_the_tenant_header_only_when_present() {
+        let tenant = "00000000-0000-4000-8000-000000000001";
+        assert!(check_tenant(&json!({"sub":"alice"}), tenant).is_ok());
+        assert!(check_tenant(&json!({"tenant": tenant.to_uppercase()}), tenant).is_ok());
+        for bound in [
+            json!("00000000-0000-4000-8000-000000000002"),
+            json!("not-a-uuid"),
+            json!(1),
+            Value::Null,
+        ] {
+            assert!(check_tenant(&json!({"tenant": bound}), tenant).is_err());
+        }
+    }
     #[test]
     fn explicit_claims_match_python_boundaries() {
         let base = json!({"sub":"alice","iss":"issuer","aud":"audience","iat":900,"exp":1001});

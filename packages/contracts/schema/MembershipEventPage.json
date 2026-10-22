@@ -39,6 +39,36 @@
           ],
           "title": "New Role"
         },
+        "previous_roles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Previous Roles"
+        },
+        "new_roles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "New Roles"
+        },
         "resulting_revision": {
           "anyOf": [
             {

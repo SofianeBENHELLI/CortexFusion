@@ -152,7 +152,7 @@ async def ask(
     conversation_id = str(UUID(conversation_id)) if conversation_id else None
     tools = {t.name for t in (await session.list_tools()).tools}
     if not REQUIRED_TOOLS <= tools:
-        raise CoreError("COMPANION_INCOMPATIBLE", "Required Cortex MCP tools are unavailable")
+        raise CoreError("COMPANION_INCOMPATIBLE", "Required Open BrAIn MCP tools are unavailable")
     if conversation_id and "api_conversations_query" not in tools:
         raise CoreError("COMPANION_INCOMPATIBLE", "Conversation query tool is unavailable")
     identity = await call(session, "api_identity_read", {})

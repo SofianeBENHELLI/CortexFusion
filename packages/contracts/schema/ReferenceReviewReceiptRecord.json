@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReferenceReviewReceiptRecord",
+  "type": "object",
+  "properties": {
+    "command_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "receipt": {
+      "$ref": "#/$defs/ReferenceReviewReceipt"
+    }
+  },
+  "required": [
+    "command_id",
+    "receipt"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "ReferenceReviewReceipt": {
+      "type": "object",
+      "properties": {
+        "review_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "event_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "awaiting_review",
+            "changes_requested",
+            "ready_for_owner",
+            "withdrawn"
+          ]
+        }
+      },
+      "required": [
+        "review_id",
+        "event_id",
+        "revision",
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorkActivityItem",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": [
+        "task",
+        "reference_review",
+        "mission",
+        "shared_case"
+      ]
+    },
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "target_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "title": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "current_status": {
+      "type": "string"
+    },
+    "current_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "action": {
+      "type": "string"
+    },
+    "actor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "event_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "read_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "content_available": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "kind",
+    "event_id",
+    "target_id",
+    "title",
+    "current_status",
+    "current_revision",
+    "action",
+    "actor",
+    "event_revision",
+    "created_at",
+    "read_at",
+    "content_available"
+  ]
+}

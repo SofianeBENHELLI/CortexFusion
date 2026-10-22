@@ -1,8 +1,8 @@
 # Démarrer et tester le backend Rust
 
-Ce guide concerne le candidat Rust, ses87 opérations HTTP et103 outils MCP. Le serveur et l’analyse de documents sont natifs. PostgreSQL conserve les identités, droits, preuves et reçus ; TerminusDB fournit les snapshots de connaissance publiés. Les migrations SQL, le bootstrap et les outils de vérification utilisent encore Python. Le service Python reste présent comme référence de compatibilité.
+Ce guide concerne le candidat Rust, ses 90 opérations HTTP et 106 outils MCP. Le serveur et l’analyse de documents sont natifs. PostgreSQL conserve les identités, droits, preuves et reçus ; TerminusDB fournit les snapshots de connaissance publiés. Les migrations SQL, le bootstrap et les outils de vérification utilisent encore Python. Le service Python reste présent comme référence de compatibilité.
 
-Les huit extensions natives de graphes et de gouvernance sont décrites dans la [référence française dédiée](rust-extensions.fr.md). Les schémas JSON et types TypeScript `GraphPublication*` et `GraphImport*` sont générés avec les autres contrats.
+Les onze extensions natives de graphes, de gouvernance, de journal des publications et de différences compactes sont décrites dans la [référence française dédiée](rust-extensions.fr.md). Les schémas JSON et types TypeScript `GraphPublication*`, `GraphImport*` et `PublicationWindow` sont générés avec les autres contrats.
 
 ## Préparer un environnement isolé
 
@@ -66,7 +66,7 @@ docker run --rm --name cortex-terminus-dev \
   terminusdb/terminusdb-server@sha256:385faf298ad77aaf2d4d6df5e84a4cbe3596d01dab2e3b991af905639ae56388
 ```
 
-Cette instance jetable contient seulement des données synthétiques. Configurer l’URL locale, l’utilisateur `admin` et ce mot de passe dans le processus de test. Les snapshots utilisent une base privée par préparation, un commit immuable et un manifeste SQL. Aucun accès direct au moteur n’est nécessaire au frontend ou au compagnon.
+Avec `TERMINUSDB_ADMIN_PASS` défini dans `.env`, `make graph-up` démarre la même image sur le même port à partir de `infra/compose.graph.yaml`. Cette instance jetable contient seulement des données synthétiques. Configurer l’URL locale, l’utilisateur `admin` et ce mot de passe dans le processus de test. Les snapshots utilisent une base privée par préparation, un commit immuable et un manifeste SQL. Aucun accès direct au moteur n’est nécessaire au frontend ou au compagnon.
 
 Une base historique déjà publiée ne bascule pas automatiquement vers TerminusDB. La commande interne `--import-published UUID_DOMAINE`, avec `CORTEX_MIGRATION_BEARER` et `CORTEX_MIGRATION_TENANT`, reconstruit le savoir publié depuis le journal contigu, vérifie sa concordance avec la projection SQL et prépare ou rapproche le snapshot, sous contrôle owner et accès à toutes les preuves. La migration d’un corpus réel reste une opération à préparer avec sauvegarde et rapprochement dédié.
 
@@ -82,7 +82,7 @@ uv run python scripts/verify_rust_http.py --output /tmp/cortex-rust-http.json
 
 Le dernier scénario exige `CORTEX_RUST_DATABASE_URL` et `CORTEX_TEST_ADMIN_URL`, toutes deux sur une base dont le nom finit par `_test`. Il démarre le vrai binaire, génère des identités et confirmations éphémères, puis exerce HTTP, MCP, rôles, données personnelles, fichiers, feedback et reçus IA. Les appels OpenRouter/Ollama sont remplacés par un serveur HTTP synthétique local et une clé factice imposée par le test. Il conserve les fixtures dans cette base isolée et ne tronque aucune table. Le binaire de test est la version debug ; le détournement synthétique est interdit dans une compilation release.
 
-Sans les variables TerminusDB, le rapport inventorie 83 opérations directement testables et annonce 103 outils, avec des passerelles moteur synthétiques pour les scénarios de reprise. Avec le moteur configuré, il inventorie les 87 opérations et exerce le cycle de publication/lecture avec snapshots réels. Ces nombres décrivent l’inventaire du scénario ; ils ne sont pas un pourcentage de couverture de lignes ou de branches.
+Sans les variables TerminusDB, le rapport inventorie 85 opérations directement testables et annonce 106 outils, avec des passerelles moteur synthétiques pour les scénarios de reprise. Avec le moteur configuré, il inventorie les 90 opérations et exerce le cycle de publication/lecture avec snapshots réels. Ces nombres décrivent l’inventaire du scénario ; ils ne sont pas un pourcentage de couverture de lignes ou de branches.
 
 Le test moteur autonome est activé séparément :
 

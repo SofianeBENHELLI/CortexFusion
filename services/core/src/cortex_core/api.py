@@ -5,6 +5,7 @@ from fastapi import Depends, FastAPI, Header
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import DBAPIError
+from starlette.concurrency import run_in_threadpool
 
 from .auth import Authenticator, CoreError
 from .browser_transport import install_browser_transport
@@ -44,6 +45,7 @@ from .conversations_api import conversations_router
 from .corpus import CorpusService
 from .corpus_api import corpus_router
 from .db import Database
+from .deadlines import DeadlineMiddleware
 from .extraction import ExtractionService
 from .feedback_signals import FeedbackSignalService
 from .feedback_signals_api import feedback_signals_router
@@ -79,10 +81,16 @@ class BoundaryMiddleware:
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
-        headers = {k.decode().lower(): v.decode() for k, v in scope.get("headers", [])}
+        # ASGI header bytes are Latin-1; a non-UTF-8 byte must not turn into a 500.
+        headers = {
+            k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope.get("headers", [])
+        }
         if scope["path"].startswith("/mcp"):
             try:
-                self.auth.authenticate(headers.get("authorization"), headers.get("x-tenant-id"))
+                # Token verification may fetch JWKS; keep it off the event loop.
+                await run_in_threadpool(
+                    self.auth.authenticate, headers.get("authorization"), headers.get("x-tenant-id")
+                )
             except CoreError as exc:
                 return await JSONResponse(
                     {"error": exc.code, "message": exc.message},
@@ -118,9 +126,10 @@ class BoundaryMiddleware:
 
 def create_app(settings: Settings | None = None):
     settings = settings or Settings()
-    db = Database(settings.database_url)
+    db = Database(settings.database_url, settings.statement_timeout_seconds)
     auth = Authenticator(settings)
     confirmation_guard = HTTPConfirmationGuard(settings, auth, db)
+    readiness = ReadinessService(db)
     service = KnowledgeService(db)
     model_adapter = None
     if (
@@ -158,10 +167,11 @@ def create_app(settings: Settings | None = None):
         db.verify_role()
         async with mcp.session_manager.run():
             yield
+        readiness.dispose()
         db.dispose()
 
     app = FastAPI(
-        title="Cortex Fusion Knowledge Core",
+        title="Open BrAIn Knowledge Core",
         version="0.1.0",
         lifespan=lifespan,
         dependencies=[Depends(confirmation_guard)],
@@ -170,6 +180,7 @@ def create_app(settings: Settings | None = None):
     app.state.mcp = mcp
     app.state.service = service
     app.state.db = db
+    app.state.readiness = readiness
     app.state.synthesis = synthesis
     app.state.confirmation_guard = confirmation_guard
     app.add_middleware(
@@ -178,6 +189,8 @@ def create_app(settings: Settings | None = None):
         limit=settings.max_request_bytes,
         authentication_challenge=challenge(settings),
     )
+    # Outside the boundary, so a slowly sent body counts against the deadline too.
+    app.add_middleware(DeadlineMiddleware)
     install_browser_transport(app, settings)
 
     @app.exception_handler(CoreError)
@@ -280,7 +293,7 @@ def create_app(settings: Settings | None = None):
 
     @app.get("/ready", response_model=ReadinessView)
     def ready():
-        return ReadinessService(db).check()
+        return readiness.check()
 
     @app.get("/health", response_model=HealthView)
     def health():

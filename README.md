@@ -1,12 +1,12 @@
-# Cortex Fusion
+# Open Br**AI**n
 
 **Your company’s collective brain.**
 
-Cortex Fusion is building a governed memory for people and AI companions. Its executable backend makes knowledge changes reviewable, keeps answers tied to their evidence, and exposes application functions through interchangeable HTTP/MCP contracts.
+Open Br**AI**n is building a governed memory for people and AI companions. Its executable backend makes knowledge changes reviewable, keeps answers tied to their evidence, and exposes application functions through interchangeable HTTP/MCP contracts.
 
 ## Rust migration candidate
 
-The native Rust/Axum/SQLx candidate now implements all 79 reference HTTP operations and 95 MCP tools, plus eight native graph and governance operations (87 HTTP / 103 MCP total), with immutable TerminusDB snapshots behind PostgreSQL publication manifests. It includes bounded native document parsing, optional OpenRouter/Ollama operations, authenticated MCP resources/prompts, fixed-source JWKS rotation, and graceful process shutdown. The optional [native corpus worker](docs/corpus-worker.fr.md) processes pending files and personal text imports through the same authorized APIs. Synthetic cold-store restore qualification is documented in the [French restore guide](docs/coordinated-restore.fr.md). Start with the [French Rust setup and test guide](docs/rust-start.fr.md). See the [French migration and integration guide](docs/rust-migration.fr.md) for setup, permissions, confirmations, evidence and explicit qualification limits. The Python service remains the compatibility reference; no replacement deployment has been performed.
+The native Rust/Axum/SQLx candidate now implements all 79 reference HTTP operations and 95 MCP tools, plus 77 native extensions for graph reads, governance, the publication journal and the collaborative workspaces (tasks, cases, reviews, drafts and agent missions), for 156 HTTP operations and 172 MCP tools in total (contract inventory checked on 21 October 2026), with immutable TerminusDB snapshots behind PostgreSQL publication manifests. It includes bounded native document parsing, optional OpenRouter/Ollama operations, authenticated MCP resources/prompts, fixed-source JWKS rotation, and graceful process shutdown. The optional [native corpus worker](docs/corpus-worker.fr.md) processes pending files and personal text imports through the same authorized APIs. Synthetic cold-store restore qualification is documented in the [French restore guide](docs/coordinated-restore.fr.md). Start with the [French Rust setup and test guide](docs/rust-start.fr.md). See the [French migration and integration guide](docs/rust-migration.fr.md) for setup, permissions, confirmations, evidence and explicit qualification limits. The Python service remains the compatibility reference; no replacement deployment has been performed.
 
 ## What works in the reference backend
 
@@ -20,7 +20,7 @@ The native Rust/Axum/SQLx candidate now implements all 79 reference HTTP operati
 - A reference MCP companion for cited OpenRouter synthesis, resumable receipts and consent-gated comment assessment.
 - Generated JSON Schema/TypeScript/OpenAPI/MCP artifacts, PostgreSQL tests and a tested Cordis service adapter.
 
-**This is a development backend.** Semantic retrieval, enterprise evaluation, real external identity/companion validation and production orchestration remain open. Bounded synthesis and inferred feedback have been exercised with live OpenRouter on synthetic data; this does not certify answer quality or calibrate model confidence. No product frontend is included. Original confidential specifications and enterprise corpora remain local.
+**This is a development system.** A React console in `apps/console` now includes connected BrainMap, conversations and evidence reading, alongside the mock. The [5 October code/specification audit](docs/product/code-audit-2026-10-05.fr.md) and [updated roadmap](docs/product/roadmap.md) distinguish implemented capabilities from incomplete access, owner workflows, semantic retrieval, 10,000-concept qualification and biomimetic mechanisms. Bounded synthesis and inferred feedback have been exercised with live OpenRouter on synthetic data; this does not certify answer quality or calibrate model confidence. Original confidential specifications and enterprise corpora remain local.
 
 ## Run and verify
 
@@ -53,20 +53,27 @@ For a persistent API, configure identity verification and run `make serve`. Inte
 ## Repository layout
 
 ```text
-services/core/       Python knowledge core, HTTP/MCP, migrations and worker
-packages/contracts/ Generated wire schemas, OpenAPI, interaction/MCP inventories
-apps/harness/        TypeScript client and Cordis service adapter
-scripts/             Contract generation, checks, synthetic demos/evaluation
-infra/               Local PostgreSQL profile
-tests/               PostgreSQL/API/MCP invariants and contract checks
-apps/web/            Planned product interface
-services/workflows/  Planned managed ingestion and consolidation
-packages/agents/     Planned full model orchestration
-evals/              Synthetic feedback/synthesis scenarios and evaluation methodology
+apps/console/              React console: mock mode and connected API mode
+services/core/             Python reference core, HTTP/MCP, migrations and worker
+services/rust-core/        Native Rust/Axum candidate with TerminusDB snapshots
+services/browser-gateway/  Local OIDC session gateway for the console
+packages/contracts/        Generated wire schemas, OpenAPI, interaction/MCP inventories
+apps/harness/              TypeScript client and Cordis service adapter
+scripts/                   Contract generation, checks, synthetic demos/evaluation
+infra/                     Local PostgreSQL profile
+tests/                     PostgreSQL/API/MCP invariants and contract checks
+evals/                     Synthetic feedback/synthesis scenarios and evaluation methodology
+apps/web/, services/workflows/, packages/agents/   Placeholders that only describe planned scope
 ```
 
 ## Licensing
 
-The repository license has not been selected. The dependency policy does not grant a license to Cortex Fusion. Installed dependency metadata is checked separately; see the [executable-core decision](docs/architecture/decisions/0001-executable-core.md).
+The repository license has not been selected. The dependency policy does not grant a license to Open Br**AI**n. Installed dependency metadata is checked separately; see the [executable-core decision](docs/architecture/decisions/0001-executable-core.md).
 
 A Python [reference MCP companion](docs/reference-companion.md) provides a bounded question → cited synthesis → personal receipt workflow without a frontend. Its optional live synthetic demo uses OpenRouter; semantic correctness and external identity-provider integration remain separate validation work.
+
+## Frontend mock — référence v3
+
+La [console React de démonstration](apps/console/README.md) reproduit la maquette v3 avec données locales, droits simulés, propositions/publication, feedback et imports. Démarrer avec `pnpm console:dev`, puis ouvrir `http://127.0.0.1:5173`. Aucun backend ni clé API ne sont nécessaires. La correspondance avec les opérations réelles et les limites du mock sont documentées dans son guide.
+
+Un mode API permet de consulter l’identité, les versions et les conversations du backend, poser une question extractive, enregistrer un feedback, consulter les tickets et revoir les propositions avec un jeton utilisateur Open Br**AI**n ; voir le [guide de branchement](apps/console/API-INTEGRATION.md). Les décisions d’approbation et de publication restent signées par l’hôte de confiance (MCP), jamais par le navigateur ; le mock demeure disponible.

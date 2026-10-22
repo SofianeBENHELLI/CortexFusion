@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ImportCommandState",
+  "type": "object",
+  "properties": {
+    "job": {
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Id"
+        },
+        "collection_id": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Collection Id"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "partial",
+            "succeeded",
+            "failed",
+            "cancelled"
+          ],
+          "title": "Status"
+        },
+        "processing": {
+          "type": "string",
+          "const": "local_text_only",
+          "title": "Processing",
+          "default": "local_text_only"
+        },
+        "items": {
+          "items": {
+            "properties": {
+              "position": {
+                "type": "integer",
+                "title": "Position"
+              },
+              "filename": {
+                "type": "string",
+                "title": "Filename"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "succeeded",
+                  "failed",
+                  "cancelled"
+                ],
+                "title": "Status"
+              },
+              "source_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Source Id"
+              },
+              "error_code": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Error Code"
+              },
+              "attempts": {
+                "type": "integer",
+                "title": "Attempts"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "position",
+              "filename",
+              "status",
+              "source_id",
+              "error_code",
+              "attempts"
+            ],
+            "title": "ImportItemView"
+          },
+          "type": "array",
+          "title": "Items"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "id",
+        "collection_id",
+        "status",
+        "items"
+      ],
+      "title": "ImportView"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "allowed_actions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "process",
+          "retry",
+          "cancel"
+        ]
+      },
+      "maxItems": 3
+    }
+  },
+  "required": [
+    "job",
+    "digest",
+    "allowed_actions"
+  ],
+  "additionalProperties": false
+}

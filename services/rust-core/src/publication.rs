@@ -1,7 +1,7 @@
 //! Targeted native publication: prepare graph first, atomically activate its manifest in SQL.
 use crate::{
     auth::Principal,
-    changes::{Change, apply_checked},
+    changes::{Change, apply_checked_with_evidence},
     error::CoreError,
     graph::GraphService,
     graph_attempts::{self, Attempt},
@@ -23,7 +23,6 @@ pub(crate) struct Recipe {
     pub sequence: i64,
     pub published: i64,
     changes: Vec<Change>,
-    sources: BTreeMap<Uuid, String>,
 }
 pub(crate) async fn recipe(
     tx: &mut Transaction<'_, Postgres>,
@@ -40,56 +39,7 @@ pub(crate) async fn recipe(
             .await
             .map_err(CoreError::sql)?;
     let row=sqlx::query("SELECT p.payload,p.validation,p.status,c.sequence,c.changes FROM cf_proposals p LEFT JOIN cf_commits c ON c.tenant_id=p.tenant_id AND c.domain_id=p.domain_id AND c.proposal_id=p.id WHERE p.tenant_id=$1 AND p.domain_id=$2 AND p.id=$3").bind(&p.tenant).bind(domain).bind(id).fetch_optional(&mut **tx).await.map_err(CoreError::sql)?.ok_or_else(CoreError::not_found)?;
-    let rows=sqlx::query("SELECT id,content FROM cf_sources WHERE tenant_id=$1 AND domain_id=$2 AND allowed_subjects ? $3 FOR SHARE").bind(&p.tenant).bind(domain).bind(&p.subject).fetch_all(&mut **tx).await.map_err(CoreError::sql)?;
-    let sources: BTreeMap<Uuid, String> = rows
-        .into_iter()
-        .map(|r| {
-            Ok((
-                Uuid::parse_str(r.get::<&str, _>("id")).map_err(|_| CoreError::database())?,
-                r.get("content"),
-            ))
-        })
-        .collect::<Result<_, CoreError>>()?;
-    let validation: Value = row.get("validation");
-    if let Some(refs) = validation["source_ids"].as_array() {
-        for id in refs {
-            let id = id
-                .as_str()
-                .and_then(|s| Uuid::parse_str(s).ok())
-                .ok_or_else(CoreError::database)?;
-            if !sources.contains_key(&id) {
-                return Err(CoreError::not_found());
-            }
-        }
-    }
-    let payload: Vec<Change> =
-        serde_json::from_value(row.get("payload")).map_err(|_| CoreError::database())?;
-    for change in &payload {
-        let concept = match change {
-            Change::PutConcept { concept } => Some(concept.clone()),
-            Change::RetireConcept { concept_id } => {
-                let raw: Option<Value> = sqlx::query_scalar(
-                    "SELECT payload FROM cf_concepts WHERE tenant_id=$1 AND domain_id=$2 AND id=$3",
-                )
-                .bind(&p.tenant)
-                .bind(domain)
-                .bind(concept_id.to_string())
-                .fetch_optional(&mut **tx)
-                .await
-                .map_err(CoreError::sql)?;
-                raw.map(serde_json::from_value::<Concept>)
-                    .transpose()
-                    .map_err(|_| CoreError::database())?
-            }
-        };
-        if concept.is_some_and(|c| {
-            c.sources
-                .iter()
-                .any(|s| !sources.contains_key(&s.source_id))
-        }) {
-            return Err(CoreError::not_found());
-        }
-    }
+    crate::proposals::check_access_targeted(tx, p, domain, &row).await?;
     let status: &str = row.get("status");
     let sequence: Option<i64> = row.get("sequence");
     if !matches!(status, "approved" | "published") || sequence.is_none() {
@@ -111,7 +61,6 @@ pub(crate) async fn recipe(
         sequence,
         published,
         changes,
-        sources,
     })
 }
 pub(crate) struct AttemptExecution {
@@ -184,7 +133,9 @@ impl GraphService {
                 "Refresh the target and published version",
             ));
         }
-        let state = apply_checked(&state, &current.changes, &current.sources)?;
+        let evidence =
+            crate::proposal_evidence::load(&mut tx, p, domain, &state, &current.changes).await?;
+        let state = apply_checked_with_evidence(&state, &current.changes, &evidence)?;
         let concepts: Vec<Concept> = state.into_values().collect();
         let (expected_digest, expected_count) = crate::snapshot::content_identity(concepts.clone())
             .map_err(|_| CoreError::database())?;
@@ -223,7 +174,8 @@ impl GraphService {
         }
         let snapshot = match prepared {
             Ok(s) => s,
-            Err(_) => {
+            Err(error) => {
+                eprintln!("graph snapshot preparation failed: {error}");
                 graph_attempts::mark(
                     &mut tx,
                     p,

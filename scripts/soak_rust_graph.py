@@ -208,10 +208,8 @@ class Workload:
             assert citation["excerpt"] == source["content"][ref["start"] : ref["end"]]
         else:
             assert data["status"] == "knowledge_gap" and data["concepts"] == data["citations"] == []
-            assert (
-                data["answer"]
-                == "No matching approved evidence was found within the requested context budget."
-            )
+            # Same wording as the Python reference service.
+            assert data["answer"] == "No matching approved evidence was found."
         self.episodes[data["episode_id"]] = data
         return data
 

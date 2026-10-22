@@ -1,6 +1,7 @@
 import base64
 import io
 import zipfile
+import zlib
 from uuid import uuid4
 
 import pytest
@@ -9,7 +10,13 @@ from cortex_core.corpus import CorpusService
 from cortex_core.files import FileService, parse_bytes
 from cortex_core.worker import drain
 from pypdf import PdfWriter
-from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
+from pypdf.generic import (
+    ArrayObject,
+    DecodedStreamObject,
+    DictionaryObject,
+    NameObject,
+    StreamObject,
+)
 from sqlalchemy import text
 
 
@@ -76,6 +83,35 @@ def pdf(encrypted=False, blank=False):
         page[NameObject("/Contents")] = writer._add_object(stream)
     if encrypted:
         writer.encrypt("synthetic-password")
+    output = io.BytesIO()
+    writer.write(output)
+    return output.getvalue()
+
+
+def inflating_pdf(pages, megabytes):
+    """A few kilobytes whose page streams decode, through two FlateDecode layers, to zeros."""
+    compressor = zlib.compressobj(9)
+    inner = b"".join(compressor.compress(bytes(1 << 20)) for _ in range(megabytes))
+    outer = zlib.compress(inner + compressor.flush(), 9)
+    writer = PdfWriter()
+    font = writer._add_object(
+        DictionaryObject(
+            {
+                NameObject("/Type"): NameObject("/Font"),
+                NameObject("/Subtype"): NameObject("/Type1"),
+                NameObject("/BaseFont"): NameObject("/Helvetica"),
+            }
+        )
+    )
+    for _ in range(pages):
+        page = writer.add_blank_page(600, 800)
+        page[NameObject("/Resources")] = DictionaryObject(
+            {NameObject("/Font"): DictionaryObject({NameObject("/F1"): font})}
+        )
+        stream = StreamObject()
+        stream.set_data(outer)
+        stream[NameObject("/Filter")] = ArrayObject([NameObject("/FlateDecode")] * 2)
+        page[NameObject("/Contents")] = writer._add_object(stream)
     output = io.BytesIO()
     writer.write(output)
     return output.getvalue()
@@ -204,3 +240,13 @@ def test_docx_entities_rejected_and_timeout_sanitized(monkeypatch):
 
     monkeypatch.setattr(module.subprocess, "run", timeout)
     assert parse_bytes(b"private", "x.pdf") == {"error_code": "PARSE_TIMEOUT"}
+
+
+def test_pdf_decoding_is_bounded_per_stream_and_per_document():
+    # Only Linux caps the child's address space, so the decoded size is bounded in the parser.
+    refused = {"error_code": "DOCUMENT_LIMIT"}
+    assert parse_bytes(raw := inflating_pdf(pages=1, megabytes=9), "x.pdf") == refused
+    assert len(raw) < 5000
+    assert parse_bytes(inflating_pdf(pages=9, megabytes=7), "x.pdf") == refused
+    under = parse_bytes(inflating_pdf(pages=8, megabytes=7), "x.pdf")
+    assert under == {"error_code": "NO_EXTRACTABLE_TEXT"}

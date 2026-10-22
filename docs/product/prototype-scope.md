@@ -24,6 +24,12 @@ Voice, avatars, interview campaigns, continuous observation, 3D maps, federation
 
 Tenant isolation and the distinction between reading, proposing, and approving must exist from the first slice even with one tenant. Fine-grained authorization may expand later; unauthorized source content must never become generally visible through a summary or retrieval result.
 
+## Planned brain observability extension
+
+The product direction selected on 2 October 2026 adds BrainMap and Chronique to the existing console: a monochrome light/dark map with progressive detail, a synchronized journal and changes-first inspection. The [development roadmap](roadmap.md#brain-experience-delivery-plan) sequences this work as BRN-01–08. Its first connected increment covers sourced publication changes; instrumented memory dynamics, archival/reactivation and durable consolidation follow as explicit dependent increments, not as capabilities assumed in the original round trip.
+
+Read-only inspection of supported publication states and recorded event periods is included in that extension. It does not enable arbitrary historical execution, general time travel or automatic approval. The separate Representations concept remains deferred for discussion after the current UI/UX work is explicitly closed.
+
 ## Acceptance criteria
 
 | Scenario | Evidence required |

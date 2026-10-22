@@ -1,3 +1,4 @@
+import os
 from concurrent.futures import ThreadPoolExecutor
 from uuid import UUID, uuid4
 
@@ -406,7 +407,7 @@ def test_query_budget_and_missing_knowledge(world):
     result = world.service.query(
         world.owner, world.domain, QueryInput(question="incident", max_chars=100)
     )
-    assert result["status"] == "knowledge_gap" and not result["concepts"]
+    assert result["status"] == "context_limited" and not result["concepts"]
     assert query(world, question="interplanetary procurement")["status"] == "knowledge_gap"
 
 
@@ -593,3 +594,95 @@ def test_proposal_endpoint_evidence_is_rechecked_after_revocation(world):
     with pytest.raises(CoreError, match="Source"):
         world.approve(linked)
     assert linked["id"] not in str(world.service.brief(world.owner, world.domain))
+
+
+def test_statement_timeout_bounds_every_pooled_connection(admin):
+    url = os.environ["CORTEX_TEST_DATABASE_URL"]
+    default = Database(url)
+    bounded = Database(url, statement_timeout_seconds=1)
+    try:
+        with default.engine.connect() as conn:
+            assert conn.execute(text("SHOW statement_timeout")).scalar_one() == "1min"
+        with bounded.engine.connect() as conn:
+            assert conn.execute(text("SHOW statement_timeout")).scalar_one() == "1s"
+            with pytest.raises(DBAPIError) as raised:
+                conn.execute(text("SELECT pg_sleep(3)"))
+            assert "57014" in str(raised.value.orig)
+    finally:
+        default.dispose()
+        bounded.dispose()
+
+
+def test_whole_domain_reads_check_source_rights_without_per_concept_queries(world):
+    from cortex_core.contracts import QueryInput
+    from sqlalchemy import event
+
+    def source_queries(read):
+        statements = []
+
+        def count(conn, cursor, statement, *args):
+            if "FROM cf_sources" in statement:
+                statements.append(statement)
+
+        event.listen(world.db.engine, "before_cursor_execute", count)
+        try:
+            result = read()
+        finally:
+            event.remove(world.db.engine, "before_cursor_execute", count)
+        return result, len(statements)
+
+    def reads():
+        owner, listed = source_queries(lambda: world.service.concepts(world.owner, world.domain))
+        viewer, _ = source_queries(lambda: world.service.concepts(world.viewer, world.domain))
+        _, queried = source_queries(
+            lambda: world.service.query(
+                world.viewer, world.domain, QueryInput(question="escalate incident", limit=2)
+            )
+        )
+        return len(owner), len(viewer), listed, queried
+
+    private = world.source(content="Private escalation evidence.", subjects=["alice"])
+    world.approve(world.proposal(source=private))
+    for _ in range(6):
+        world.approve(world.proposal())
+    small = reads()
+    for _ in range(7):
+        world.approve(world.proposal())
+    large = reads()
+    # Rights are checked once per read; only cited passages look up their source.
+    assert small[:2] == (7, 6) and large[:2] == (14, 13)
+    assert small[2] == large[2] == 1
+    assert small[3] == large[3]
+
+
+def test_proposal_listing_reads_source_rights_once_per_page(world):
+    from sqlalchemy import event
+
+    def listing():
+        statements = []
+
+        def count(conn, cursor, statement, *args):
+            if "FROM cf_sources" in statement:
+                statements.append(statement)
+
+        event.listen(world.db.engine, "before_cursor_execute", count)
+        try:
+            response = world.client.get(
+                world.prefix + "/proposals?limit=50", headers=world.headers("agent")
+            )
+        finally:
+            event.remove(world.db.engine, "before_cursor_execute", count)
+        assert response.status_code == 200, response.text
+        return len(response.json()["items"]), len(statements)
+
+    private = world.source(content="Private escalation evidence.", subjects=["alice"])
+    world.proposal(source=private)
+    for _ in range(3):
+        world.proposal()
+    small = listing()
+    for _ in range(4):
+        world.proposal()
+    large = listing()
+    # The agent never sees the private proposal; rights are read once per page.
+    assert (small[0], large[0]) == (3, 7)
+    assert small[1] == large[1] == 1

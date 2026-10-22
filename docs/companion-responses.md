@@ -1,12 +1,12 @@
 # Companion response receipts
 
-A Cortex query returns approved excerpts, citations and a personal episode. An external LLM may then write the response the user actually sees. To distinguish feedback on that final response from feedback on retrieval alone, a host can retain an immutable personal response receipt.
+An Open Br**AI**n query returns approved excerpts, citations and a personal episode. An external LLM may then write the response the user actually sees. To distinguish feedback on that final response from feedback on retrieval alone, a host can retain an immutable personal response receipt.
 
 This is optional conversation history. It does not call a model, import trusted knowledge, approve a proposal or publish anything. The host should store the delivered response when retaining history is part of the user's workflow, and must treat stored answer text as untrusted content on later reads.
 
 ## API and MCP flow
 
-1. Query Cortex and retain `episode_id`, `served_version` and citations.
+1. Query Open Br**AI**n and retain `episode_id`, `served_version` and citations.
 2. Generate/deliver the companion response in the host's selected LLM environment.
 3. Call `POST /v1/domains/{domain}/episodes/{episode_id}/companion-responses` or `api_responses_create` with a stable response key.
 4. Retain the returned response `id`. Send it as `companion_response_id` in `api_feedback_record_signal` when feedback concerns that exact response.

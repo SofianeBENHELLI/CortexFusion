@@ -21,6 +21,7 @@ def start_graph(upstream):
         assert urlsplit(upstream).hostname in {"localhost", "127.0.0.1"}, (
             "Synthetic loopback engine required"
         )
+    # "posts" records every engine write (POST or PUT) under its historical name.
     state = {"mode": "healthy", "posts": [], "requests": [], "documents": {}}
 
     class Gateway(BaseHTTPRequestHandler):
@@ -40,17 +41,28 @@ def start_graph(upstream):
                 pass  # A shutdown probe intentionally closes the native connection.
 
         def dispatch(self):
-            parts = urlsplit(self.path).path.split("/")
-            instance = (
-                self.command == "POST"
-                and parts[2] == "document"
-                and parse_qs(urlsplit(self.path).query).get("graph_type") != ["schema"]
-            )
+            url = urlsplit(self.path)
+            parts = url.path.split("/")
+            query = parse_qs(url.query)
+            write = self.command in {"POST", "PUT"}
+            # Snapshots are staged in batches: POST documents without links, then
+            # PUT the linked ones once every endpoint exists.
+            instance = write and parts[2] == "document" and query.get("graph_type") != ["schema"]
             state["requests"].append((self.command, self.path))
             raw = self.rfile.read(int(self.headers.get("Content-Length", "0")))
-            if self.command == "POST":
+            if write:
                 state["posts"].append(self.path)
             if instance and state["mode"] == "incomplete":
+                self.respond(503, b"{}")
+                return
+            # "complete": every write lands but the acknowledgement is lost. The first
+            # read-back after a write fails, so the engine holds the whole snapshot
+            # while the native outcome stays uncertain until a GET-only reconciliation.
+            if (
+                self.command == "GET"
+                and parts[2] == "document"
+                and state.pop("lose_acknowledgement", False)
+            ):
                 self.respond(503, b"{}")
                 return
             if upstream:
@@ -72,26 +84,32 @@ def start_graph(upstream):
             else:
                 database = parts[4]
                 status, body, version = 200, b"[]", "branch:synthetic_commit"
+                documents = state["documents"]
                 if self.command == "POST" and parts[2] == "db":
-                    if database in state["documents"]:
+                    if database in documents:
                         status = 409
                     else:
-                        state["documents"][database] = []
+                        documents[database] = {}
                 elif instance:
-                    state["documents"][database] = json.loads(raw)
+                    stored = documents.setdefault(database, {})
+                    for document in json.loads(raw):
+                        stored[document["@id"]] = document
                 elif self.command == "GET":
-                    if database not in state["documents"]:
+                    if database not in documents:
                         status = 404
                     else:
-                        body = json.dumps(state["documents"][database]).encode()
+                        values = list(documents[database].values())
+                        skip = int(query.get("skip", ["0"])[0])
+                        count = int(query.get("count", [str(len(values))])[0])
+                        body = json.dumps(values[skip : skip + count]).encode()
             if instance and (callback := state.pop("after_instance", None)):
                 callback()
             if instance and state["mode"] == "complete" and status < 300:
-                self.respond(503, b"{}")
-            else:
-                self.respond(status, body, version)
+                state["lose_acknowledgement"] = True
+            self.respond(status, body, version)
 
         do_POST = dispatch
+        do_PUT = dispatch
         do_GET = dispatch
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), Gateway)

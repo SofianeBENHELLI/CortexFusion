@@ -1,12 +1,12 @@
 # Guide fonctionnel d'intégration du frontend
 
-Cette référence cadre les fonctions utilisateur, corpus manager et propriétaire de Cortex Fusion. Elle ne prescrit pas de layout. Elle accompagne le frontend React 18 / TypeScript / Vite développé séparément, avec TanStack Query pour les données serveur, Zustand pour les brouillons et états locaux, et une interface française.
+Cette référence cadre les fonctions utilisateur, corpus manager et propriétaire d’Open Br**AI**n. Elle ne prescrit pas de layout. Elle accompagne le frontend React 18 / TypeScript / Vite développé séparément, avec TanStack Query pour les données serveur, Zustand pour les brouillons et états locaux, et une interface française.
 
-La [référence exhaustive des endpoints](frontend-api.fr.md) donne, pour chaque opération, sa fonction, ses paramètres, ses schémas d'entrée/sortie, ses rôles et son outil MCP. Le [catalogue français Rust complet](../packages/contracts/functional-interactions.rust.fr.json) réunit les 87 opérations, leurs paramètres et réponses, ainsi que les 103 définitions MCP, dans un seul JSON utilisable par un générateur ou un agent. Le [catalogue de référence commun](../packages/contracts/functional-interactions.fr.json) conserve les 79 opérations historiques. Les contrats de types sont dans `packages/contracts/src/`. Les fonctions décrites ici sont celles effectivement livrées ; le tableau suivant distingue les écarts.
+La [référence exhaustive des endpoints](frontend-api.fr.md) donne, pour chaque opération, sa fonction, ses paramètres, ses schémas d'entrée/sortie, ses rôles et son outil MCP. Le [catalogue français Rust complet](../packages/contracts/functional-interactions.rust.fr.json) réunit les 90 opérations, leurs paramètres et réponses, ainsi que les 106 définitions MCP, dans un seul JSON utilisable par un générateur ou un agent. Le [catalogue de référence commun](../packages/contracts/functional-interactions.fr.json) conserve les 79 opérations historiques. Les contrats de types sont dans `packages/contracts/src/`. Les fonctions décrites ici sont celles effectivement livrées ; le tableau suivant distingue les écarts.
 
 ## Candidat Rust : paramètres à utiliser
 
-Les79 endpoints et95 outils MCP historiques sont implémentés en Rust. Huit extensions natives de graphes et de gouvernance portent la surface à **87 opérations HTTP et103 outils MCP** ; leurs [schémas et descriptions françaises](rust-extensions.fr.md) complètent la référence. Les fonctions et schémas métier ci-dessous restent la référence d’intégration. Pour ce runtime, appliquer les précisions suivantes avant les sections communes :
+Les79 endpoints et95 outils MCP historiques sont implémentés en Rust. Onze extensions natives de graphes, de gouvernance et de journal des publications portent la surface à **90 opérations HTTP et 106 outils MCP** ; leurs [schémas et descriptions françaises](rust-extensions.fr.md) complètent la référence. Les fonctions et schémas métier ci-dessous restent la référence d’intégration. Pour ce runtime, appliquer les précisions suivantes avant les sections communes :
 
 - Base locale : `http://127.0.0.1:8010`, avec OpenAPI sur `/openapi.json` et MCP Streamable HTTP sur `/mcp/`. Aucun écran `/docs` n’est livré par Rust. Le frontend React/Vite peut garder ses clients typés et ses clés de cache.
 - Le serveur exige `CORTEX_RUST_DATABASE_URL` et exactement une source d’identité : PEM via `CORTEX_JWT_PUBLIC_KEY_FILE`, ou JWKS fixe via `CORTEX_JWKS_URL`. La [rotation JWKS native](jwks-rotation.fr.md) refuse les clés retirées et les caches expirés, y compris aux contrôles des requêtes en cours. Les rôles viennent toujours de SQL.
@@ -62,7 +62,7 @@ Les variantes GET existent aussi sous `api_proposals_publication_attempts`. Elle
 | Corriger un concept ou une relation | Proposition typée de remplacement de concept avec ses relations et preuves, revue puis publication | Pas de PATCH direct sur une relation canonique. Préparer la nouvelle représentation complète à partir du concept relu. |
 | Boucler sur les retours | Signal explicite/observé/inféré, signalement personnel, prise en charge, résolution, classement sans suite et historique | Pas de file de feedback partagée entre tous les membres. La décision de signalement est dans son historique personnel ; elle n'est pas une publication au journal canonique. Lien explicite correction_proposal_id dans les décisions ; une résolution liée exige une proposition publiée. |
 | Alimenter le corpus | Collections, lots texte, dépôt JSON base64, analyse bornée, états/erreurs, reprises, création de sources et propositions | L'import réussi ne crée pas automatiquement une proposition ou une publication. Pas d'OCR général ni de garantie de fidélité complète du PDF. |
-| Tracer et administrer | Rôles par domaine, lecteurs par source, événements de membership, revue et journal immuables | Pas d'annuaire global, invitations, synchronisation de groupes ni d'IdP fourni par Cortex Fusion. |
+| Tracer et administrer | Rôles par domaine, lecteurs par source, événements de membership, revue et journal immuables | Pas d'annuaire global, invitations, synchronisation de groupes ni d'IdP fourni par Open Br**AI**n. |
 
 ## Vérifier la disponibilité du backend
 
@@ -94,7 +94,7 @@ Cette sonde ne contacte aucun fournisseur IA, ne teste pas la validité de sa cl
 
 ## Identité, rôles et confirmations
 
-L'authentification est fournie par un IdP externe. Cortex vérifie les JWT RS256 avec émetteur, audience et clé/JWKS configurés ; il ne fournit pas de formulaire de connexion ni de route de création de session utilisateur. Le rôle applicatif provient de l'appartenance stockée côté serveur ; un champ role dans le JWT ne l'impose pas.
+L'authentification est fournie par un IdP externe. Open Br**AI**n vérifie les JWT RS256 avec émetteur, audience et clé/JWKS configurés ; il ne fournit pas de formulaire de connexion ni de route de création de session utilisateur. Le rôle applicatif provient de l'appartenance stockée côté serveur ; un champ role dans le JWT ne l'impose pas.
 
 | Rôle technique | Responsabilité |
 |---|---|
@@ -114,7 +114,7 @@ Dans la référence Python seulement, le mode explicite `CORTEX_HTTP_CONFIRMATIO
 
 Le pont MCP transmet une preuve en mémoire après vérification pour éviter une seconde consommation au passage HTTP interne. Aucun en-tête de contournement n'est accepté depuis le réseau. Une confirmation utilisée reste consommée même si une précondition métier échoue ensuite : relire l'état avant une nouvelle décision, conserver la clé métier si l'intention est la même.
 
-La clé privée de confirmation reste côté hôte de confiance qui recueille la décision, distinct du backend Cortex, lequel ne reçoit que la clé publique. Les clés OpenRouter et les secrets d'IdP restent dans les processus serveur concernés. Ils ne doivent jamais être inclus dans les variables publiques de build Vite, le navigateur ou les arguments d'un modèle. L'hôte de confiance prépare la confirmation HTTP/MCP après avoir recueilli le choix sur les paramètres exacts.
+La clé privée de confirmation reste côté hôte de confiance qui recueille la décision, distinct du backend Open Br**AI**n, lequel ne reçoit que la clé publique. Les clés OpenRouter et les secrets d'IdP restent dans les processus serveur concernés. Ils ne doivent jamais être inclus dans les variables publiques de build Vite, le navigateur ou les arguments d'un modèle. L'hôte de confiance prépare la confirmation HTTP/MCP après avoir recueilli le choix sur les paramètres exacts.
 
 ### Préparer une confirmation depuis le serveur de l'interface
 
@@ -303,7 +303,7 @@ La commande historique `domain.publish` (`POST /publish`) conserve son sens glob
 
 Les deux chemins de publication contrôlent les preuves actuelles de la proposition avant de modifier la connaissance. Une acceptation antérieure ne suffit pas si le publieur a depuis perdu accès aux preuves : 404, sans changement de version, projection, outbox ni trace de publication. Un propriétaire qui conserve les droits peut reprendre. Ne pas modifier automatiquement les ACL pour contourner ce refus. Une commande globale sans changement en attente reste sans effet ; une reprise ciblée reste soumise au contrôle des preuves de sa cible historique.
 
-Après un timeout d'approbation, relire la proposition et réutiliser sa clé lorsque le contrat le permet. Après un timeout de publication globale, lire la version et le journal avant une nouvelle décision. Après conflit de révision, présenter à nouveau les changements actualisés ; ne pas approuver automatiquement un contenu différent.
+Chaque opération a un délai côté serveur : 20 s par défaut, 60 s pour une synthèse ou une extraction par modèle, 120 s pour une publication. Au-delà, le serveur répond 503 `REQUEST_TIMEOUT`, que la console présente comme un résultat incertain. Après un timeout d'approbation, relire la proposition et réutiliser sa clé lorsque le contrat le permet. Après un timeout de publication globale, lire la version et le journal avant une nouvelle décision. Après conflit de révision, présenter à nouveau les changements actualisés ; ne pas approuver automatiquement un contenu différent.
 
 ## Parcours 4 — corriger un concept et ses relations
 

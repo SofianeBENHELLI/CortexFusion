@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     local_model: str | None = None
     ollama_url: str = "http://127.0.0.1:11434"
     max_request_bytes: int = Field(default=1000000, ge=1000)
+    # Upper bound for any single SQL statement; tighter local limits still apply.
+    statement_timeout_seconds: int = Field(default=60, ge=1, le=3600)
 
     @model_validator(mode="after")
     def validate_security(self):
@@ -56,7 +58,7 @@ class Settings(BaseSettings):
                     "CORS origins require canonical HTTPS or explicit HTTP loopback, without a path"
                 )
         if not self.database_url.startswith("postgresql+pg8000://"):
-            raise ValueError("Cortex requires PostgreSQL through pg8000")
+            raise ValueError("Open BrAIn requires PostgreSQL through pg8000")
         if bool(self.jwt_public_key_file) == bool(self.jwks_url):
             raise ValueError("configure exactly one public key file or HTTPS JWKS URL")
         if self.jwks_url and urlparse(self.jwks_url).scheme != "https":

@@ -1,0 +1,221 @@
+<div id="ob-journeys">
+  <style>
+    #ob-journeys {color:var(--foreground);width:100%;--primary:var(--foreground);--primary-foreground:var(--background);}
+    #ob-journeys .ob-heading {padding-right:96px;margin-bottom:18px;}
+    #ob-journeys .ob-heading h2 {margin-bottom:5px;font-weight:400;}
+    #ob-journeys .ob-brand strong {font-weight:700;}
+    #ob-journeys .ob-modes,#ob-journeys .ob-roles {display:flex;flex-wrap:wrap;gap:8px;margin:16px 0;}
+    #ob-journeys .ob-context {display:flex;flex-wrap:wrap;gap:8px 20px;margin:16px 0;}
+    #ob-journeys .ob-case {display:block;margin:16px 0;max-width:100%;}
+    #ob-journeys .ob-case select {width:100%;}
+    #ob-journeys #ob-case-content {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:24px;}
+    #ob-journeys #ob-case-content>.ob-stage:nth-child(5),#ob-journeys #ob-case-content>details {grid-column:1/-1;}
+    #ob-journeys .ob-stage {display:grid;grid-template-columns:32px minmax(0,1fr);gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
+    #ob-journeys .ob-stage:last-child {border-bottom:0;}
+    #ob-journeys .ob-index {color:var(--muted-foreground);font-weight:500;padding-top:2px;}
+    #ob-journeys .ob-stage h3 {margin:0 0 7px;}
+    #ob-journeys .ob-stage ul,#ob-journeys .ob-stage ol {margin:6px 0;padding-left:21px;}
+    #ob-journeys .ob-stage li {margin:5px 0;}
+    #ob-journeys .ob-stage dl {display:grid;grid-template-columns:minmax(85px,.4fr) minmax(0,1fr);gap:6px 14px;margin:0;}
+    #ob-journeys dt {color:var(--muted-foreground);}
+    #ob-journeys dd {margin:0;overflow-wrap:anywhere;}
+    #ob-journeys .ob-small {margin-top:12px;}
+    #ob-journeys details {margin-top:16px;}
+    #ob-journeys summary {font-weight:500;}
+    #ob-journeys .ob-flow {display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:18px 0;}
+    #ob-journeys .ob-arrow {color:var(--muted-foreground);}
+    #ob-journeys .ob-transition {display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin:18px 0;}
+    #ob-journeys .ob-transition div {overflow-wrap:anywhere;}
+    #ob-journeys .ob-block-label {display:block;color:var(--muted-foreground);margin-bottom:5px;}
+    #ob-journeys .ob-choice {padding:16px 0;border-bottom:1px solid var(--border);}
+    #ob-journeys .ob-choice h3 {margin:0 0 8px;}
+    #ob-journeys .ob-choice label {display:block;margin:10px 0;}
+    #ob-journeys .ob-choice select {width:100%;}
+    #ob-journeys .ob-sources {margin-top:22px;border-top:1px solid var(--border);padding-top:12px;}
+    #ob-journeys .ob-sources a {margin-right:14px;}
+    #ob-journeys [hidden] {display:none!important;}
+    @media(max-width:600px) {
+      #ob-journeys #ob-case-content {grid-template-columns:minmax(0,1fr);}
+      #ob-journeys .ob-stage {grid-template-columns:24px minmax(0,1fr);gap:8px;}
+      #ob-journeys .ob-stage dl {grid-template-columns:1fr;gap:3px;}
+      #ob-journeys .ob-stage dd {margin-bottom:8px;}
+      #ob-journeys .ob-heading {padding-right:70px;}
+    }
+  </style>
+  <header class="ob-heading">
+    <h2><span class="ob-brand">Open Br<strong>AI</strong>n</span> · Qui fait quoi ?</h2>
+    <div class="text-small text-muted">6 rôles · 26 cas d’usage · cible UX du 16 octobre 2026</div>
+    <div class="text-small">Conception à discuter — fonctions partiellement disponibles</div>
+  </header>
+  <nav class="ob-modes" aria-label="Explorer les usages">
+    <button class="btn btn-primary" type="button" data-view="roles" aria-pressed="true">Par rôle</button>
+    <button class="btn" type="button" data-view="relay" aria-pressed="false">Passages de relais</button>
+    <button class="btn" type="button" data-view="choices" aria-pressed="false">Arbitrages produit</button>
+  </nav>
+  <section id="ob-role-view" aria-label="Parcours par rôle">
+    <div id="ob-role-buttons" class="ob-roles" role="group" aria-label="Choisir un rôle"></div>
+    <div id="ob-role-purpose"></div>
+    <div id="ob-role-context" class="ob-context text-small"></div>
+    <label class="form-label ob-case" for="ob-case">Ce que je veux faire
+      <select id="ob-case" class="form-select"></select>
+    </label>
+    <div id="ob-case-content"></div>
+  </section>
+  <section id="ob-relay-view" aria-label="Un problème traverse les rôles" hidden>
+    <h3>« Cette règle n’est plus correcte »</h3>
+    <div class="text-small text-muted">Scénario synthétique · de la question au retour au lecteur</div>
+    <div id="ob-flow" class="ob-flow" role="group" aria-label="Étapes du traitement"></div>
+    <div id="ob-flow-detail"></div>
+  </section>
+  <section id="ob-choices-view" aria-label="Décisions de conception" hidden>
+    <h3>Les choix qui structurent la future UX</h3>
+    <div class="text-small">Acté : rôles conservés et cumulables · viewer via MCP · pas d’A2A.</div>
+    <div id="ob-choices"></div>
+    <div id="ob-choice-status" class="ob-small text-small" aria-live="polite"></div>
+    <div class="text-small text-muted ob-small">Choix exploratoires uniquement · aucune permission ni donnée applicative modifiée.</div>
+  </section>
+  <div id="ob-announcement" class="sr-only" aria-live="polite"></div>
+  <footer class="ob-sources text-small text-muted">
+    Méthode : objectifs → décisions → actions → preuve de réussite ; responsabilités et relais.
+    <div><a href="https://www.gov.uk/service-manual/agile-delivery/writing-user-stories" target="_blank" rel="noopener noreferrer">User stories · GOV.UK</a><a href="https://www.nngroup.com/articles/service-blueprints-definition/" target="_blank" rel="noopener noreferrer">Service blueprint · NN/g</a></div>
+  </footer>
+  <script>
+  (() => {
+    const root = document.getElementById('ob-journeys');
+    const $ = id => root.querySelector('#' + id);
+    const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const roles = [
+      {id:'V',name:'Viewer',goal:'Utiliser une réponse fiable, sans quitter mon chatbot.',channel:'Mon chatbot ↔ MCP',home:'Question, preuves et suivi personnel',limit:'Consulter et donner un feedback ; aucune publication.',base:'Requêtes sourcées, épisodes, reçus de réponse et feedback personnels.',gap:'Client tiers qualifié, suivi partagé et observations instrumentées.'},
+      {id:'C',name:'Contributeur',goal:'Mettre mon expertise au service d’une amélioration précise.',channel:'Console + chatbot/MCP',home:'Mes tâches et mes propositions',limit:'Avis d’expert ≠ approbation finale. Aucun nouveau rôle reviewer.',base:'Propositions sourcées, différences, révisions et historique.',gap:'Tâches assignées, avis d’expert distincts et cycle UX complet.'},
+      {id:'M',name:'Corpus manager',goal:'Faire avancer le travail et lever les blocages du corpus.',channel:'Console ; opérations MCP à compléter',home:'File à traiter, affectations et contrôles',limit:'Organiser et préparer ; décision de publication réservée à l’owner.',base:'Collections, sources, imports et relances côté backend.',gap:'Triage collectif, délégation, délais et pilotage des contrôles.'},
+      {id:'O',name:'Owner de domaine',goal:'Garantir le domaine et prendre les décisions qui l’engagent.',channel:'Console + MCP selon capacités',home:'Décisions, qualité, couverture et risques',limit:'Droits limités aux domaines autorisés ; conversations privées protégées.',base:'Revue, approbation, publication et journal côté backend.',gap:'Supervision, banque métier, délégation et confirmations intégrées.'},
+      {id:'A',name:'Agent IA',goal:'Exécuter une mission autorisée et rendre un résultat vérifiable.',channel:'MCP · identité de service',home:'Missions et reçus d’exécution',limit:'Aucun faux avis humain ni auto-approbation.',base:'Identité agent, consultation et propositions sous droits.',gap:'Missions durables, orchestration, budgets et suivi produit.'},
+      {id:'T',name:'Admin global',goal:'Rendre le service accessible, fiable et exploitable.',channel:'Console d’administration',home:'Intégrations et incidents',limit:'Administration technique ≠ autorité métier de tous les domaines.',base:'Services, configuration, diagnostics et mécanismes d’identité.',gap:'Rôle global contractualisé et console d’exploitation unifiée.'}
+    ];
+    // Each use case keeps its canonical identifier from the product catalogue.
+    const cases = [
+      ['V01','Connecter mon chatbot','Accéder au bon savoir avec mon identité.','Premier accès à la base de mon équipe.','Quel domaine est pertinent et autorisé ?',['Connecter le serveur MCP','Choisir un domaine par son nom','Découvrir les actions disponibles'],['Connexion reconnue','Domaine et capacités visibles','Session restaurable'],'Je peux poser une question sans ressaisir un UUID.','Admin si connexion impossible','Session expirée ou client incompatible : diagnostic et reconnexion.'],
+      ['V02','Obtenir une réponse sourcée','Décider ou agir à partir d’une réponse justifiable.','Une question métier dans mon chatbot.','Utiliser la réponse, préciser la question ou demander une preuve ?',['Poser la question et donner le contexte utile','Lire la réponse, les sources et les limites','Demander une précision si nécessaire'],['Épisode et version servie','Citations et passages','Réponse ou abstention explicite'],'Je dispose de preuves utilisables ou d’une raison claire de non-réponse.','MCP sert les preuves ; mon chatbot formule la réponse','Absence de savoir, contradiction, budget insuffisant et panne restent distincts.'],
+      ['V03','Comprendre la preuve','Vérifier pourquoi une réponse s’applique.','Une affirmation me surprend.','La preuve couvre-t-elle ma situation ?',['Demander le passage exact','Lire le contexte et la version','Comparer les sources en désaccord'],['Sources accessibles','Version citée','Divergences visibles'],'Je peux relier l’affirmation à une preuve accessible.','Viewer → chatbot → MCP','Une preuve révoquée ne redevient pas visible via l’historique.'],
+      ['V04','Donner un feedback','Faire reconnaître ce qui aide ou pose problème.','« C’est utile » ou « Cette règle a changé ».','Quel point est concerné et quel retour veux-je transmettre ?',['Identifier la réponse ou le passage','Exprimer mon avis et son motif','Recevoir un accusé et, si nécessaire, un signalement'],['Reçu de feedback','Réponse réellement affichée ciblée','État du signalement éventuel'],'Mon retour est enregistré une seule fois et je sais le retrouver.','Corpus manager si dossier partagé à qualifier','Un commentaire ambigu ne devient pas arbitrairement un vote négatif.'],
+      ['V05','Maîtriser les remontées automatiques','Contribuer à l’amélioration sans noter chaque réponse.','Reformulation, correction ou abandon observé.','Quelles observations et estimations est-ce que j’autorise ?',['Choisir mes préférences','Laisser le client transmettre les événements autorisés','Consulter ou désactiver ces remontées'],['Origine explicite / observée / inférée','Préférences actuelles','Reçus accessibles'],'Seuls les signaux autorisés sont transmis avec leur origine.','Client instrumenté → qualification collective autorisée','Un scroll ou le silence ne prouve ni accord ni désaccord ; pas de capture MCP automatique.'],
+      ['V06','Suivre mon signalement','Savoir si mon retour a été traité.','Je reviens après avoir contesté une réponse.','La conclusion répond-elle au problème initial ?',['Demander où en est mon signalement','Lire la conclusion partageable','Consulter la correction ou apporter une précision'],['État courant','Dernière mise à jour','Conclusion et preuve accessibles'],'Je comprends le résultat ou la prochaine étape.','Équipe → retour au viewer via MCP','Les notes internes et conversations d’autres utilisateurs restent privées.'],
+      ['C01','Prendre en charge une tâche','Savoir exactement ce qui est attendu de moi.','Une mission d’expertise m’est affectée.','Accepter, demander une précision ou refuser avec motif ?',['Ouvrir le dossier et ses preuves','Vérifier mon expertise et mes accès','Prendre en charge ou signaler le blocage'],['Responsable et demandeur','Échéance et ancienneté','État et motif de blocage'],'La tâche a un responsable volontaire ou retourne clairement à l’affectation.','Corpus manager ↔ contributeur','L’affectation ne donne pas automatiquement accès aux sources.'],
+      ['C02','Proposer une correction','Améliorer un point du savoir avec des preuves.','Une erreur confirmée ou une nouvelle information.','Modifier, compléter ou demander d’abord une source ?',['Comparer le contenu actuel','Préparer le changement et citer ses preuves','Soumettre une proposition versionnée'],['Différence avant / après','Révision de la proposition','Avis et décision attendus'],'Une proposition sourcée est prête à être examinée.','Contributeur → expert reviewer / owner','Conflit de révision : relire et conserver le brouillon ; aucun remplacement silencieux.'],
+      ['C03','Rendre un avis d’expert','Éclairer la décision sur une modification.','Une proposition m’est confiée pour revue.','Favorable, défavorable ou modifications nécessaires ?',['Lire la révision et ses preuves','Vérifier les questions et impacts concernés','Rendre un avis argumenté'],['Révision examinée','Avis et réserves','Suite donnée à mon avis'],'L’owner dispose d’un avis motivé sur la bonne révision.','Contributeur → owner','Mon avis n’approuve ni ne publie le changement.'],
+      ['C04','Réviser et suivre ma proposition','Faire aboutir une amélioration sans perdre le contexte.','Un reviewer ou l’owner demande une modification.','Réviser, demander une clarification ou retirer la proposition ?',['Lire les demandes précises','Créer la révision suivante','Resoumettre et suivre la décision'],['Demandes traitées','Révision courante','Acceptée / rejetée / publiée'],'Je connais le résultat et son motif ; publication vérifiable si elle a eu lieu.','Owner / reviewer ↔ contributeur','Une approbation sur une ancienne révision ne vaut pas pour la nouvelle.'],
+      ['M01','Qualifier les signaux','Transformer les retours utiles en travail concret.','Un dossier partagé arrive ou plusieurs retours se ressemblent.','Problème de corpus, de synthèse, de contexte ou d’accès ?',['Lire les éléments partageables','Rapprocher les doublons et qualifier l’impact','Créer une tâche ou clôturer avec motif'],['Âge du premier signal','Événements regroupés','Qualification et destination'],'Chaque dossier possède une prochaine action ou une conclusion motivée.','Viewer → corpus manager → expert ou admin','Pas d’accès global aux feedbacks personnels ; hypothèse IA à qualifier.'],
+      ['M02','Affecter et déléguer','Confier le bon travail au bon expert.','Une tâche qualifiée attend un responsable.','Qui a l’expertise, les accès et la disponibilité ?',['Définir mission, priorité et résultat attendu','Proposer la tâche et son échéance','Suivre l’acceptation ou réaffecter'],['À affecter / proposée / en cours','Échéance et blocages','Historique des affectations'],'La tâche est réalisable et sa responsabilité est claire.','Corpus manager → contributeur ; owner si droits manquants','Un refus revient à la file ; réaffecter ne remet pas l’ancienneté à zéro.'],
+      ['M03','Ajouter ou actualiser une source','Maintenir les documents utilisables et traçables.','Nouveau fichier, source modifiée ou import en erreur.','Importer, remplacer une version, relancer ou annuler ?',['Choisir collection et droits autorisés','Suivre l’import et traiter ses erreurs','Examiner l’impact et préparer une proposition'],['Progression par élément','Erreurs et tentatives','Source créée et provenance'],'Les éléments traités sont identifiés, les échecs explicites et la source retrouvable.','Corpus manager → contributeur → owner','Document importé ≠ connaissance approuvée ou publiée.'],
+      ['M04','Lancer les contrôles du corpus','Détecter les régressions avant qu’elles se propagent.','Une source change ou une revue périodique arrive.','Quel périmètre et quelle banque approuvée exécuter ?',['Choisir banque, version et critères','Lancer les contrôles autorisés','Diagnostiquer les échecs et créer les tâches'],['Exécutées / attendues','Réussites, régressions et erreurs','Versions et conditions comparables'],'Chaque échec est expliqué ou pris en charge.','Owner fixe le référentiel ; experts analysent les écarts','Une réponse attendue générée par un modèle n’est pas automatiquement officielle.'],
+      ['M05','Piloter le travail du jour','Débloquer ce qui empêche le corpus de progresser.','J’ouvre mon espace de pilotage.','Qu’est-ce qui doit être traité, relancé ou escaladé en premier ?',['Lire non-affectés, retards et blocages','Ouvrir les dossiers derrière les compteurs','Réaffecter, relancer ou préparer une décision'],['Dernière activité','Temps d’attente par étape','Propositions prêtes pour l’owner'],'Chaque point prioritaire a une action et un responsable.','Corpus manager ↔ équipe ; arbitrage owner','Un compteur vide n’est pas un zéro si les données sont absentes.'],
+      ['O01','Superviser mon domaine','Identifier où ma responsabilité est engagée.','Je consulte l’état du domaine.','Quel risque ou quelle décision mérite mon attention ?',['Lire décisions, contrôles et couverture','Descendre aux preuves et aux tâches','Fixer les priorités ou déléguer le diagnostic'],['Périmètre et période','Risques ouverts et responsables','Mesures avec leur dénominateur'],'Je peux expliquer les priorités à partir de faits traçables.','Owner → corpus manager / experts','Un domaine peu actif n’est pas forcément obsolète.'],
+      ['O02','Décider et publier','Engager une nouvelle version fiable du savoir.','Une proposition est prête pour décision.','Approuver, demander une modification, rejeter ou différer ?',['Comparer changement, preuves, avis et contrôles','Confirmer ma décision sur la révision exacte','Publier puis vérifier le résultat durable'],['Décision et motif','Version publiée','Résultat du recontrôle'],'La version est publiée et vérifiée, ou le refus/report est explicite.','Expert → owner → corpus manager → viewer','Révision modifiée ou publication incertaine : relire avant de réessayer.'],
+      ['O03','Déléguer une revue de domaine','Obtenir une amélioration sans traiter chaque tâche moi-même.','Un domaine doit être revu avant une échéance.','Quel objectif, quelle priorité et quel responsable de pilotage ?',['Définir périmètre et critères de réussite','Confier le pilotage ou l’expertise','Suivre les jalons et arbitrer les blocages'],['Objectif et responsable','Jalons et échéances','Blocages à arbitrer'],'Le résultat est évalué contre l’objectif confié.','Owner → corpus manager ou contributeur','Déléguer le travail ne délègue pas implicitement le pouvoir de publier.'],
+      ['O04','Définir et vérifier la couverture','Savoir si les besoins métier sont réellement servis.','Un nouveau domaine ou une campagne de revalidation.','Quelles questions et quelles preuves définissent la réussite ?',['Définir thèmes et questions attendus','Faire préparer puis approuver les critères','Comparer les résultats entre versions'],['Questions couvertes / attendues','Résultats par thème','Régressions distinctes des améliorations'],'La couverture est mesurée contre un référentiel explicite.','Owner ↔ experts ; corpus manager exécute les contrôles','Le nombre de concepts n’est pas un taux de couverture.'],
+      ['O05','Comprendre un changement','Retrouver qui a décidé quoi et pourquoi.','Une réponse ou un concept a changé.','Conserver le changement ou instruire une correction compensatrice ?',['Ouvrir la publication et son avant / après','Remonter à la proposition, aux avis et au signal','Demander une correction si nécessaire'],['Auteur, décideur et dates','Versions successives','Chaîne de provenance'],'Le changement est explicable et toute correction future est traçable.','Owner → expert / corpus manager','L’historique n’est pas réécrit ; une compensation est une nouvelle proposition.'],
+      ['O06','Gérer les responsabilités et accès','Permettre à chacun de travailler dans le bon périmètre.','Arrivée, départ ou changement de responsabilité.','Quels droits sont nécessaires sur quel domaine et quelles sources ?',['Examiner les besoins et tâches en cours','Confirmer les changements autorisés','Réaffecter les tâches devenues orphelines'],['Droits actuels','Historique de décision','Tâches affectées par le changement'],'Les accès et missions sont cohérents sans contenu privé exposé.','Owner ↔ corpus manager ; admin pour l’identité technique','Les rôles cumulés et la portée globale doivent encore être contractualisés.'],
+      ['A01','Exécuter une mission bornée','Produire un travail vérifiable pour un humain.','Une mission autorisée est disponible.','Exécuter dans le mandat ou signaler une limite ?',['Prendre en charge la mission','Analyser les seules preuves accessibles','Rendre rapport, proposition ou blocage'],['Identité agent et mandat','Tentatives et résultat durable','Budget et limites déclarées'],'Le destinataire peut vérifier le résultat et décider de la suite.','Manager / owner → agent → reviewer humain','L’agent ne signe pas à la place de l’humain et ne s’auto-approuve pas.'],
+      ['A02','Surveiller et contrôler','Faire remonter les anomalies candidates à temps.','Un contrôle planifié ou un changement de source.','Signaler un candidat, poursuivre ou arrêter au budget ?',['Exécuter le contrôle mandaté','Relier les résultats aux preuves','Déposer les éléments à qualifier'],['Version et périmètre contrôlés','Coût, erreurs et couverture','Dossiers candidats et doublons'],'Les anomalies candidates sont traçables, sans changement automatique du savoir.','Agent → corpus manager → expert','Contradiction candidate ≠ contradiction confirmée ; fournisseur modèle autorisé seulement.'],
+      ['T01','Connecter un chatbot','Permettre un accès MCP réellement utilisable.','Un nouveau client doit utiliser la plateforme.','Quelles capacités le client supporte-t-il et dans quel périmètre ?',['Configurer connexion et identité','Tester question, preuve, feedback et suivi','Documenter capacités et limites'],['Connexion et erreurs','Capacités vérifiées par client','Révocation et reprise de session'],'Le parcours minimal fonctionne sur des données synthétiques.','Admin → utilisateurs ; support client si incompatibilité','MCP ne fournit pas automatiquement la télémétrie ou les notifications du chatbot.'],
+      ['T02','Traiter un incident de service','Rétablir un service fiable sans perdre les données.','Erreur, panne ou traitement bloqué.','Diagnostiquer, redémarrer, restaurer ou escalader ?',['Identifier le composant et le périmètre affectés','Appliquer une action réversible ou une restauration éprouvée','Vérifier le retour du service'],['Disponibilité et erreurs','Tentatives et journal technique','Preuve de reprise ou de restauration'],'Le service fonctionne à nouveau et l’incident a une trace exploitable.','Admin ↔ responsables des domaines affectés','Pas de corpus ni de conversations privées dans les logs techniques.'],
+      ['T03','Administrer les intégrations','Maintenir une configuration explicite et maîtrisée.','Une configuration ou une identité de service évolue.','Quelle portée et quel impact pour cette modification ?',['Examiner la configuration actuelle','Appliquer le changement autorisé','Vérifier le fonctionnement et la traçabilité'],['Configuration et portée','Historique des changements','Résultats des vérifications'],'La configuration attendue est active et ses effets identifiables.','Admin ↔ owner pour les conséquences métier','Admin global n’est pas un super-owner métier implicite.']
+    ].map(([id,title,goal,trigger,decision,actions,track,done,handoff,edge])=>({id,title,goal,trigger,decision,actions,track,done,handoff,edge}));
+    const flow = [
+      {label:'Question',actor:'Viewer',uc:'V02',channel:'Chatbot → MCP',action:'Demander la règle applicable à une situation.',decision:'La réponse est-elle suffisamment étayée ?',trace:'Épisode + preuves + version servie',from:'Besoin d’information',to:'Réponse consultable',system:'Filtrer les preuves selon les droits ; distinguer résultat et limites.',alternate:'Si les preuves manquent : préciser ou recevoir une abstention.'},
+      {label:'Feedback',actor:'Viewer',uc:'V04',channel:'Chatbot → MCP',action:'« Cette règle a changé » : cibler la réponse et donner le motif.',decision:'Quel élément partager avec l’équipe ?',trace:'Reçu de feedback + dossier partageable',from:'Réponse contestée',to:'Signal à qualifier',system:'Conserver l’origine et la cible ; éviter le doublon à la retransmission.',alternate:'Un feedback personnel non partagé reste personnel.'},
+      {label:'Qualification',actor:'Corpus manager',uc:'M01',channel:'File de traitement',action:'Comparer les signaux et déterminer la cause probable.',decision:'Corpus, synthèse du chatbot, droits ou contexte ?',trace:'Diagnostic initial + priorité motivée',from:'Signal partagé',to:'Tâche définie',system:'Relier les événements sans révéler les conversations privées.',alternate:'Si le corpus n’est pas en cause : réorienter ou clôturer avec motif.'},
+      {label:'Affectation',actor:'Corpus manager',uc:'M02',channel:'Tâche → expert',action:'Confier une correction avec preuves, échéance et résultat attendu.',decision:'Quel expert peut réellement la traiter ?',trace:'Assigné + acceptation + date initiale',from:'Tâche à affecter',to:'Tâche prise en charge',system:'Vérifier les accès et enregistrer les transitions concurrentes.',alternate:'Refus ou accès absent : réaffecter ou solliciter l’owner.'},
+      {label:'Expertise',actor:'Contributeur',uc:'C02',channel:'Console ou chatbot/MCP',action:'Préparer une correction sourcée ; obtenir un avis d’expert si requis.',decision:'Le changement proposé résout-il le problème ?',trace:'Proposition versionnée + avis sur cette révision',from:'Tâche en cours',to:'Décision attendue',system:'Conserver différence, preuves, auteur et révision exacte.',alternate:'Preuve insuffisante : demander une source ; conflit : relire.'},
+      {label:'Décision',actor:'Owner',uc:'O02',channel:'Revue et confirmation',action:'Examiner preuves, avis et contrôles ; décider puis publier.',decision:'Approuver, modifier, rejeter ou différer ?',trace:'Décision signée + version publiée',from:'Proposition à examiner',to:'Publication vérifiable',system:'Revalider droits et révision ; conserver le résultat durable.',alternate:'Demande de modification : retour à l’expert, sans approbation périmée.'},
+      {label:'Recontrôle',actor:'Corpus manager + agent mandaté',uc:'M04',channel:'Banque de questions',action:'Rejouer le cas et vérifier les régressions sur la version publiée.',decision:'Résoudre le dossier ou rouvrir le diagnostic ?',trace:'Résultats par question + version testée',from:'Correction publiée',to:'Correction vérifiée',system:'Séparer échecs, erreurs techniques et tests non exécutés.',alternate:'Échec ou régression : nouvelle tâche ; pas de clôture automatique au seul taux global.'},
+      {label:'Retour',actor:'Viewer',uc:'V06',channel:'MCP → chatbot',action:'Retrouver la conclusion et la preuve corrigée.',decision:'La conclusion répond-elle au problème signalé ?',trace:'État personnel + conclusion partageable',from:'Dossier traité',to:'Lecteur informé',system:'Rendre le suivi accessible ; notifier seulement si le client le permet.',alternate:'Besoin non résolu : apporter une précision liée au dossier.'}
+    ];
+    const choices = [
+      {id:'dispatch',title:'Qui répartit le travail quotidien ?',impact:'Détermine l’accueil du corpus manager et les escalades vers l’owner.',options:['Corpus manager ; owner arbitre les exceptions','Owner affecte chaque tâche'],recommend:0},
+      {id:'sharing',title:'Comment un signal devient-il collectif ?',impact:'Détermine ce que voit l’équipe, sans ouvrir la conversation privée.',options:['Partage explicite d’un dossier minimal','Politique d’organisation explicite, à contractualiser'],recommend:0},
+      {id:'reference',title:'Qui valide les réponses de référence ?',impact:'Détermine la gouvernance de la banque de questions.',options:['Experts préparent ; owner approuve','Plusieurs avis requis avant décision owner'],recommend:0},
+      {id:'deadline',title:'Comment fixer les délais de traitement ?',impact:'Détermine la priorité, les retards et les alertes ; aucun délai chiffré fixé ici.',options:['Selon criticité du sujet et impact','Même délai cible pour tous les dossiers'],recommend:0},
+      {id:'closure',title:'Qui clôture une correction ?',impact:'Sépare la publication du savoir et la résolution du problème.',options:['Corpus manager après recontrôle documenté','Owner après recontrôle documenté'],recommend:0},
+      {id:'pilot',title:'Que valider en premier avec les utilisateurs ?',impact:'Détermine le premier lot de refonte à tester.',options:['Une boucle complète : viewer → expert → owner → viewer','Tous les accueils de rôle avant la boucle complète'],recommend:0}
+    ];
+    let state = {view:'roles',role:'V',uc:'V02',step:0,choices:{}};
+    function restore(raw) {
+      const s=raw?.modelContent;
+      if(!s || s.version!==1) return;
+      if(['roles','relay','choices'].includes(s.view)) state.view=s.view;
+      if(roles.some(r=>r.id===s.role)) state.role=s.role;
+      if(cases.some(c=>c.id===s.uc&&c.id.startsWith(state.role))) state.uc=s.uc;
+      else state.uc=cases.find(c=>c.id.startsWith(state.role)).id;
+      if(Number.isInteger(s.step)&&s.step>=0&&s.step<flow.length) state.step=s.step;
+      state.choices={};
+      choices.forEach(c=>{const v=s.choices?.[c.id];if(Number.isInteger(v)&&v>=0&&v<c.options.length) state.choices[c.id]=v;});
+    }
+    function save() {
+      const api=window.openai;
+      if(api?.setWidgetState) Promise.resolve(api.setWidgetState({modelContent:{version:1,...state},privateContent:null})).catch(()=>{});
+    }
+    function announce(text) {$('ob-announcement').textContent=text;}
+    function stage(n,title,content) {return `<div class="ob-stage"><span class="ob-index" aria-hidden="true">${n}</span><div><h3>${title}</h3>${content}</div></div>`;}
+    function renderCase() {
+      const c=cases.find(c=>c.id===state.uc), r=roles.find(r=>r.id===state.role);
+      $('ob-case-content').innerHTML=
+        stage('01','Mon objectif',`<div>${esc(c.goal)}</div><div class="text-small text-muted ob-small">Déclencheur · ${esc(c.trigger)}</div>`)+
+        stage('02','Ma décision',`<div>${esc(c.decision)}</div>`)+
+        stage('03','Mes actions concrètes',`<ol>${c.actions.map(a=>`<li>${esc(a)}</li>`).join('')}</ol>`)+
+        stage('04','Comment je suis le travail',`<ul>${c.track.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>`)+
+        stage('05','Terminé quand…',`<div>${esc(c.done)}</div><div class="text-small ob-small">Relais · ${esc(c.handoff)}</div>`)+
+        `<details><summary>Limites et état actuel</summary><dl class="ob-small"><dt>Si cela bloque</dt><dd>${esc(c.edge)}</dd><dt>Limite du rôle</dt><dd>${esc(r.limit)}</dd><dt>Fondation existante</dt><dd>${esc(r.base)}</dd><dt>À construire / qualifier</dt><dd>${esc(r.gap)}</dd></dl></details>`;
+    }
+    function renderRoles() {
+      const r=roles.find(r=>r.id===state.role);
+      $('ob-role-buttons').innerHTML=roles.map(r=>`<button class="btn${r.id===state.role?' btn-primary':''}" type="button" data-role="${r.id}" aria-pressed="${r.id===state.role}">${esc(r.name)}</button>`).join('');
+      $('ob-role-purpose').textContent=r.goal;
+      $('ob-role-context').innerHTML=`<span><span class="text-muted">Canal · </span>${esc(r.channel)}</span><span><span class="text-muted">Accueil · </span>${esc(r.home)}</span>`;
+      $('ob-case').innerHTML=cases.filter(c=>c.id.startsWith(state.role)).map(c=>`<option value="${c.id}"${c.id===state.uc?' selected':''}>${c.id} · ${esc(c.title)}</option>`).join('');
+      renderCase();
+    }
+    function renderFlow() {
+      $('ob-flow').innerHTML=flow.map((f,i)=>`${i?'<span class="ob-arrow" aria-hidden="true">→</span>':''}<button type="button" class="btn${state.step===i?' btn-primary':''}" data-step="${i}" aria-pressed="${state.step===i}">${i+1}. ${esc(f.label)}</button>`).join('');
+      const f=flow[state.step];
+      $('ob-flow-detail').innerHTML=`<div class="ob-transition"><div><span class="ob-block-label text-small">Entrée</span>${esc(f.from)}</div><span class="ob-arrow" aria-hidden="true">→</span><div><span class="ob-block-label text-small">Sortie</span>${esc(f.to)}</div></div>`+
+        stage('A','Responsable et point de contact',`<dl><dt>Acteur</dt><dd>${esc(f.actor)}</dd><dt>Interface</dt><dd>${esc(f.channel)}</dd></dl>`)+
+        stage('B','Action et décision',`<dl><dt>Action</dt><dd>${esc(f.action)}</dd><dt>Décision</dt><dd>${esc(f.decision)}</dd></dl>`)+
+        stage('C','Ce que le service doit garantir',`<dl><dt>Mécanisme</dt><dd>${esc(f.system)}</dd><dt>Trace durable</dt><dd>${esc(f.trace)}</dd></dl>`)+
+        stage('D','Si le parcours dévie',`<div>${esc(f.alternate)}</div>`)+
+        `<div class="viz-row ob-small"><button class="btn" type="button" data-open-case="${f.uc}">Explorer ${f.uc}</button><span class="text-small text-muted">Parcours cible · aucune action réelle</span></div>`;
+    }
+    function renderChoices() {
+      $('ob-choices').innerHTML=choices.map(c=>`<div class="ob-choice"><h3>${esc(c.title)}</h3><div class="text-small text-muted">${esc(c.impact)}</div><label class="form-label" for="ob-choice-${c.id}">Choix à discuter<select class="form-select" id="ob-choice-${c.id}" data-choice="${c.id}"><option value=""${state.choices[c.id]===undefined?' selected':''}>À décider</option>${c.options.map((o,i)=>`<option value="${i}"${state.choices[c.id]===i?' selected':''}>${esc(o)}${i===c.recommend?' — recommandé':''}</option>`).join('')}</select></label></div>`).join('');
+      $('ob-choice-status').textContent=`${Object.keys(state.choices).length} / ${choices.length} choix exploratoires renseignés`;
+    }
+    function renderView() {
+      root.querySelectorAll('[data-view]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.view===state.view));b.classList.toggle('btn-primary',b.dataset.view===state.view);});
+      $('ob-role-view').hidden=state.view!=='roles';
+      $('ob-relay-view').hidden=state.view!=='relay';
+      $('ob-choices-view').hidden=state.view!=='choices';
+    }
+    root.addEventListener('click',e=>{
+      const b=e.target.closest('button'); if(!b) return;
+      if(b.dataset.view){state.view=b.dataset.view;renderView();announce(b.textContent);}
+      else if(b.dataset.role){state.role=b.dataset.role;state.uc=cases.find(c=>c.id.startsWith(state.role)).id;renderRoles();root.querySelector(`[data-role="${state.role}"]`).focus();announce(roles.find(r=>r.id===state.role).name);}
+      else if(b.dataset.step!==undefined){state.step=Number(b.dataset.step);renderFlow();root.querySelector(`[data-step="${state.step}"]`).focus();announce(flow[state.step].label);}
+      else if(b.dataset.openCase){state.uc=b.dataset.openCase;state.role=state.uc[0];state.view='roles';renderRoles();renderView();$('ob-case').focus();announce(state.uc);}
+      else return;
+      save();
+    });
+    root.addEventListener('change',e=>{
+      if(e.target.id==='ob-case'){state.uc=e.target.value;renderCase();announce(cases.find(c=>c.id===state.uc).title);}
+      else if(e.target.dataset.choice){const k=e.target.dataset.choice;if(e.target.value==='')delete state.choices[k];else state.choices[k]=Number(e.target.value);$('ob-choice-status').textContent=`${Object.keys(state.choices).length} / ${choices.length} choix exploratoires renseignés`;}
+      else return;
+      save();
+    });
+    restore(window.openai?.widgetState);
+    renderRoles();renderFlow();renderChoices();renderView();
+    window.addEventListener('openai:set_globals',e=>{
+      if(!e.detail?.globals || !('widgetState' in e.detail.globals))return;
+      restore(e.detail.globals.widgetState);renderRoles();renderFlow();renderChoices();renderView();
+    });
+  })();
+  </script>
+</div>

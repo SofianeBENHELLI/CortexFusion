@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProposalDifferenceSummary",
+  "additionalProperties": false,
+  "properties": {
+    "proposal_id": {
+      "format": "uuid",
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "base_version": {
+      "title": "Base Version",
+      "type": "integer"
+    },
+    "published_version": {
+      "title": "Published Version",
+      "type": "integer"
+    },
+    "comparison": {
+      "enum": [
+        "accepted_before_state",
+        "current_published_state"
+      ],
+      "title": "Comparison",
+      "type": "string"
+    },
+    "stale_base": {
+      "title": "Stale Base",
+      "type": "boolean"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/DifferenceSummaryConceptDifference"
+      },
+      "title": "Items",
+      "type": "array",
+      "maxItems": 50
+    }
+  },
+  "required": [
+    "proposal_id",
+    "base_version",
+    "published_version",
+    "comparison",
+    "stale_base",
+    "items"
+  ],
+  "type": "object",
+  "$defs": {
+    "DifferenceSummaryConceptDifference": {
+      "additionalProperties": false,
+      "properties": {
+        "concept_id": {
+          "format": "uuid",
+          "title": "Concept Id",
+          "type": "string"
+        },
+        "before": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DifferenceSummaryConcept"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "after": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DifferenceSummaryConcept"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "concept_id",
+        "before",
+        "after"
+      ],
+      "title": "DifferenceSummaryConceptDifference",
+      "type": "object"
+    },
+    "DifferenceSummaryConcept": {
+      "additionalProperties": false,
+      "properties": {
+        "concept_id": {
+          "format": "uuid",
+          "title": "Concept Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "maturity": {
+          "$ref": "#/$defs/DifferenceSummaryMaturity",
+          "default": "emerging"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/DifferenceSummarySourceRef"
+          },
+          "maxItems": 30,
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/DifferenceSummaryLink"
+          },
+          "maxItems": 100,
+          "title": "Links",
+          "type": "array"
+        },
+        "body_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "SHA-256 of the exact UTF-8 concept body; the body is not returned."
+        }
+      },
+      "required": [
+        "concept_id",
+        "title",
+        "body_sha256",
+        "sources"
+      ],
+      "title": "DifferenceSummaryConcept",
+      "type": "object"
+    },
+    "DifferenceSummaryLink": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "structural",
+            "associative"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "primary": {
+          "default": false,
+          "title": "Primary",
+          "type": "boolean"
+        },
+        "weight": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "target_id",
+        "kind"
+      ],
+      "title": "DifferenceSummaryLink",
+      "type": "object"
+    },
+    "DifferenceSummaryMaturity": {
+      "enum": [
+        "emerging",
+        "observed",
+        "established",
+        "reference"
+      ],
+      "title": "DifferenceSummaryMaturity",
+      "type": "string"
+    },
+    "DifferenceSummarySourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "start": {
+          "description": "Zero-based Unicode code point offset, inclusive",
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "description": "Unicode code point offset, exclusive; not UTF-16 units",
+          "exclusiveMinimum": 0,
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source_id",
+        "start",
+        "end"
+      ],
+      "title": "DifferenceSummarySourceRef",
+      "type": "object"
+    }
+  }
+}

@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MapNodePage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "domain_id",
+    "at_version",
+    "visibility",
+    "totals",
+    "bounds",
+    "total",
+    "offset",
+    "page_size",
+    "items",
+    "selected",
+    "focus_bounds"
+  ],
+  "properties": {
+    "domain_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "at_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "visibility": {
+      "type": "string"
+    },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "concepts",
+        "relations",
+        "references"
+      ],
+      "properties": {
+        "concepts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "relations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "references": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "bounds": {
+      "$ref": "#/$defs/MapBounds"
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "offset": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "items": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node",
+          "link"
+        ],
+        "properties": {
+          "node": {
+            "$ref": "#/$defs/MapNode"
+          },
+          "link": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/MapLink"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "selected": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MapNode"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "focus_bounds": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MapBounds"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "page_size": {
+      "type": "integer",
+      "enum": [
+        8,
+        16
+      ],
+      "description": "Server page bound: eight for a nonempty normalized search, sixteen otherwise."
+    }
+  },
+  "$defs": {
+    "MapBounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "w",
+        "h"
+      ],
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "w": {
+          "type": "number"
+        },
+        "h": {
+          "type": "number"
+        }
+      }
+    },
+    "MapLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "kind",
+        "weight"
+      ],
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "reference",
+            "structural",
+            "associative"
+          ]
+        },
+        "weight": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "MapNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "maturity",
+        "group",
+        "territory",
+        "x",
+        "y",
+        "degree"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "maturity": {
+          "type": "string"
+        },
+        "group": {
+          "type": "string"
+        },
+        "territory": {
+          "type": "string"
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "degree": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

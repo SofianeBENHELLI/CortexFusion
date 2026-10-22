@@ -1,10 +1,10 @@
-# Contributing to Cortex Fusion
+# Contributing to Open Br**AI**n
 
 Start with the [prototype scope](docs/product/prototype-scope.md) and [architecture](docs/architecture/README.md). Work in focused branches and explain the user-visible result, affected contracts, and validation in each pull request.
 
 ## Working conventions
 
-- Use Cortex Fusion in new product documentation; retain original source documents unchanged for traceability.
+- Use Open Br**AI**n as the product name, rendered `Open Br**AI**n` in Markdown and `Open Br<strong>AI</strong>n` in HTML/React: emphasize only AI, preserve the exact casing. Plain-text titles and protocol metadata use `Open BrAIn`. Keep technical identifiers, existing URLs, and original historical evidence unchanged.
 - Keep Python knowledge and workflow logic separate from the TypeScript harness and interface.
 - Define shared wire contracts before coupling components.
 - Record significant architectural changes and their evidence in `docs/architecture/decisions/`.

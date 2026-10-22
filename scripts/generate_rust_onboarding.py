@@ -12,7 +12,30 @@ guide = next(
     if isinstance(n, ast.Assign)
     and any(isinstance(t, ast.Name) and t.id == "GUIDE" for t in n.targets)
 )
-out = {"guide": guide, "resources": [], "resourceTemplates": [], "prompts": []}
+workflow_module = ast.parse(
+    (root / "services/core/src/cortex_core/companion_guides.py").read_text()
+)
+workflow_values = {}
+for n in workflow_module.body:
+    if not isinstance(n, ast.Assign) or not isinstance(n.targets[0], ast.Name):
+        continue
+    key = n.targets[0].id
+    if key == "GUIDES":
+        workflow_values[key] = ast.literal_eval(n.value)
+    elif key == "CATALOG":
+        workflow_values[key] = {
+            ast.literal_eval(k): workflow_values["GUIDES"]
+            if isinstance(v, ast.Name) and v.id == "GUIDES"
+            else ast.literal_eval(v)
+            for k, v in zip(n.value.keys, n.value.values, strict=True)
+        }
+out = {
+    "guide": guide,
+    "workflows": workflow_values["CATALOG"],
+    "resources": [],
+    "resourceTemplates": [],
+    "prompts": [],
+}
 for node in ast.walk(module):
     if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         continue

@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AgentMissionControlPage",
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/AgentMissionControl"
+      },
+      "maxItems": 20
+    },
+    "next_after": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "items",
+    "next_after"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "AgentMissionControl": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "stopped",
+            "completed"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "max_reads": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "max_chars": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "reads_used": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "chars_used": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "can_stop": {
+          "type": "boolean"
+        },
+        "content_withheld": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "revision",
+        "max_reads",
+        "max_chars",
+        "reads_used",
+        "chars_used",
+        "expires_at",
+        "created_at",
+        "expired",
+        "can_stop",
+        "content_withheld"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

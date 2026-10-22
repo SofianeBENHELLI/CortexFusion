@@ -1,10 +1,10 @@
-# CortexFusion — évaluation de TerminusDB et plan de prototype
+# Open Br**AI**n — évaluation de TerminusDB et plan de prototype
 
 État au 8 septembre 2026. Décision : prototype isolé autorisé par la nouvelle orientation utilisateur ; adoption du moteur et migration du backend non décidées. Le texte d’origine reste local ; ce document est une analyse d’intégration.
 
 ## Avis et corrections à la note
 
-La proposition renforce la thèse produit : gouverner des assertions reliées, avec preuves, évolution et consommation par les agents. CortexFusion possède déjà une partie importante de ce cycle. TerminusDB peut apporter les branches et états historiques natifs ; il ne remplace ni la gouvernance ni les garanties de transport déjà réalisées.
+La proposition renforce la thèse produit : gouverner des assertions reliées, avec preuves, évolution et consommation par les agents. Open Br**AI**n possède déjà une partie importante de ce cycle. TerminusDB peut apporter les branches et états historiques natifs ; il ne remplace ni la gouvernance ni les garanties de transport déjà réalisées.
 
 La version étudiée est **v12.0.7**, commit **57f2093baeafd65e16004e84b7b58e0c5cf72858**, récupéré depuis le dépôt officiel. Les [releases officielles](https://github.com/terminusdb/terminusdb/releases/tag/v12.0.7) décrivent cette livraison. Le [fichier LICENSE de cette révision](https://github.com/terminusdb/terminusdb/blob/v12.0.7/LICENSE) porte Apache 2.0 ; cela soutient l’étude commerciale du moteur, sans valider la licence de chaque dépendance, image, service hébergé ou composant optionnel. L’image réellement utilisée doit être identifiée par son digest et faire l’objet d’un inventaire séparé.
 
@@ -12,11 +12,11 @@ Le [guide de merge](https://terminusdb.org/docs/merge-howto/) décrit diff/apply
 
 Les [permissions documentées](https://terminusdb.org/docs/access-control/) portent sur utilisateurs, rôles et capacités de ressources telles que organisation/base. Leur équivalence avec notre contrôle actuel par preuve n’est pas établie. Aucune URL TerminusDB ni credential moteur ne doit être fourni au frontend ou au companion. Les requêtes historiques doivent respecter les droits actuels ; l’accès à un ancien commit ne doit pas ressusciter des preuves révoquées.
 
-Enfin, un historique immuable de moteur n’atteste pas à lui seul une approbation humaine. L’auteur déclaré, l’identité authentifiée, l’approbateur, le publieur et les dates de validité métier sont des informations distinctes. Un reset de branche n’est pas le rollback métier compensatoire de CortexFusion. Pour une connaissance déjà publiée, conserver l’événement historique et publier une compensation.
+Enfin, un historique immuable de moteur n’atteste pas à lui seul une approbation humaine. L’auteur déclaré, l’identité authentifiée, l’approbateur, le publieur et les dates de validité métier sont des informations distinctes. Un reset de branche n’est pas le rollback métier compensatoire d’Open Br**AI**n. Pour une connaissance déjà publiée, conserver l’événement historique et publier une compensation.
 
 ## Écart avec le backend livré
 
-| Besoin | CortexFusion actuel | Apport ou travail à évaluer |
+| Besoin | Open Br**AI**n actuel | Apport ou travail à évaluer |
 |---|---|---|
 | Proposer, revoir, différer, approuver | Propositions avec preuves, digest, révision et décisions | Évolution vers KCR, sans casser les IDs ni les parcours existants |
 | Publier et reprendre | Publication distincte, ciblée, atomique PostgreSQL, événement publieur, confirmations HTTP/MCP | Publication d’un commit moteur fixé dans un manifeste applicatif |
@@ -41,11 +41,11 @@ Les événements de propagation doivent être émis après la publication applic
 
 ## Premier essai exécutable
 
-[experiments/terminusdb/probe.py](../../experiments/terminusdb/probe.py) cible un moteur HTTP sur loopback et une base fraîche au préfixe `cortex_spike_`. Il refuse une destination distante, les redirections et la répétition automatique d’une mutation incertaine. Il ne supprime aucune base existante et ne lit aucun corpus CortexFusion. Aucun modèle n’est appelé.
+[experiments/terminusdb/probe.py](../../experiments/terminusdb/probe.py) cible un moteur HTTP sur loopback et une base fraîche au préfixe `cortex_spike_`. Il refuse une destination distante, les redirections et la répétition automatique d’une mutation incertaine. Il ne supprime aucune base existante et ne lit aucun corpus Open Br**AI**n. Aucun modèle n’est appelé.
 
 Scénario : créer Concept/Evidence/Owner/KnowledgeAtom ; créer une branche ; y ajouter l’assertion X SUPPORTS Y avec preuve ; vérifier main inchangé ; calculer le diff ; appliquer depuis la base immuable ; relire l’état historique ; provoquer deux éditions contradictoires du même champ et vérifier un refus atomique. Une règle Python distincte détecte SUPPORTS/INCOMPATIBLE_WITH pour le même sujet, objet et contexte. Cette règle étroite ne prétend pas être un moteur sémantique complet. Le KnowledgeAtom représente ici une assertion relationnelle ; une classe Relation indépendante et les intervalles de validité restent à concevoir.
 
-Ce scénario teste le moteur, pas l’intégration des approbations CortexFusion. L’absence de relation à T0 signifie « non établi », jamais automatiquement « faux ». La disponibilité à T1 est une observation de données ; aucune qualité de réponse LLM n’en est déduite.
+Ce scénario teste le moteur, pas l’intégration des approbations Open Br**AI**n. L’absence de relation à T0 signifie « non établi », jamais automatiquement « faux ». La disponibilité à T1 est une observation de données ; aucune qualité de réponse LLM n’en est déduite.
 
 Exécution sur une machine équipée de Docker :
 
@@ -80,9 +80,9 @@ Ces durées sont des ordres de grandeur pour un développeur, pas une promesse d
 
 Sept tests locaux passent : séparation des contextes dans la règle sémantique, refus de destinations distantes, refus de redirection et absence de rejeu après timeout. Aucun moteur Docker/Podman/SWI-Prolog n’a été trouvé localement. Le [premier workflow moteur](https://github.com/SofianeBENHELLI/CortexFusion/actions/runs/34172543003) a **réussi** sur Ubuntu avec le conteneur réel. Le serveur annonce 12.0.7, git_hash 57f2093baeafd65e16004e84b7b58e0c5cf72858 et terminusdb_store 0.19.8. Le [rapport machine](../../experiments/terminusdb/result-2026-09-08.json) consigne le digest exact et les sept vérifications. Les six premières exercent stockage/branches/diff/apply/historique/conflit sur le moteur ; la septième est une règle métier Python exécutée dans le même scénario, pas une capacité sémantique native de TerminusDB.
 
-La validation moteur utilise un compte admin sur données jetables ; elle ne prouve pas les contrôles de sécurité CortexFusion. Aucun test de grande charge, HA, restauration, intégration du workflow d’approbation ou publication multi-stockages n’a encore été effectué. Résultat : **poursuivre le prototype**, sans décider encore la migration du backend.
+La validation moteur utilise un compte admin sur données jetables ; elle ne prouve pas les contrôles de sécurité Open Br**AI**n. Aucun test de grande charge, HA, restauration, intégration du workflow d’approbation ou publication multi-stockages n’a encore été effectué. Résultat : **poursuivre le prototype**, sans décider encore la migration du backend.
 
 
 ## Extension de l’essai : divergence et compensation
 
-Le scénario est étendu à une branche et un main qui ont chacun changé depuis leur ancêtre commun. Il doit conserver à la fois la modification indépendante du concept sur main et le contexte révisé de l’atome sur la proposition. Puis une nouvelle écriture rétablit le contexte antérieur avec business_version=3, conserve le changement indépendant et laisse la révision métier 2 lisible à son ancien commit. Ce test moteur ne réalise pas le cycle d’approbation d’une compensation CortexFusion. Le premier rapport ci-dessus reste celui du scénario initial. L’extension a réussi sur le moteur réel dans le [workflow34172881646](https://github.com/SofianeBENHELLI/CortexFusion/actions/runs/34172881646) : huit vérifications moteur et une règle Python. Le [rapport distinct](../../experiments/terminusdb/result-divergence-2026-09-08.json) préserve cette différence de périmètre. La CI complète du premier prototype601300f a également validé 514 tests Python et 11 tests Node, ainsi que les démonstrations PostgreSQL/MCP ; le code applicatif n’a pas migré.
+Le scénario est étendu à une branche et un main qui ont chacun changé depuis leur ancêtre commun. Il doit conserver à la fois la modification indépendante du concept sur main et le contexte révisé de l’atome sur la proposition. Puis une nouvelle écriture rétablit le contexte antérieur avec business_version=3, conserve le changement indépendant et laisse la révision métier 2 lisible à son ancien commit. Ce test moteur ne réalise pas le cycle d’approbation d’une compensation Open Br**AI**n. Le premier rapport ci-dessus reste celui du scénario initial. L’extension a réussi sur le moteur réel dans le [workflow34172881646](https://github.com/SofianeBENHELLI/CortexFusion/actions/runs/34172881646) : huit vérifications moteur et une règle Python. Le [rapport distinct](../../experiments/terminusdb/result-divergence-2026-09-08.json) préserve cette différence de périmètre. La CI complète du premier prototype601300f a également validé 514 tests Python et 11 tests Node, ainsi que les démonstrations PostgreSQL/MCP ; le code applicatif n’a pas migré.

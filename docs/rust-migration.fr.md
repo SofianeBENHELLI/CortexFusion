@@ -1,10 +1,10 @@
 # Migration Rust et TerminusDB — état vérifiable
 
-Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La référence historique comporte 79 opérations HTTP, 95 outils MCP et 87 schémas. Les 79 opérations sont maintenant natives ; huit extensions de graphes et de gouvernance portent la surface à87HTTP/103MCP. Le remplacement du service existant reste à qualifier : la parité de surface ne constitue pas une homologation de production. Le frontend reste inchangé.
+Le candidat Rust est un service natif Axum/SQLx : il n’exécute pas Python. La référence historique comporte 79 opérations HTTP, 95 outils MCP et 87 schémas. Les 79 opérations sont maintenant natives ; onze extensions de graphes, de gouvernance et de journal des publications portent la surface à 90 HTTP/106 MCP. Le remplacement du service existant reste à qualifier : la parité de surface ne constitue pas une homologation de production. La console BrainMap utilise désormais la lecture récente des publications ; voir le [suivi de livraison](product/brain-delivery-status.fr.md).
 
 ## Couverture native actuelle
 
-Quatre-vingt-sept opérations HTTP, leurs outils MCP et seize alias de compatibilité (103 outils au total) sont implémentés :
+Quatre-vingt-dix opérations HTTP, leurs outils MCP et seize alias de compatibilité (106 outils au total) sont implémentés :
 
 | Fonction | HTTP | Outil MCP |
 |---|---|---|
@@ -174,7 +174,7 @@ Le vérificateur indépendant confirme224 cas de validation de provenance face �
 
 Un compagnon peut enregistrer sa réponse personnelle après interrogation : texte, nature (réponse, abstention ou clarification), citations, identifiant du compagnon et modèle déclaré facultatif. Une réponse au corpus doit citer au moins un passage exactement renvoyé dans cet épisode. Une référence étrangère, une sous-plage différente ou un doublon est refusé. Les références sont vérifiées, mais le texte généré n’est pas certifié : `semantic_validation=not_performed` reste explicite et cet enregistrement ne publie aucune connaissance.
 
-Le reçu est immuable et idempotent par utilisateur/domaine/clé. Il reste privé, même vis-à-vis d’un owner, et devient inaccessible si les preuves de l’épisode ne sont plus accessibles. La liste accepte pagination et filtre d’épisode. Les signaux peuvent se rattacher à ce reçu pour distinguer le contexte fourni par CortexFusion de la réponse réellement montrée par le compagnon.
+Le reçu est immuable et idempotent par utilisateur/domaine/clé. Il reste privé, même vis-à-vis d’un owner, et devient inaccessible si les preuves de l’épisode ne sont plus accessibles. La liste accepte pagination et filtre d’épisode. Les signaux peuvent se rattacher à ce reçu pour distinguer le contexte fourni par Open Br**AI**n de la réponse réellement montrée par le compagnon.
 
 La vérification indépendante couvre180 cas de validation/références face à l’oracle, deux créations concurrentes, rejouabilité HTTP/MCP, confidentialité, pagination et révocation. Le scénario produit relie également recherche, reçu et signal ; la CI moteur réel complète ce lot.
 
@@ -252,7 +252,7 @@ Le dépôt202 conserve1 à500000 octets immuables reçus en base64, un nom de fi
 
 HTTP télécharge application/octet-stream, attachment/source.bin, nosniff et no-store. MCP conserve l’enveloppe historique data.media_type/data.base64. La pagination filtre les droits avant limite ; pending=true inclut les jobs pending et processing dont le bail a expiré.
 
-Process acquiert un bail de60 secondes et incrémente les tentatives avant de lancer un processus Rust séparé. Le processus lit les octets sur stdin, sans héritage des variables de base de données ou de fournisseur, sans ouvrir de chemin documentaire, macro ni URL. Limites :500000 octets,15 secondes murales,10 secondes CPU POSIX et512MiB de mémoire virtuelle sur Linux. Le résultat est borné à4Mo. Le processus est tué si son attente est abandonnée. Deux traitements au plus sont simultanés par processus serveur ; au-delà FILE_BUSY/503 est renvoyé avant réservation de bail ou incrément de tentative. Cette limite globale ne constitue pas encore un ordonnanceur équitable par tenant.
+Process acquiert un bail de60 secondes et incrémente les tentatives avant de lancer un processus Rust séparé. Le processus lit les octets sur stdin, sans héritage des variables de base de données ou de fournisseur, sans ouvrir de chemin documentaire, macro ni URL. Limites :500000 octets,15 secondes murales,10 secondes CPU POSIX et512MiB de mémoire virtuelle sur Linux. Sur toutes les plateformes, l’allocateur du processus refuse de dépasser 256 MiB de tas : un PDF dont les flux compressés imbriqués gonflent au-delà interrompt le processus, ce qui produit PARSE_RESOURCE_FAILURE. Le résultat est borné à4Mo. Le processus est tué si son attente est abandonnée. Deux traitements au plus sont simultanés par processus serveur ; au-delà FILE_BUSY/503 est renvoyé avant réservation de bail ou incrément de tentative. Cette limite globale ne constitue pas encore un ordonnanceur équitable par tenant.
 
 TXT/Markdown acceptent UTF-8 et un BOM initial. PDF utilise pdf-extract0.12, refuse le chiffrement et plus de100 pages ; DOCX utilise zip8.6 et roxmltree0.21, limite2000 entrées/8Mo décompressés/ratio200 et refuse DTD/ENTITY. Aucun OCR n’est fourni. Les espaces et offsets du texte extrait PDF peuvent différer de pypdf : les citations portent sur la source réellement créée, jamais sur une équivalence inventée entre parseurs. Le XML DOCX accepte UTF-8 et UTF-16 LE/BE avec BOM ou déclaration. UTF-16 sans ces deux marqueurs et ISO8859-1 restent refusés ; les autres encodages restent à qualifier.
 
@@ -260,11 +260,11 @@ Les extraits sont limités à30000 points de code Unicode avec repères section/
 
 Après parsing, droits et bail sont revérifiés. Source, rattachement à la collection et reçu sont atomiques ; une erreur SQL inattendue conserve le bail durable pour une reprise après expiration, sans source orpheline. La campagne indépendante injecte une erreur de reçu, vérifie le rollback puis la reprise ; elle distingue le moteur documentaire réel du moteur Terminus contrôlé.
 
-Références des composants : [pdf-extract](https://docs.rs/pdf-extract/0.12.0/pdf_extract/), [ZipArchive](https://docs.rs/zip/8.6.0/zip/struct.ZipArchive.html), [roxmltree](https://docs.rs/roxmltree/0.21.1/roxmltree/). Les limites du processus sont appliquées par CortexFusion en plus des bibliothèques.
+Références des composants : [pdf-extract](https://docs.rs/pdf-extract/0.12.0/pdf_extract/), [ZipArchive](https://docs.rs/zip/8.6.0/zip/struct.ZipArchive.html), [roxmltree](https://docs.rs/roxmltree/0.21.1/roxmltree/). Les limites du processus sont appliquées par Open Br**AI**n en plus des bibliothèques.
 
 ## Découverte OAuth et connexion des compagnons
 
-Sans CORTEX_MCP_PUBLIC_URL, la découverte publique retourne404/DISCOVERY_DISABLED. Avec cette option, elle exige une URL HTTPS canonique terminée par /mcp/, un issuer HTTPS sans identifiants/query/fragment et un JWT audience exactement égal à la ressource. Les métadonnées donnent l’URL de ressource, l’autorité d’identité, bearer_methods_supported=header et le nom Cortex Fusion ; elles n’émettent aucun jeton.
+Sans CORTEX_MCP_PUBLIC_URL, la découverte publique retourne404/DISCOVERY_DISABLED. Avec cette option, elle exige une URL HTTPS canonique terminée par /mcp/, un issuer HTTPS sans identifiants/query/fragment et un JWT audience exactement égal à la ressource. Les métadonnées donnent l’URL de ressource, l’autorité d’identité, bearer_methods_supported=header et le nom Open Br**AI**n ; elles n’émettent aucun jeton.
 
 Les401 HTTP et MCP incluent alors WWW-Authenticate avec resource_metadata. L’origine HTTPS configurée est autorisée, ainsi que son autorité MCP exacte ; un autre port, un hôte trompeur ou plusieurs Host sont refusés. Les autres origines restent soumises à CORTEX_CORS_ORIGINS. Le processus reste lié à loopback et vérifie une clé PEM ou une source JWKS fixe : les tests locaux ne prouvent ni déploiement TLS distant ni interopérabilité avec un fournisseur d’identité réel. Les outils de découverte MCP eux-mêmes restent derrière l’authentification du transport.
 
@@ -369,3 +369,11 @@ Les lectures d’un même instantané publié encore en cours peuvent être regr
 ## Journal des droits des sources — migration0025
 
 Le nouveau GET d’historique et son outil MCP portent la surface à87 HTTP/103 MCP et100 schémas/types de domaine exportés. Les sections de campagne précédentes conservent leurs comptes historiques. La capture transactionnelle inclut les anciens écrivains avec un acteur explicitement non renseigné. Voir les [contrats, droits, pagination et limites](source-access-audit.fr.md).
+
+## Journal récent des publications — 2 octobre 2026
+
+`publications.list` ajoute une lecture native réservée au propriétaire, triée par séquence décroissante, avec version et intervalle fixes, curseur exclusif et parcours borné des droits. La console charge 20 publications par page et distingue les compteurs de page des totaux du graphe. Les dates manquantes restent inconnues. Cette extension porte la surface à 88 HTTP/104 MCP ; les campagnes précédentes conservent leurs nombres historiques. Voir la [décision de lecture](architecture/decisions/0002-recent-publication-windows.md) et les [preuves et limites](product/brain-delivery-status.fr.md).
+
+### Lecture bornée du graphe — tranche BrainMap
+
+`graph.window` ajoute les résumés paginés du domaine ou du voisinage direct d’un concept, des stocks filtrés par les droits, une limite explicite de relations affichées et une protection de continuation par version/visibilité. La recette réelle de 30 concepts/870 relations valide HTTP et MCP, les permissions et les changements concurrents. L’inventaire courant passe à **90 HTTP / 106 MCP**. Le chargement complet du snapshot côté serveur demeure, ainsi que le plafond de préparation de 4 Mo encodés. BrainMap consomme ces fenêtres et charge les détails sélectionnés à la demande. La Chronique utilise désormais les [différences sans corps](architecture/decisions/0004-compact-publication-differences.md). Voir [ADR 0003](architecture/decisions/0003-bounded-graph-windows.md) et le [journal de livraison](product/brain-delivery-status.fr.md).

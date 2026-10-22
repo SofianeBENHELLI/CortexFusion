@@ -12,6 +12,21 @@
           "title": "Role",
           "type": "string"
         },
+        "roles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Roles"
+        },
         "revision": {
           "title": "Revision",
           "type": "integer"

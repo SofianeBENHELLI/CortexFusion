@@ -6,9 +6,34 @@ import sys
 import zipfile
 from xml.etree import ElementTree
 
+# Decoded PDF bytes allowed per stream and per document. pypdf caches every decoded
+# stream, and only Linux bounds the address space, so a 500 KB file could otherwise
+# hold enough nested FlateDecode streams to fill the host's memory.
+PDF_STREAM_LIMIT = 8_000_000
+PDF_DECODED_LIMIT = 64_000_000
+
 
 class ParseFailure(Exception):
     pass
+
+
+def bound_pdf_decoding():
+    from pypdf import filters
+
+    for name in ("JBIG2", "LZW", "RUN_LENGTH", "ZLIB"):
+        setattr(filters, name + "_MAX_OUTPUT_LENGTH", PDF_STREAM_LIMIT)
+    filters.MAX_ARRAY_BASED_STREAM_OUTPUT_LENGTH = PDF_STREAM_LIMIT
+    decode, decoded = filters.decode_stream_data, 0
+
+    def bounded(stream):
+        nonlocal decoded
+        data = decode(stream)
+        decoded += len(data)
+        if decoded > PDF_DECODED_LIMIT:
+            raise ParseFailure("DOCUMENT_LIMIT")
+        return data
+
+    filters.decode_stream_data = bounded
 
 
 def extract(raw, extension):
@@ -20,14 +45,18 @@ def extract(raw, extension):
             raise ParseFailure("INVALID_ENCODING") from exc
     elif extension == "pdf":
         from pypdf import PdfReader
+        from pypdf.errors import LimitReachedError
 
-        reader = PdfReader(io.BytesIO(raw), strict=True)
-        if reader.is_encrypted:
-            raise ParseFailure("ENCRYPTED_DOCUMENT")
-        if len(reader.pages) > 100:
-            raise ParseFailure("DOCUMENT_LIMIT")
-        for index, page in enumerate(reader.pages):
-            pieces.append((page.extract_text() or "", {"page": index + 1}))
+        try:
+            reader = PdfReader(io.BytesIO(raw), strict=True)
+            if reader.is_encrypted:
+                raise ParseFailure("ENCRYPTED_DOCUMENT")
+            if len(reader.pages) > 100:
+                raise ParseFailure("DOCUMENT_LIMIT")
+            for index, page in enumerate(reader.pages):
+                pieces.append((page.extract_text() or "", {"page": index + 1}))
+        except LimitReachedError as exc:
+            raise ParseFailure("DOCUMENT_LIMIT") from exc
     elif extension == "docx":
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:
             infos = archive.infolist()
@@ -71,12 +100,15 @@ def extract(raw, extension):
 
 
 def main():
-    # CPU bound on supported POSIX runtimes; Linux additionally bounds virtual memory.
+    # CPU bound on supported POSIX runtimes; Linux additionally bounds virtual memory,
+    # and PDF decoding is bounded everywhere.
     import resource
 
     resource.setrlimit(resource.RLIMIT_CPU, (10, 10))
     if sys.platform.startswith("linux"):
         resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024, 512 * 1024 * 1024))
+    if sys.argv[1] == "pdf":
+        bound_pdf_decoding()
     raw = sys.stdin.buffer.read(500001)
     try:
         if len(raw) > 500000:

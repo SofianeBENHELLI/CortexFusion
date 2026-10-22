@@ -17,6 +17,7 @@ from .contracts import (
     SourceInput,
 )
 from .db import Database
+from .retrieval_passages import select_context
 
 
 def encoded(value):
@@ -72,6 +73,28 @@ class KnowledgeService:
             return True
         except CoreError:
             return False
+
+    def _allowed_sources(self, conn, p, domain):
+        """Ids of every source the subject may read, in one query."""
+        return set(
+            run(
+                conn,
+                "SELECT id::text FROM cf_sources WHERE tenant_id=:tenant AND domain_id=:domain "
+                "AND allowed_subjects @> jsonb_build_array(CAST(:subject AS text))",
+                **self.keys(p, domain),
+                subject=p.subject,
+            ).scalars()
+        )
+
+    def _visible_state(self, conn, p, domain, state):
+        """Concepts whose every source the subject may read, with one source query
+        for the whole domain instead of one per source reference."""
+        allowed = self._allowed_sources(conn, p, domain)
+        return {
+            ident: value
+            for ident, value in state.items()
+            if all(str(ref["source_id"]) in allowed for ref in value["sources"])
+        }
 
     def _state(self, conn, p, domain):
         return {
@@ -357,10 +380,32 @@ class KnowledgeService:
         with self.db.transaction(p, domain, write=True) as conn:
             return self._propose(conn, p, domain, data)
 
-    def _check_proposal_access(self, conn, p, domain, row):
-        for source_id in row["validation"].get("source_ids", []):
-            self._source(conn, p, domain, source_id)
-        self._check_change_access(conn, p, domain, row["payload"])
+    def _check_proposal_access(self, conn, p, domain, row, cache=None):
+        """Raise NOT_FOUND unless every cited source and touched concept is readable.
+        Listings pass one cache per transaction so rights and state are read once
+        per page instead of once per proposal; the rule is the same."""
+        if cache is None:
+            for source_id in row["validation"].get("source_ids", []):
+                self._source(conn, p, domain, source_id)
+            self._check_change_access(conn, p, domain, row["payload"])
+            return
+        if "allowed" not in cache:
+            cache["allowed"] = self._allowed_sources(conn, p, domain)
+        allowed = cache["allowed"]
+        hidden = CoreError("NOT_FOUND", "Proposal not found", 404)
+        if any(str(s) not in allowed for s in row["validation"].get("source_ids", [])):
+            raise hidden
+        for change in row["payload"]:
+            if change["kind"] == "put_concept":
+                concept = change["concept"]
+            else:
+                if "state" not in cache:
+                    cache["state"] = self._state(conn, p, domain)
+                concept = cache["state"].get(change["concept_id"])
+                if not concept:
+                    continue
+            if any(str(ref["source_id"]) not in allowed for ref in concept["sources"]):
+                raise hidden
 
     def _check_change_access(self, conn, p, domain, changes):
         state = None
@@ -607,11 +652,7 @@ class KnowledgeService:
             for commit in commits:
                 self._apply(conn, p, domain, commit["sequence"], commit["changes"])
             state = self._state(conn, p, domain)
-            visible = {
-                ident: value
-                for ident, value in state.items()
-                if self._visible(conn, p, domain, value)
-            }
+            visible = self._visible_state(conn, p, domain, state)
             visible = {
                 ident: {
                     **value,
@@ -684,11 +725,7 @@ class KnowledgeService:
     def concepts(self, p, domain):
         with self.db.transaction(p, domain) as conn:
             state = self._state(conn, p, domain)
-            visible = {
-                ident: value
-                for ident, value in state.items()
-                if self._visible(conn, p, domain, value)
-            }
+            visible = self._visible_state(conn, p, domain, state)
             return [
                 Concept.model_validate(
                     {
@@ -711,10 +748,10 @@ class KnowledgeService:
             source = self._source(conn, p, domain, source_id)
             d = self._domain(conn, p, domain)
             content = source["content"]
-            if len(content) > 30000:
+            if len(content) > 200000:
                 raise CoreError(
                     "VALIDATION_FAILED",
-                    "Split text into sources smaller than 30,000 characters",
+                    "Source exceeds the 200,000-character concept contract",
                     422,
                 )
             from uuid import NAMESPACE_URL, uuid5
@@ -762,7 +799,7 @@ class KnowledgeService:
 
             d = self._domain(conn, p, domain)
             state = self._state(conn, p, domain)
-            visible = {ident: c for ident, c in state.items() if self._visible(conn, p, domain, c)}
+            visible = self._visible_state(conn, p, domain, state)
             terms = set(re.findall(r"\w{3,}", data.question.casefold())) - {
                 "the",
                 "what",
@@ -786,20 +823,26 @@ class KnowledgeService:
                 if score:
                     ranked.append((score, concept))
             ranked.sort(key=lambda pair: (-pair[0], pair[1]["concept_id"]))
-            selected, citations, snippets, used = [], [], [], 0
+            selected, citations, snippets, passages, used = [], [], [], [], 0
+            source_ids = set()
             for _, concept in ranked:
-                if len(selected) >= data.limit:
+                if len(passages) >= data.limit:
                     break
-                if used + len(concept["body"]) > data.max_chars:
+                separator = 2 if snippets else 0
+                passage = select_context(concept, terms, max(0, data.max_chars - used - separator))
+                if not passage:
                     continue
                 safe = {
                     **concept,
                     "links": [link for link in concept["links"] if link["target_id"] in visible],
                 }
-                selected.append(safe)
-                used += len(concept["body"])
-                snippets.append(concept["body"])
-                for ref in concept["sources"]:
+                if passage["body_start"] == 0 and passage["body_end"] == len(concept["body"]):
+                    selected.append(safe)
+                passages.append(passage)
+                used += len(passage["text"]) + separator
+                snippets.append(passage["text"])
+                source_ids.update(str(ref["source_id"]) for ref in concept["sources"])
+                for ref in passage["sources"]:
                     source = self._source(conn, p, domain, ref["source_id"])
                     citations.append(
                         {
@@ -813,17 +856,30 @@ class KnowledgeService:
                         }
                     )
             episode = str(uuid4())
+            limited = bool(ranked) and not snippets
+            if limited:
+                # The existence of matching evidence is itself source-derived.
+                source_ids.update(
+                    str(ref["source_id"]) for _, concept in ranked for ref in concept["sources"]
+                )
             result = QueryResult(
                 episode_id=episode,
                 answer="\n\n".join(snippets)
                 if snippets
-                else "No matching approved evidence was found within the requested context budget.",
-                status="evidence_found" if snippets else "knowledge_gap",
+                else "Matching approved knowledge exists, but no complete passage covering the query fits the requested context budget."
+                if limited
+                else "No matching approved evidence was found.",
+                status="evidence_found"
+                if snippets
+                else "context_limited"
+                if limited
+                else "knowledge_gap",
                 served_version=d["published_version"],
                 concepts=selected,
+                context_passages=passages,
                 citations=citations,
             ).model_dump(mode="json")
-            source_ids = sorted({c["source_id"] for c in citations})
+            source_ids = sorted(source_ids)
         # Context snapshot is closed before writing the episode. A publication can update
         # the domain while retrieval runs; its FK must be checked against current state.
         with self.db.transaction(p, domain, isolation="READ COMMITTED") as conn:
@@ -873,7 +929,7 @@ class KnowledgeService:
                     key=data.idempotency_key,
                     hash=digest(data.model_dump(mode="json")),
                 )
-            if not snippets:
+            if not snippets and not limited:
                 self._issue(conn, p, domain, episode, "knowledge_gap", data.question)
         return result
 
@@ -947,10 +1003,10 @@ class KnowledgeService:
                 "SELECT * FROM cf_proposals WHERE tenant_id=:tenant AND domain_id=:domain AND status='ready' ORDER BY created_at",
                 **self.keys(p, domain),
             ).mappings()
-            pending = []
+            pending, access = [], {}
             for row in proposals:
                 try:
-                    self._check_proposal_access(conn, p, domain, row)
+                    self._check_proposal_access(conn, p, domain, row, access)
                     pending.append(self._proposal_view(row))
                 except CoreError:
                     pass

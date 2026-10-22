@@ -1,1 +1,1 @@
-"""Cortex Fusion's independent knowledge core."""
+"""Open BrAIn's independent knowledge core."""

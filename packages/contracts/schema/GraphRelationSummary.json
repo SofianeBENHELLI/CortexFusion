@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GraphRelationSummary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "from",
+    "to",
+    "kind",
+    "weight",
+    "primary"
+  ],
+  "properties": {
+    "from": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "to": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "structural",
+        "associative"
+      ]
+    },
+    "weight": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "primary": {
+      "type": "boolean"
+    }
+  }
+}

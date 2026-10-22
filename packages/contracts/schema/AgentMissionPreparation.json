@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AgentMissionPreparation",
+  "type": "object",
+  "properties": {
+    "preparation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mandate": {
+      "$ref": "#/$defs/AgentMissionMandate"
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "title": {
+          "type": "string"
+        },
+        "content_hash": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "characters": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "content_hash",
+        "characters"
+      ],
+      "additionalProperties": false
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "provider": {
+      "const": "none",
+      "type": "string"
+    },
+    "execution": {
+      "const": "client_managed",
+      "type": "string"
+    }
+  },
+  "required": [
+    "preparation_id",
+    "mandate",
+    "source",
+    "expires_at",
+    "provider",
+    "execution"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "AgentMissionMandate": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "objective": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "criteria": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "agent": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "source_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "source_hash": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "max_reads": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "max_chars": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "title",
+        "objective",
+        "criteria",
+        "agent",
+        "source_id",
+        "source_hash",
+        "max_reads",
+        "max_chars",
+        "expires_at"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

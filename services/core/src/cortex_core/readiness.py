@@ -1,13 +1,13 @@
 """Public readiness checks disclose only readiness, never database diagnostics."""
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.pool import NullPool
 
 from .auth import CoreError
 
-SCHEMA_REVISION = "0025"
+SCHEMA_REVISION = "0043"
 REQUIRED_TABLES = frozenset(
     """
+cf_work_activity_reads cf_agent_mission_preparations cf_agent_missions cf_agent_mission_commands cf_reference_review_preparations cf_reference_reviews cf_reference_review_commands cf_reference_drafts cf_reference_draft_receipts cf_import_commands cf_task_proposals cf_expert_reviews cf_case_preparations cf_shared_cases cf_case_events cf_case_commands cf_workspace_cursors cf_task_notification_reads cf_work_tasks cf_task_events cf_task_commands cf_task_outbox cf_workspace_drafts cf_workspace_draft_receipts cf_graph_read_versions cf_graph_read_nodes cf_graph_read_sources cf_graph_read_edges
 cf_collection_sources cf_collections cf_commits cf_companion_responses cf_concepts
 cf_conversation_episodes cf_conversations cf_domains cf_episodes cf_extractions
 cf_feedback cf_feedback_preferences cf_feedback_signals cf_files cf_import_items
@@ -49,23 +49,28 @@ def verify_schema(conn):
 
 class ReadinessService:
     def __init__(self, db):
-        self.db = db
+        # Never the application pool, and never more than one session: this public
+        # probe waits at most a second for its connection, so unauthenticated
+        # callers cannot open unbounded PostgreSQL sessions. Driver socket and
+        # statement deadlines bound each probe; they are not an overall SLA.
+        self.engine = create_engine(
+            db.engine.url,
+            pool_size=1,
+            max_overflow=0,
+            pool_timeout=1,
+            pool_pre_ping=True,
+            connect_args={"timeout": 2},
+        )
 
     def check(self):
-        engine = None
         try:
-            # Do not wait for the application pool. Driver socket and statement
-            # deadlines bound each probe operation; they are not an overall SLA.
-            engine = create_engine(
-                self.db.engine.url, poolclass=NullPool, connect_args={"timeout": 2}
-            )
-            with engine.begin() as conn:
+            with self.engine.begin() as conn:
                 conn.execute(text("SET LOCAL statement_timeout='1500ms'"))
                 if not verify_schema(conn):
                     raise ValueError("incompatible database")
             return {"status": "ready", "schema_revision": SCHEMA_REVISION}
         except Exception:
             raise CoreError("NOT_READY", "Backend database readiness checks failed", 503) from None
-        finally:
-            if engine is not None:
-                engine.dispose()
+
+    def dispose(self):
+        self.engine.dispose()

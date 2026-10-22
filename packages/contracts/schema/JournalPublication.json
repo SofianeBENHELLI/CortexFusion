@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommitSummary",
+  "properties": {
+    "sequence": {
+      "type": "integer",
+      "title": "Sequence",
+      "minimum": 1,
+      "maximum": 9007199254740990
+    },
+    "proposal_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Proposal Id"
+    },
+    "author": {
+      "type": "string",
+      "title": "Author"
+    },
+    "reason": {
+      "type": "string",
+      "title": "Reason"
+    },
+    "digest": {
+      "type": "string",
+      "title": "Digest"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+    },
+    "published": {
+      "type": "boolean",
+      "title": "Published"
+    },
+    "publication": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/JournalPublicationAudit"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "sequence",
+    "proposal_id",
+    "author",
+    "reason",
+    "digest",
+    "created_at",
+    "published",
+    "publication"
+  ],
+  "$defs": {
+    "JournalPublicationAudit": {
+      "properties": {
+        "publisher": {
+          "type": "string",
+          "title": "Publisher"
+        },
+        "recorded_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Recorded At"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "publisher",
+        "recorded_at"
+      ],
+      "title": "PublicationAudit"
+    }
+  }
+}

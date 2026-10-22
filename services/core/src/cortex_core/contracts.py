@@ -44,10 +44,13 @@ class Link(Contract):
         return self
 
 
+MAX_CONCEPT_BODY_CHARS = 200_000
+
+
 class Concept(Contract):
     concept_id: UUID
     title: str = Field(min_length=1, max_length=200)
-    body: str = Field(min_length=1, max_length=30000)
+    body: str = Field(min_length=1, max_length=MAX_CONCEPT_BODY_CHARS)
     maturity: Maturity = Maturity.EMERGING
     sources: list[SourceRef] = Field(min_length=1, max_length=30)
     links: list[Link] = Field(default_factory=list, max_length=100)
@@ -127,13 +130,32 @@ class Citation(Contract):
     excerpt: str
 
 
+class ContextPassage(Contract):
+    """Read-only excerpt of a published concept, never a replacement Concept."""
+
+    concept_id: UUID
+    title: str
+    maturity: Maturity
+    body_start: int = Field(ge=0, description="Inclusive Unicode offset in the published body")
+    body_end: int = Field(gt=0, description="Exclusive Unicode offset in the published body")
+    body_total_chars: int = Field(gt=0)
+    text: str
+    sources: list[SourceRef]
+
+
 class QueryResult(Contract):
     episode_id: UUID
     answer: str
-    status: Literal["evidence_found", "knowledge_gap"]
+    status: Literal["evidence_found", "knowledge_gap", "context_limited"]
     mode: Literal["extractive"] = "extractive"
     served_version: int
-    concepts: list[Concept]
+    concepts: list[Concept] = Field(
+        description="Complete selected concepts only; long selections are in context_passages. Read the concept endpoint for the full published body."
+    )
+    context_passages: list[ContextPassage] = Field(
+        default_factory=list,
+        description="Bounded, source-backed context selections; empty for legacy episodes. Unicode text lengths plus answer separators fit max_chars.",
+    )
     citations: list[Citation]
     processing: Literal["local_no_model"] = "local_no_model"
 
@@ -172,6 +194,7 @@ CONTRACTS = [
     QueryInput,
     FeedbackInput,
     DomainVersion,
+    ContextPassage,
     QueryResult,
 ]
 CONTRACTS += STREAM_CONTRACTS
@@ -332,6 +355,8 @@ class AccessibleDomain(Contract):
     id: UUID
     name: str
     role: Literal["owner", "corpus_manager", "contributor", "agent", "viewer"]
+    roles: list[Literal["owner", "corpus_manager", "contributor", "agent", "viewer"]] | None = None
+    membership_revision: int | None = None
     capabilities: list[str]
 
 
@@ -426,14 +451,32 @@ CONTRACTS += [
 class MembershipInput(Contract):
     subject: str = Field(min_length=1, max_length=300)
     role: Literal["owner", "corpus_manager", "contributor", "agent", "viewer"] | None
+    roles: list[Literal["owner", "corpus_manager", "contributor", "agent", "viewer"]] | None = (
+        Field(default=None, min_length=1, max_length=4)
+    )
     expected_revision: int | None = Field(default=None, ge=0)
     reason: str = Field(min_length=1, max_length=2000)
     idempotency_key: str = Field(min_length=8, max_length=128)
+
+    @model_validator(mode="after")
+    def cumulative_roles(self):
+        if self.roles is not None:
+            order = ["owner", "corpus_manager", "contributor", "viewer", "agent"]
+            if len(set(self.roles)) != len(self.roles) or (
+                "agent" in self.roles and len(self.roles) != 1
+            ):
+                raise ValueError(
+                    "Roles must be distinct; service identities cannot combine human roles"
+                )
+            if self.role != next(r for r in order if r in self.roles):
+                raise ValueError("role must match the effective role in roles")
+        return self
 
 
 class MemberView(Contract):
     subject: str
     role: str
+    roles: list[str] | None = None
     revision: int
 
 
@@ -448,6 +491,8 @@ class MembershipReceipt(Contract):
     subject: str
     previous_role: str | None
     new_role: str | None
+    previous_roles: list[str] | None = None
+    new_roles: list[str] | None = None
     resulting_revision: int | None
     reason: str
     created_at: datetime

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskCandidatePage",
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "$ref": "#/$defs/TaskCandidate"
+      }
+    },
+    "next_after": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "items",
+    "next_after"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "TaskCandidate": {
+      "type": "object",
+      "properties": {
+        "subject": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "owner",
+            "corpus_manager",
+            "contributor"
+          ]
+        }
+      },
+      "required": [
+        "subject",
+        "role"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

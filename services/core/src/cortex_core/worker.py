@@ -24,7 +24,10 @@ def drain(service, principal, domain, max_jobs):
 
 
 def run_worker(tenant, domain, subject, once, max_jobs, poll_seconds):
-    db = Database(os.environ["CORTEX_DATABASE_URL"])
+    db = Database(
+        os.environ["CORTEX_DATABASE_URL"],
+        int(os.environ.get("CORTEX_STATEMENT_TIMEOUT_SECONDS", "60")),
+    )
     db.verify_role()
     service = FileService(CorpusService(KnowledgeService(db)))
     principal = Principal(subject, tenant)

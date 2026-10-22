@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DifferenceSummarySourceRef",
+  "additionalProperties": false,
+  "properties": {
+    "source_id": {
+      "format": "uuid",
+      "title": "Source Id",
+      "type": "string"
+    },
+    "start": {
+      "description": "Zero-based Unicode code point offset, inclusive",
+      "minimum": 0,
+      "title": "Start",
+      "type": "integer"
+    },
+    "end": {
+      "description": "Unicode code point offset, exclusive; not UTF-16 units",
+      "exclusiveMinimum": 0,
+      "title": "End",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "source_id",
+    "start",
+    "end"
+  ],
+  "type": "object"
+}

@@ -16,7 +16,7 @@ def native_client(binary, env):
             selector.register(process.stdout, selectors.EVENT_READ)
             assert selector.select(15), "Native configured server failed to start"
             line = process.stdout.readline().strip()
-        prefix = "CortexFusion Rust migration candidate listening on "
+        prefix = "Open BrAIn Rust migration candidate listening on "
         assert line.startswith(prefix), line
         with httpx.Client(
             base_url="http://" + line.removeprefix(prefix), timeout=10, trust_env=False
@@ -40,7 +40,7 @@ def verify_configured(binary, env, headers, admin, tenant, domain, state, privat
             "resource": resource,
             "authorization_servers": [env["CORTEX_JWT_ISSUER"]],
             "bearer_methods_supported": ["header"],
-            "resource_name": "Cortex Fusion",
+            "resource_name": "Open BrAIn",
         }
         assert client.get("/.well-known/oauth-protected-resource").json() == meta
         challenge = 'Bearer resource_metadata="https://cortex.example.test:8443/.well-known/oauth-protected-resource"'

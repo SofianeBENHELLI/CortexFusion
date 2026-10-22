@@ -34,7 +34,7 @@ def build_extensions():
         }
         meta = {
             "action_id": action,
-            "roles": ["owner"],
+            "roles": definition.get("roles", ["owner"]),
             "effect": definition["effect"],
             "effect_description": EFFECTS[definition["effect"]],
             "intent_example": definition["intent"],
@@ -51,7 +51,9 @@ def build_extensions():
                 "name": name,
                 "in": "path",
                 "required": True,
-                "schema": {"type": "string", "format": "uuid"},
+                "schema": definition.get("path_schemas", {}).get(
+                    name, {"type": "string", "format": "uuid"}
+                ),
             }
             for name in definition["path_parameters"]
         ]
@@ -64,7 +66,12 @@ def build_extensions():
             }
         )
         parameters.extend(
-            {"name": name, "in": "query", "required": False, "schema": schema}
+            {
+                "name": name,
+                "in": "query",
+                "required": name in definition.get("required_query", []),
+                "schema": schema,
+            }
             for name, schema in definition.get("query", {}).items()
         )
         operation = {
@@ -126,11 +133,11 @@ def build_extensions():
 def render_native(functional):
     document = render(functional)
     start = document.index("## Règles communes")
-    document = """# Extensions natives Rust — graphes et gouvernance
+    document = f"""# Extensions natives Rust — graphes et gouvernance
 
 Généré par `scripts/export_rust_contracts.py` depuis `services/rust-core/contracts/extensions.json`. Ne pas modifier directement. Le catalogue machine est `packages/contracts/rust-extensions.json` (section `functional` pour les descriptions françaises).
 
-Ces **8 opérations HTTP et MCP** complètent les 79 opérations de référence. Lire le [guide frontend](frontend-guide.fr.md) et les contrats servis par le runtime Rust.
+Ces **{len(functional["items"])} opérations HTTP et MCP** complètent les 79 opérations de référence. Lire le [guide frontend](frontend-guide.fr.md) et les contrats servis par le runtime Rust.
 
 """ + document[start:]
     lines = document.splitlines()

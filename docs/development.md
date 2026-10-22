@@ -48,6 +48,8 @@ Run `make serve`. The loopback API is at `http://127.0.0.1:8000`, with interacti
 
 Send `Authorization: Bearer <valid token>` and `X-Tenant-ID: <tenant UUID>` on protected requests. Do not put tokens in URLs. An identity subject must also have membership in the requested domain. The JWT's role field is ignored for application authorization.
 
+Each HTTP operation has a deadline, body read included: 20 seconds by default, 60 seconds for model-backed synthesis and extraction, and 120 seconds for publication, replay, compensation and graph import. Past it, both cores answer 503 `REQUEST_TIMEOUT`. For a command the outcome is then unknown: read its receipt or retry with the same idempotency key. The Rust core drops the handler; Python's synchronous handlers finish their already-bounded work in their worker thread and the late reply is discarded. The MCP transport and streamed response bodies are not limited, but each MCP tool call inherits its operation's deadline. The browser gateway still stops waiting after 25 seconds.
+
 ## Browser origins
 
 Set `CORTEX_CORS_ORIGINS` to an exact JSON array, such as `["http://localhost:5173"]`. No trailing slash, wildcard, embedded credentials or remote cleartext origins are accepted. Empty disables CORS. When configured, requests with other Origin values are rejected before business execution; server clients without Origin still authenticate normally. Allowed preflights need no token; actual requests retain bearer, tenant and confirmation checks. Cookie credentials are not enabled. Download and MCP session headers are exposed. This does not expand the MCP server host allowlist; configure the public resource separately. See the [French guide](frontend-guide.fr.md).
@@ -89,6 +91,10 @@ The timeline GET joins questions, extractive episodes, compact delivered respons
 `make test` checks formatting, schemas, generated TypeScript, database/API invariants, Node client/Cordis behavior, and installed dependency license metadata. Integration tests intentionally fail if the explicit test database variables are absent. They create unique synthetic tenants and never truncate the database; test data accumulates until the dedicated test database is deliberately reset.
 
 Two upstream deprecation warnings currently arise from Starlette/httpx and AnyIO integration; they do not fail the tests. No warnings are suppressed by the test configuration.
+
+### Workspace qualification scripts
+
+The `scripts/verify_*.py` checks for workspaces, tasks, shared cases, reviews, drafts and agent missions start the native Rust server against a synthetic fixture. By default they reuse the retained local fixture in `.runtime/brain/aud02-native-20261005` and the dedicated test database on port 55432. Elsewhere, build a fresh fixture with `scripts/verify_bounded_retrieval.py --directory <dir> --duration 0`, then set `CORTEX_QUALIFICATION_FIXTURE=<dir>`, `CORTEX_QUALIFICATION_OUTPUT=<report dir>` and `CORTEX_QUALIFICATION_PORT=<database port>`. The Frontend API transport acceptance workflow does this in CI.
 
 The core includes bounded PDF/DOCX/text parsing, a recoverable file worker, optional model passage selection, durable call attempts and a shared daily attempt allowance. Answer retrieval remains lexical/extractive; companion output is stored as personal history without semantic certification. Semantic embeddings, enterprise synthesis evaluation, full risk policies, managed workflow deployment, real enterprise identity/companion validation and the product interface remain open. A local [restore rehearsal](restore-rehearsal.md) and [synthetic feedback evaluation](../evals/README.md) provide bounded evidence, not production readiness.
 

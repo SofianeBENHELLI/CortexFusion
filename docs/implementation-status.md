@@ -1,6 +1,12 @@
 # Implementation status
 
-Updated: 2026-09-08
+Current assessment: [code/specification audit, 5 October 2026](product/code-audit-2026-10-05.fr.md), with the [updated priority plan](product/roadmap.md). A real console exists in `apps/console`; access, owner workflows, semantic retrieval and biomimetic mechanisms remain incomplete. The audit reran 307 console, 67 Rust library, 163 targeted Python and 11 Node contract/harness tests; this is not end-to-end product qualification.
+
+**22 October 2026.** The full Python suite (961 tests against PostgreSQL), 821 console tests, 88 Rust library and 6 Rust integration tests, and 11 Node contract/harness tests pass, the console lint reports no errors, and the license gate covers Python, Node and every locked Rust crate. The coordinated restore, native HTTP (with and without TerminusDB), volume, soak and 37-step workspace qualifications also pass on synthetic data, and PDF parsing is memory-bounded on every platform. These are regression and synthetic qualifications, not an end-to-end product qualification; the gaps listed in the 5 October audit for access, owner workflows, semantic retrieval and biomimetic mechanisms remain.
+
+Historical backend inventory below: 2026-09-08.
+
+For the later Rust/console BrainMap work of 2–5 October 2026, see the [pilot-readiness assessment](product/brain-pilot-readiness.fr.md), [frontend acceptance matrix](product/frontend-acceptance-matrix.fr.md) and [delivery log](product/brain-delivery-status.fr.md). The backend inventory and Python-specific implementation history below retain their original date and do not describe the newer Rust/TerminusDB observation slice.
 
 ## Delivered backend
 

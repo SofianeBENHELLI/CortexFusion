@@ -191,9 +191,12 @@ Every HTTP action has a stable operation ID, an example intent, role prerequisit
 Resources, templates and prompt arguments are exported in `packages/contracts/mcp-discovery.json`. These are authenticated, read-only primitives; selecting a prompt does not execute its workflow.
 
 - Resource: `cortex://guide` — Read-only integration guide: evidence, feedback provenance and governed actions.
+- Resource: `cortex://guides` — Six focused companion workflows and client qualification limits; documentation only.
 - Resource: `cortex://workspace` — Current authenticated subject, authorized domains and capabilities; never cached across users.
 - Resource: `cortex://actions` — HTTP/MCP action inventory with effects and decision policies; metadata grants no access.
+- Template: `cortex://guides/{guide_id}` — Read one workflow from the advertised catalog; metadata grants no permissions.
 - Template: `cortex://domains/{domain_id}/context` — Authorized domain versions and the caller's collection preferences. Contains no source text.
+- Prompt: `openbrain_workflow` — Prepare a selected workflow in a currently authorized domain; runs no business action.
 - Prompt: `ask_cortex` — Prepare an evidence-based query workflow for an authorized domain; executes no query.
 - Prompt: `review_cortex_proposal` — Prepare inspection of an accessible proposal. Review prompt execution never approves or publishes.
 - Prompt: `report_cortex_feedback` — Prepare personal feedback reporting with explicit/observed/inferred provenance; records nothing.

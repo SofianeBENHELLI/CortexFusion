@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorkBrief",
+  "type": "object",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "enum": [
+        "assigned",
+        "domain"
+      ]
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "owner",
+        "corpus_manager",
+        "contributor"
+      ]
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "permissions_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "work_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "counts": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "overdue": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "offered": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "review": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocked": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unassigned": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "in_progress": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "active",
+        "overdue",
+        "offered",
+        "review",
+        "blocked",
+        "unassigned",
+        "in_progress"
+      ],
+      "additionalProperties": false
+    },
+    "items": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "$ref": "#/$defs/WorkTask"
+          },
+          "overdue": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task",
+          "overdue"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "has_more": {
+      "type": "boolean"
+    },
+    "sort": {
+      "type": "string",
+      "enum": [
+        "overdue_review_offer_blocked_unassigned_progress_due_created_id",
+        "overdue_priority_review_offer_blocked_unassigned_progress_due_created_id"
+      ]
+    },
+    "coverage": {
+      "type": "string",
+      "enum": [
+        "active_tasks_only"
+      ]
+    }
+  },
+  "required": [
+    "scope",
+    "role",
+    "as_of",
+    "permissions_version",
+    "work_version",
+    "counts",
+    "items",
+    "has_more",
+    "sort",
+    "coverage"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "WorkTask": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "instructions": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "criteria": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "creator": {
+          "type": "string"
+        },
+        "assignee": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "unassigned",
+            "offered",
+            "in_progress",
+            "blocked",
+            "review",
+            "completed",
+            "cancelled"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "due_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "offered_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "accepted_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "result_summary": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "allowed_actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "offer",
+              "accept",
+              "decline",
+              "block",
+              "resume",
+              "submit",
+              "request_changes",
+              "complete",
+              "cancel",
+              "reopen"
+            ]
+          }
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "low",
+            "normal",
+            "high"
+          ]
+        },
+        "priority_reason": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "planning_allowed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "instructions",
+        "criteria",
+        "creator",
+        "assignee",
+        "status",
+        "revision",
+        "created_at",
+        "updated_at",
+        "due_at",
+        "offered_at",
+        "accepted_at",
+        "result_summary",
+        "allowed_actions"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
