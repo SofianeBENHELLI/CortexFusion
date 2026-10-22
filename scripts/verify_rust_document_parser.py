@@ -3,10 +3,17 @@
 import base64
 import io
 import zipfile
+import zlib
 from uuid import uuid4
 
 from pypdf import PdfWriter
-from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
+from pypdf.generic import (
+    ArrayObject,
+    DecodedStreamObject,
+    DictionaryObject,
+    NameObject,
+    StreamObject,
+)
 
 
 def docx(text="Call operations 🧠."):
@@ -21,7 +28,7 @@ def docx(text="Call operations 🧠."):
     return output.getvalue()
 
 
-def pdf(encrypted=False, blank=False, pages=1):
+def pdf(encrypted=False, blank=False, pages=1, inflate=0):
     w = PdfWriter()
     for _ in range(pages):
         page = w.add_blank_page(600, 800)
@@ -36,8 +43,16 @@ def pdf(encrypted=False, blank=False, pages=1):
             page[NameObject("/Resources")] = DictionaryObject(
                 {NameObject("/Font"): DictionaryObject({NameObject("/F1"): w._add_object(font)})}
             )
-            stream = DecodedStreamObject()
-            stream.set_data(b"BT /F1 12 Tf 20 700 Td (Call operations for incidents.) Tj ET")
+            if inflate:
+                # Two FlateDecode layers over `inflate` MiB of zeros, about a kilobyte on disk.
+                c = zlib.compressobj(9)
+                zeros = b"".join(c.compress(bytes(1 << 20)) for _ in range(inflate)) + c.flush()
+                stream = StreamObject()
+                stream.set_data(zlib.compress(zeros, 9))
+                stream[NameObject("/Filter")] = ArrayObject([NameObject("/FlateDecode")] * 2)
+            else:
+                stream = DecodedStreamObject()
+                stream.set_data(b"BT /F1 12 Tf 20 700 Td (Call operations for incidents.) Tj ET")
             page[NameObject("/Contents")] = w._add_object(stream)
     if encrypted:
         w.encrypt("synthetic-only")
@@ -99,6 +114,7 @@ def verify_document_parser(client, headers, domain):
         (pdf(encrypted=True), "secret.pdf", "ENCRYPTED_DOCUMENT"),
         (pdf(blank=True), "blank.pdf", "NO_EXTRACTABLE_TEXT"),
         (pdf(blank=True, pages=101), "big.pdf", "DOCUMENT_LIMIT"),
+        (pdf(inflate=512), "inflating.pdf", "PARSE_RESOURCE_FAILURE"),
         (docx("<!DOCTYPE foo>"), "unsafe.docx", "UNSAFE_XML"),
     ]:
         url = upload(raw, name)

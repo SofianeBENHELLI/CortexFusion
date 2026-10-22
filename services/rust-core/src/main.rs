@@ -6,6 +6,10 @@ use cortex_rust_core::{
 use sqlx::postgres::PgPoolOptions;
 use std::{env, future::IntoFuture, net::SocketAddr, time::Duration};
 
+#[global_allocator]
+static ALLOCATOR: cortex_rust_core::document_parser::BoundedAllocator =
+    cortex_rust_core::document_parser::BoundedAllocator;
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() == 2 && args[0] == "--parse-document" {

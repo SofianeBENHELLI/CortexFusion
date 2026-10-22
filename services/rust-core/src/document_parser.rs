@@ -1,7 +1,78 @@
 //! Resource-bounded Rust child process; never opens document paths, URLs or macros.
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use std::alloc::{GlobalAlloc, Layout, System};
 use std::io::Read;
+use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering::Relaxed};
+
+/// Live heap allowed in the parser child. RLIMIT_AS only bounds Linux, and lopdf
+/// inflates nested FlateDecode streams without a size limit, so the binary's
+/// allocator refuses growth past this once `child` starts. The server never enables it.
+const CHILD_HEAP: isize = 256 * 1024 * 1024;
+static BOUNDED: AtomicBool = AtomicBool::new(false);
+// Frees of allocations made before `child` starts can leave this slightly negative.
+static LIVE: AtomicIsize = AtomicIsize::new(0);
+
+/// The binary's global allocator: the system allocator, bounded in the parser child.
+/// A refused allocation aborts the child, which the parent reports as a resource failure.
+pub struct BoundedAllocator;
+
+fn reserve(bytes: isize) -> bool {
+    if !BOUNDED.load(Relaxed) {
+        return true;
+    }
+    if LIVE.fetch_add(bytes, Relaxed).saturating_add(bytes) > CHILD_HEAP {
+        LIVE.fetch_sub(bytes, Relaxed);
+        return false;
+    }
+    true
+}
+
+fn release(bytes: isize) {
+    if BOUNDED.load(Relaxed) {
+        LIVE.fetch_sub(bytes, Relaxed);
+    }
+}
+
+unsafe impl GlobalAlloc for BoundedAllocator {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        let size = layout.size() as isize;
+        if !reserve(size) {
+            return std::ptr::null_mut();
+        }
+        let block = unsafe { System.alloc(layout) };
+        if block.is_null() {
+            release(size)
+        }
+        block
+    }
+    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+        let size = layout.size() as isize;
+        if !reserve(size) {
+            return std::ptr::null_mut();
+        }
+        let block = unsafe { System.alloc_zeroed(layout) };
+        if block.is_null() {
+            release(size)
+        }
+        block
+    }
+    unsafe fn dealloc(&self, block: *mut u8, layout: Layout) {
+        release(layout.size() as isize);
+        unsafe { System.dealloc(block, layout) }
+    }
+    unsafe fn realloc(&self, block: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+        let growth = new_size as isize - layout.size() as isize;
+        if !reserve(growth) {
+            return std::ptr::null_mut();
+        }
+        let moved = unsafe { System.realloc(block, layout, new_size) };
+        if moved.is_null() {
+            release(growth)
+        }
+        moved
+    }
+}
 #[derive(Serialize, Deserialize)]
 pub struct Parsed {
     pub content: Option<String>,
@@ -182,6 +253,7 @@ fn extract(raw: &[u8], extension: &str) -> Result<Parsed, &'static str> {
 }
 /// Called before constructing the asynchronous runtime, with no database or provider environment.
 pub fn child(extension: &str) {
+    BOUNDED.store(true, Relaxed);
     #[cfg(unix)]
     unsafe {
         // Fixed resource constants; no file descriptor or caller pointer is passed to the OS.
