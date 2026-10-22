@@ -11,7 +11,8 @@ These are bounded local checks, not production readiness or model-quality result
 | DeepSeek Harness source | `d347e703908d0406b7a7ef80e3a0e594d86b2215` | Inspected plugin/service interfaces and runtime requirements; complete harness not installed or run |
 | Cordis | `@deepseek-ai/cordis` 4.0.2 | Actual service mount, dependency availability, client call, and disposal/cancellation test passed |
 | Python/Node dependencies | `uv.lock`, `pnpm-lock.yaml` | Installed and checked through tests, type generation, and metadata license gate |
+| Rust crates | `Cargo.lock` | Built and tested in CI; the metadata license gate evaluates every locked crate's SPDX expression for all platforms |
 
 The application currently uses PostgreSQL JSONB projections and lexical retrieval. It does not require AGE or pgvector to run. Their experiment demonstrates a storage option; tenant filtering and an actual production projection adapter still need their own checks. The initial Docker/CI profile intentionally runs plain PostgreSQL.
 
-The metadata license gate checks installed Python/Node distributions, with explicit aliases and exceptions. It is not a full inventory of the license texts of every native component bundled in a wheel, model, or container.
+The metadata license gate checks installed Python/Node distributions, with explicit aliases and exceptions. Its Rust mode (`make licenses-rust`, run by the Rust workflow) accepts a crate when one branch of its declared expression uses only permissive terms; beyond MIT, Apache-2.0, BSD and ISC, it admits Unicode-3.0 (ICU data crates), Zlib and CDLA-Permissive-2.0 (bundled web PKI roots). It is not a full inventory of the license texts of every native component bundled in a wheel, model, or container.

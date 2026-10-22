@@ -1,7 +1,7 @@
 UV ?= uv
 PNPM ?= pnpm
 
-.PHONY: setup dev-up graph-up migrate lint contracts test-core test-node test licenses demo-core serve
+.PHONY: setup dev-up graph-up migrate lint contracts test-core test-node test licenses licenses-rust demo-core serve
 setup:
 	$(UV) sync --locked
 	$(PNPM) install --frozen-lockfile
@@ -36,6 +36,10 @@ test-node:
 
 licenses:
 	$(UV) run python scripts/check_licenses.py
+
+# Needs the Rust toolchain and the crate sources for every platform.
+licenses-rust:
+	$(UV) run python scripts/check_licenses.py --rust
 
 test: lint contracts test-core test-node licenses
 
