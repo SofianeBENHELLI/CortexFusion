@@ -9,7 +9,7 @@ from uuid import uuid4
 from sqlalchemy.engine import make_url
 from verify_coordinated_restore import Fixture
 from verify_rust_configured import native_client
-from verify_workspace_tasks import schema_head
+from verify_workspace_tasks import OUT, schema_head
 
 ROOT = Path(__file__).resolve().parents[1]
 DIRECTORY = Path(
@@ -154,9 +154,7 @@ def main():
         "fixture_reingested": False,
         "private_okf_touched": False,
     }
-    (ROOT / ".runtime/brain/openbrain-20261016/draft-native-report.json").write_text(
-        json.dumps(report, indent=2)
-    )
+    (OUT / "draft-native-report.json").write_text(json.dumps(report, indent=2))
     print(json.dumps(report))
 
 
