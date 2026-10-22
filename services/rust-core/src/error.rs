@@ -40,6 +40,13 @@ impl CoreError {
             status: StatusCode::NOT_FOUND,
         }
     }
+    pub fn request_timeout() -> Self {
+        Self {
+            code: "REQUEST_TIMEOUT",
+            message: "The request exceeded its deadline; read a command's receipt or retry it with the same idempotency key",
+            status: StatusCode::SERVICE_UNAVAILABLE,
+        }
+    }
     #[track_caller]
     pub fn sql(error: sqlx::Error) -> Self {
         if error

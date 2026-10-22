@@ -8,6 +8,7 @@ use axum::{
 use http::{HeaderMap, StatusCode};
 use serde_json::{Value, json};
 use sqlx::Row;
+use std::time::Duration;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -67,7 +68,52 @@ pub fn router(state: StateData) -> Router {
         .merge(crate::extraction::routes())
         .fallback(||async{(StatusCode::NOT_IMPLEMENTED,Json(json!({"error":"MIGRATION_NOT_IMPLEMENTED","message":"This operation is not yet served by the native Rust candidate"})))})
         .with_state(state)
+        .layer(axum::middleware::from_fn(request_deadline))
         .layer(axum::middleware::from_fn(log_failures))
+}
+/// Deadline for one HTTP operation, body read included. Model calls and graph
+/// engine writes get longer ones. The MCP transport and streamed response bodies
+/// sit outside these layers; MCP tool calls dispatch through this router and so
+/// inherit their operation's deadline.
+const DEFAULT_DEADLINE: Duration = Duration::from_secs(20);
+const MODEL_DEADLINE: Duration = Duration::from_secs(60);
+const PUBLICATION_DEADLINE: Duration = Duration::from_secs(120);
+const MODEL_ROUTES: [&str; 3] = [
+    "/v1/domains/{domain}/episodes/{episode_id}/syntheses",
+    "/v1/domains/{domain}/sources/{source_id}/extract",
+    "/v1/domains/{domain}/sources/{source_id}/extract-local",
+];
+const PUBLICATION_ROUTES: [&str; 7] = [
+    "/v1/domains/{domain}/proposals/{proposal_id}/publish",
+    "/v1/domains/{domain}/proposals/{proposal_id}/publication-attempts",
+    "/v1/domains/{domain}/publish",
+    "/v1/domains/{domain}/replay",
+    "/v1/domains/{domain}/commits/{sequence}/compensate",
+    "/v1/domains/{domain}/graph-import",
+    "/v1/domains/{domain}/graph-import-attempts",
+];
+fn deadline(route: Option<&str>) -> Duration {
+    match route {
+        Some(r) if MODEL_ROUTES.contains(&r) => MODEL_DEADLINE,
+        Some(r) if PUBLICATION_ROUTES.contains(&r) => PUBLICATION_DEADLINE,
+        _ => DEFAULT_DEADLINE,
+    }
+}
+/// Dropping the handler cancels its work at the next await; a command whose
+/// outcome is then unknown is settled by its receipt or a same-key retry.
+async fn request_deadline(
+    request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    let route = request
+        .extensions()
+        .get::<axum::extract::MatchedPath>()
+        .map(|m| m.as_str());
+    match tokio::time::timeout(deadline(route), next.run(request)).await {
+        Ok(response) => response,
+        Err(_) => CoreError::request_timeout().into_response(),
+    }
 }
 /// One stderr line per server-side failure (HTTP and MCP calls share this
 /// router). Only method, path, status and latency: no query string, header or
@@ -304,5 +350,62 @@ async fn publish_target(
             (error.status,Json(json!({"error":error.code,"message":error.message,"confirmation_request":{"action":action,"command_hash":hash,"transport_header":"X-Cortex-Confirmation","max_lifetime_seconds":300}}))).into_response()
         }
         Err(error) => error.into_response(),
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{body::Body, routing::post};
+    use tower::ServiceExt;
+
+    async fn call(path: &str, seconds: u64) -> (StatusCode, Value) {
+        let wait = move || async move {
+            tokio::time::sleep(Duration::from_secs(seconds)).await;
+            Json(json!({"done": true}))
+        };
+        let app = Router::new()
+            .route("/v1/me", post(wait))
+            .route(
+                "/v1/domains/{domain}/sources/{source_id}/extract",
+                post(wait),
+            )
+            .route("/v1/domains/{domain}/publish", post(wait))
+            .layer(axum::middleware::from_fn(request_deadline));
+        let request = http::Request::post(path).body(Body::empty()).unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        let status = response.status();
+        let body = axum::body::to_bytes(response.into_body(), 4096)
+            .await
+            .unwrap();
+        (status, serde_json::from_slice(&body).unwrap())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn each_route_class_answers_until_its_deadline_then_times_out() {
+        for (path, limit) in [
+            ("/v1/me", 20),
+            ("/v1/domains/d/sources/s/extract", 60),
+            ("/v1/domains/d/publish", 120),
+        ] {
+            assert_eq!(call(path, limit - 1).await.0, StatusCode::OK, "{path}");
+            let (status, body) = call(path, limit + 1).await;
+            assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{path}");
+            assert_eq!(body["error"], "REQUEST_TIMEOUT", "{path}");
+        }
+    }
+
+    #[test]
+    fn longer_deadlines_name_native_contract_routes() {
+        let catalog = crate::discovery::catalog().unwrap();
+        let paths: Vec<&str> = catalog["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|item| item["path"].as_str())
+            .collect();
+        for route in MODEL_ROUTES.iter().chain(&PUBLICATION_ROUTES) {
+            assert!(paths.contains(route), "{route}");
+        }
+        assert_eq!(deadline(None), DEFAULT_DEADLINE);
     }
 }
